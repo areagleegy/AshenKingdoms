@@ -8,6 +8,9 @@ config/name="ممالك الرماد - AshenKingdoms"
 run/main_scene="res://scenes/boot/Main.tscn"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 
+[autoload]
+DialogueManager="*res://scripts/dialogue/dialogue_manager.gd"
+
 [display]
 
 window/size/viewport_width=1280

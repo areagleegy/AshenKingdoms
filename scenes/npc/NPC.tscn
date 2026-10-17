@@ -1,0 +1,49 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/npc/npc.gd" id="1_npc"]
+[ext_resource type="Resource" path="res://resources/dialogue/elder_intro.tres" id="2_graph"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_npc"]
+radius = 0.38
+height = 1.75
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_npc"]
+radius = 0.38
+height = 1.75
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_npc"]
+albedo_color = Color(0.64, 0.52, 0.3, 1)
+roughness = 0.85
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_talk"]
+radius = 3.0
+
+[node name="NPC" type="CharacterBody3D"]
+collision_layer = 2
+collision_mask = 1
+script = ExtResource("1_npc")
+display_name = "الشيخ المسافر"
+dialogue_graph = ExtResource("2_graph")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("CapsuleMesh_npc")
+surface_material_override/0 = SubResource("StandardMaterial3D_npc")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("CapsuleShape3D_npc")
+
+[node name="TalkZone" type="Area3D" parent="."]
+collision_layer = 4
+collision_mask = 0
+monitoring = false
+monitorable = true
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TalkZone"]
+shape = SubResource("SphereShape3D_talk")
+
+[node name="Prompt" type="Label3D" parent="."]
+position = Vector3(0, 1.5, 0)
+text = "E — تحدّث"
+billboard = 1
+no_depth_test = true
+pixel_size = 0.01
