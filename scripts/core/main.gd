@@ -274,10 +274,10 @@ func _save_game() -> void:
 	if not is_instance_valid(player):
 		return
 	var health := player.get_node("Health") as Health
-	var position := player.global_position
+	var player_pos := player.global_position
 	var data: Dictionary = {
 		"version": 1,
-		"player_position": {"x": position.x, "y": position.y, "z": position.z},
+		"player_position": {"x": player_pos.x, "y": player_pos.y, "z": player_pos.z},
 		"player_health": health.current,
 		"level": int(progression.get("level")),
 		"experience": int(progression.get("experience")),
@@ -303,13 +303,17 @@ func _load_game() -> void:
 			float(position_data.get("z", 0.0))
 		)
 
-	var health := player.get_node("Health") as Health
-	health.set_current_health(float(data.get("player_health", health.max_health)))
 	progression.call(
 		"restore_state",
 		int(data.get("level", 1)),
 		int(data.get("experience", 0))
 	)
+	var restored_level := int(progression.get("level"))
+	var level_bonus := maxi(restored_level - 1, 0)
+	var health := player.get_node("Health") as Health
+	health.max_health = 100.0 + (float(level_bonus) * 10.0)
+	player.set("attack_damage", 20.0 + (float(level_bonus) * 3.0))
+	health.set_current_health(float(data.get("player_health", health.max_health)))
 	player.get_node("Inventory").call("restore_save_data", data.get("inventory", []))
 	quests.call("load_state", data.get("quest", {}))
 	if is_instance_valid(hud):
