@@ -84,6 +84,7 @@ func is_active() -> bool:
 
 
 func set_flag(flag_name: StringName, value: bool = true) -> void:
+	print("[FLAG] %s = %s" % [String(flag_name), str(value)])
 	flags[flag_name] = value
 
 
@@ -196,4 +197,4 @@ func deserialize(data: Dictionary) -> void:
 	if not (raw_flags is Dictionary):
 		return
 	for flag_name in raw_flags:
-		flags[StringName(str(flag_name))] = bool(raw_flags[flag_name])
+		set_flag(StringName(str(flag_name)), bool(raw_flags[flag_name]))
