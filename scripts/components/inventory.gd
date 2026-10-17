@@ -142,6 +142,8 @@ func to_save_data() -> Array:
 
 func restore_save_data(data: Array) -> void:
 	_ensure_slot_count()
+	for index in range(slots.size()):
+		slots[index] = {}
 	for index in range(mini(data.size(), slots.size())):
 		var entry = data[index]
 		if not (entry is Dictionary):

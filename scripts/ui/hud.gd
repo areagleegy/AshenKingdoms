@@ -236,18 +236,24 @@ func _add_touch_button(
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("pause") and not event.is_echo():
+	if event.is_action_pressed("pause") and not _is_echo(event):
 		toggle_pause()
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("inventory") and not event.is_echo():
+	elif event.is_action_pressed("inventory") and not _is_echo(event):
 		toggle_inventory()
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("save") and not event.is_echo():
+	elif event.is_action_pressed("save") and not _is_echo(event):
 		save_requested.emit()
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("load") and not event.is_echo():
+	elif event.is_action_pressed("load") and not _is_echo(event):
 		load_requested.emit()
 		get_viewport().set_input_as_handled()
+
+
+func _is_echo(event: InputEvent) -> bool:
+	if event is InputEventKey:
+		return (event as InputEventKey).echo
+	return false
 
 
 func toggle_pause() -> void:

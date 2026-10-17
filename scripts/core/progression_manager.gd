@@ -30,5 +30,5 @@ func add_experience(amount: int) -> void:
 
 func restore_state(saved_level: int, saved_experience: int) -> void:
 	level = clampi(saved_level, 1, max_level)
-	experience = clampi(saved_experience, 0, xp_to_next_level())
+	experience = clampi(saved_experience, 0, maxi(xp_to_next_level() - 1, 0))
 	experience_changed.emit(experience, xp_to_next_level(), level)
