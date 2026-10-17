@@ -326,12 +326,16 @@ func _save_game() -> void:
 		"quest": quests.call("to_save_data"),
 		"dialogue": DialogueManager.serialize()
 	}
+	print("[SAVE] dialogue: %s" % str(data.get("dialogue", {})))
 	var success := bool(save_system.call("save_game", data))
+	print("[SAVE] success: %s" % str(success))
 	hud.call("show_saved_status", success)
 
 
 func _load_game() -> void:
 	var data: Dictionary = save_system.call("load_game")
+	print("[LOAD] data keys: %s" % str(data.keys()))
+	print("[LOAD] dialogue: %s" % str(data.get("dialogue", {})))
 	if data.is_empty():
 		if is_instance_valid(hud):
 			hud.call("show_message", "لا يوجد ملف حفظ بعد.")
@@ -340,9 +344,7 @@ func _load_game() -> void:
 	if data.has("player_position") and data["player_position"] is Dictionary:
 		var position_data: Dictionary = data["player_position"]
 		player.global_position = Vector3(
-			float(position_data.get("x", 0.0)),
-			float(position_data.get("y", 0.92)),
-			float(position_data.get("z", 0.0))
+			float(position_data.get("x", 0.0)), float(position_data.get("y", 0.92)), float(position_data.get("z", 0.0))
 		)
 
 	progression.call(

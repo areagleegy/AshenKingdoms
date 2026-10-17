@@ -154,6 +154,9 @@ func _check_conditions(action: DialogueAction) -> bool:
 # All gameplay mutations from dialogue pass through this single function.
 # In multiplayer, this is the intended seam for a validated server RPC.
 func _apply_effects(action: DialogueAction) -> void:
+	print("[DialogueManager] apply: flags=%s xp=%d quest=%s" % [
+		str(action.set_flags), action.give_xp, String(action.start_quest_id)
+	])
 	for flag_name in action.set_flags:
 		set_flag(flag_name, true)
 

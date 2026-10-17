@@ -9,6 +9,7 @@ script = ExtResource("3_choice")
 text = "نعم، سأساعدك."
 target_node_id = &"yes"
 set_flags = Array[StringName]([&"quest_accepted"])
+forbidden_flags = Array[StringName]([&"met_elder"])
 start_quest_id = &"ash_trail"
 
 [sub_resource type="Resource" id="ChoiceLater"]
