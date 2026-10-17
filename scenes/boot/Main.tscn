@@ -1,6 +1,9 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/core/main.gd" id="1_main"]
+[ext_resource type="PackedScene" path="res://scenes/ui/DialogueUI.tscn" id="2_dialogue_ui"]
 
 [node name="AshenKingdoms" type="Node3D"]
 script = ExtResource("1_main")
+
+[node name="DialogueUI" parent="." instance=ExtResource("2_dialogue_ui")]

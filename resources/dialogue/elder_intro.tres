@@ -1,0 +1,64 @@
+[gd_resource type="Resource" script_class="DialogueGraph" load_steps=12 format=3]
+
+[ext_resource type="Script" path="res://scripts/dialogue/dialogue_graph.gd" id="1_graph"]
+[ext_resource type="Script" path="res://scripts/dialogue/dialogue_node.gd" id="2_node"]
+[ext_resource type="Script" path="res://scripts/dialogue/dialogue_choice.gd" id="3_choice"]
+
+[sub_resource type="Resource" id="ChoiceAccept"]
+script = ExtResource("3_choice")
+text = "نعم، سأساعدك."
+target_node_id = &"yes"
+set_flags = Array[StringName]([&"quest_accepted"])
+start_quest_id = &"ash_trail"
+
+[sub_resource type="Resource" id="ChoiceLater"]
+script = ExtResource("3_choice")
+text = "ليس الآن."
+target_node_id = &"no"
+
+[sub_resource type="Resource" id="ChoiceRemember"]
+script = ExtResource("3_choice")
+text = "ذكّرني بما اتفقنا عليه."
+target_node_id = &"reminder"
+required_flags = Array[StringName]([&"quest_accepted"])
+
+[sub_resource type="Resource" id="NodeStart"]
+script = ExtResource("2_node")
+id = &"start"
+speaker_name = "الشيخ المسافر"
+text = "لقد أتيت أخيرًا... ممالك الرماد لا ترحم من يسير فيها وحده."
+next_id = &"ask"
+
+[sub_resource type="Resource" id="NodeAsk"]
+script = ExtResource("2_node")
+id = &"ask"
+speaker_name = "الشيخ المسافر"
+text = "تنتشر أشباح الرماد قرب الطريق. هل تساعدني في إبعادها؟"
+choices = Array[ExtResource("3_choice")]([SubResource("ChoiceAccept"), SubResource("ChoiceLater"), SubResource("ChoiceRemember")])
+
+[sub_resource type="Resource" id="NodeYes"]
+script = ExtResource("2_node")
+id = &"yes"
+speaker_name = "الشيخ المسافر"
+text = "إذن ابدأ بثلاثة من أشباح الرماد. سأنتظرك هنا."
+set_flags = Array[StringName]([&"met_elder"])
+next_id = &""
+
+[sub_resource type="Resource" id="NodeNo"]
+script = ExtResource("2_node")
+id = &"no"
+speaker_name = "الشيخ المسافر"
+text = "لا بأس. الطريق سيبقى هنا حين تصبح مستعدًا."
+next_id = &""
+
+[sub_resource type="Resource" id="NodeReminder"]
+script = ExtResource("2_node")
+id = &"reminder"
+speaker_name = "الشيخ المسافر"
+text = "أبعد ثلاثة من أشباح الرماد، ثم عد إليّ."
+next_id = &""
+
+[resource]
+script = ExtResource("1_graph")
+entry_node_id = &"start"
+nodes = Array[ExtResource("2_node")]([SubResource("NodeStart"), SubResource("NodeAsk"), SubResource("NodeYes"), SubResource("NodeNo"), SubResource("NodeReminder")])

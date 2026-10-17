@@ -10,6 +10,8 @@ const PROGRESSION_SCRIPT: Script = preload("res://scripts/core/progression_manag
 const QUEST_SCRIPT: Script = preload("res://scripts/core/quest_manager.gd")
 const SAVE_SCRIPT: Script = preload("res://scripts/core/save_system.gd")
 const HUD_SCRIPT: Script = preload("res://scripts/ui/hud.gd")
+const NPC_SCENE: PackedScene = preload("res://scenes/npc/NPC.tscn")
+const INTERACTION_SCRIPT: Script = preload("res://scripts/player/interaction_detector.gd")
 
 var world: Node3D
 var player: CharacterBody3D
@@ -32,7 +34,11 @@ func _ready() -> void:
 	_create_world()
 	_create_managers()
 	_create_player()
+	DialogueManager.configure_context(player, progression, quests)
+	if not DialogueManager.quest_start_requested.is_connected(_on_dialogue_start_quest):
+		DialogueManager.quest_start_requested.connect(_on_dialogue_start_quest)
 	_create_enemies()
+	_create_npcs()
 	_create_hud()
 
 	if OS.get_cmdline_user_args().has("--continue"):
@@ -67,6 +73,7 @@ func _register_input_actions() -> void:
 	_add_key_action(&"pause", [KEY_ESCAPE])
 	_add_key_action(&"save", [KEY_F5])
 	_add_key_action(&"load", [KEY_F9])
+	_add_key_action(&"interact", [KEY_E, KEY_ENTER])
 	if not InputMap.has_action("attack"):
 		InputMap.add_action("attack")
 	var attack_event := InputEventMouseButton.new()
@@ -134,7 +141,7 @@ func _create_managers() -> void:
 	quests.name = "QuestManager"
 	quests.set("progression", progression)
 	add_child(quests)
-	quests.call("start_default_quest")
+	quests.call("refresh_ui")
 
 	save_system = SAVE_SCRIPT.new()
 	save_system.name = "SaveSystem"
@@ -146,6 +153,7 @@ func _create_player() -> void:
 	player.name = "Player"
 	player.set_script(PLAYER_SCRIPT)
 	player.position = Vector3(0.0, 0.92, 0.0)
+	player.collision_mask = 3
 	_add_capsule_parts(player, 0.42, 1.84, Color(0.62, 0.38, 0.22, 1.0))
 
 	var health_node: Node = HEALTH_SCRIPT.new()
@@ -156,6 +164,18 @@ func _create_player() -> void:
 	var inventory_node: Node = INVENTORY_SCRIPT.new()
 	inventory_node.name = "Inventory"
 	player.add_child(inventory_node)
+
+	var interaction_detector := Area3D.new()
+	interaction_detector.name = "InteractionDetector"
+	interaction_detector.set_script(INTERACTION_SCRIPT)
+	interaction_detector.collision_layer = 0
+	interaction_detector.collision_mask = 4
+	var interaction_shape_node := CollisionShape3D.new()
+	var interaction_shape := SphereShape3D.new()
+	interaction_shape.radius = 3.2
+	interaction_shape_node.shape = interaction_shape
+	interaction_detector.add_child(interaction_shape_node)
+	player.add_child(interaction_detector)
 
 	world.add_child(player)
 	player.add_to_group("player")
@@ -232,6 +252,27 @@ func _create_enemies() -> void:
 		enemies_container.add_child(enemy)
 
 
+func _create_npcs() -> void:
+	var npc := NPC_SCENE.instantiate() as CharacterBody3D
+	if npc == null:
+		push_error("Could not instantiate NPC scene.")
+		return
+	npc.name = "WanderingElder"
+	npc.position = Vector3(-4.0, 0.92, -2.0)
+	world.add_child(npc)
+
+
+func _on_dialogue_start_quest(quest_id: StringName) -> void:
+	if not is_instance_valid(quests):
+		return
+	var started := bool(quests.call("start_quest", quest_id))
+	if is_instance_valid(hud):
+		if started:
+			hud.call("show_message", "تم قبول المهمة: اقتفاء الرماد.")
+		else:
+			hud.call("show_message", "تعذر بدء المهمة أو أنها مكتملة بالفعل.")
+
+
 func _create_hud() -> void:
 	hud = HUD_SCRIPT.new()
 	hud.name = "HUD"
@@ -282,7 +323,8 @@ func _save_game() -> void:
 		"level": int(progression.get("level")),
 		"experience": int(progression.get("experience")),
 		"inventory": player.get_node("Inventory").call("to_save_data"),
-		"quest": quests.call("to_save_data")
+		"quest": quests.call("to_save_data"),
+		"dialogue": DialogueManager.serialize()
 	}
 	var success := bool(save_system.call("save_game", data))
 	hud.call("show_saved_status", success)
@@ -316,6 +358,8 @@ func _load_game() -> void:
 	health.set_current_health(float(data.get("player_health", health.max_health)))
 	player.get_node("Inventory").call("restore_save_data", data.get("inventory", []))
 	quests.call("load_state", data.get("quest", {}))
+	var dialogue_data = data.get("dialogue", {})
+	DialogueManager.deserialize(dialogue_data if dialogue_data is Dictionary else {})
 	if is_instance_valid(hud):
 		hud.call("close_overlays")
 		hud.call("show_message", "تم تحميل الحفظ.")
