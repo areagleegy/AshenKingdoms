@@ -5,7 +5,7 @@ const SERVER_SCRIPT: Script = preload("res://scripts/core/server.gd")
 
 func _ready() -> void:
     if _is_server_mode():
-        var server_node := SERVER_SCRIPT.new()
+        var server_node: Node = SERVER_SCRIPT.new()
         server_node.name = "ServerBootstrap"
         add_child(server_node)
         return
