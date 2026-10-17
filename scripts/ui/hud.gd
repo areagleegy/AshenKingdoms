@@ -257,6 +257,8 @@ func _is_echo(event: InputEvent) -> bool:
 
 
 func toggle_pause() -> void:
+	if _dialogue_active():
+		return
 	if _pause_panel.visible:
 		_set_paused(false)
 	else:
@@ -265,7 +267,7 @@ func toggle_pause() -> void:
 
 
 func toggle_inventory() -> void:
-	if _pause_panel.visible:
+	if _dialogue_active() or _pause_panel.visible:
 		return
 	_set_inventory_visible(not _inventory_panel.visible)
 
@@ -289,6 +291,11 @@ func close_overlays() -> void:
 	_inventory_panel.visible = false
 	get_tree().paused = false
 	_set_mouse_for_ui(false)
+
+
+func _dialogue_active() -> bool:
+	var manager := get_node_or_null("/root/DialogueManager")
+	return manager != null and bool(manager.call("is_active"))
 
 
 func _set_mouse_for_ui(show_mouse: bool) -> void:
@@ -347,6 +354,9 @@ func _on_experience_changed(experience: int, required: int, level: int) -> void:
 
 
 func _on_quest_updated(title: String, description: String, current: int, target: int) -> void:
+	if title == "لا توجد مهمة نشطة":
+		_quest_label.text = "%s\n%s" % [title, description]
+		return
 	var status := "مكتملة" if current >= target else "%d / %d" % [current, target]
 	_quest_label.text = "المهمة: %s\n%s\nالتقدم: %s" % [title, description, status]
 
