@@ -1,0 +1,12 @@
+{
+  "name": "AshenKingdoms Godot CLI",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "postCreateCommand": "bash tools/setup-godot-cli.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "geequlim.godot-tools"
+      ]
+    }
+  }
+}

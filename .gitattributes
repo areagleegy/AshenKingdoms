@@ -1,0 +1,9 @@
+* text=auto
+*.gd text diff
+*.tscn text
+*.tres text
+*.godot text
+*.cfg text
+*.yml text
+*.yaml text
+*.md text

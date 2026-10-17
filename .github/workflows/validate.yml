@@ -1,0 +1,41 @@
+name: Validate Godot Project
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Godot CLI
+        run: bash tools/setup-godot-cli.sh
+
+      - name: Add Godot to PATH
+        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Check required files
+        run: |
+          test -f project.godot
+          test -f export_presets.cfg
+          test -f scenes/boot/Main.tscn
+          test -f scripts/core/main.gd
+          test -f scripts/core/server.gd
+          test -f README.md
+          test -f LICENSE
+          test -f docs/TECHNICAL_ARCHITECTURE.md
+          test -f docs/TEST_PLAN.md
+
+      - name: Import and parse project
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: godot --headless --path . --editor --quit
