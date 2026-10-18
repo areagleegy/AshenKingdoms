@@ -16,8 +16,6 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		apply_look_delta((event as InputEventMouseMotion).relative * mouse_sensitivity)
-	elif event is InputEventScreenDrag:
-		apply_look_delta((event as InputEventScreenDrag).relative * touch_sensitivity)
 
 
 func apply_look_delta(delta: Vector2) -> void:
