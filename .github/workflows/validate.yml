@@ -35,6 +35,7 @@ jobs:
           test -f docs/TECHNICAL_ARCHITECTURE.md
           test -f docs/TEST_PLAN.md
           test -f tests/gameplay_smoke_test.gd
+          test -f tests/gameplay_regression_test.gd
 
       - name: Import and parse project
         env:
@@ -45,3 +46,8 @@ jobs:
         env:
           GODOT_SILENCE_ROOT_WARNING: "1"
         run: godot --headless --path . --script res://tests/gameplay_smoke_test.gd
+
+      - name: Run gameplay regression tests
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: godot --headless --path . --script res://tests/gameplay_regression_test.gd
