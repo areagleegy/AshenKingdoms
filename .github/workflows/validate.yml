@@ -61,4 +61,4 @@ jobs:
       - name: Run network combat smoke tests
         env:
           GODOT_SILENCE_ROOT_WARNING: "1"
-        run: godot --headless --path . res://tests/network_combat_smoke_test.tscn
+        run: timeout 45s godot --headless --path . res://tests/network_combat_smoke_test.tscn
