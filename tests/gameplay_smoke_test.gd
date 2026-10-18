@@ -24,6 +24,11 @@ func _run() -> void:
 		original_save = original_file.get_as_text()
 		original_file.close()
 
+	_check(NetworkManager.session_mode == "offline", "network manager starts in offline mode")
+	_check(int(NetworkManager.call("start_host", 0)) == ERR_INVALID_PARAMETER, "network manager rejects an invalid host port")
+	_check(int(NetworkManager.call("start_client", "", 7777)) == ERR_INVALID_PARAMETER, "network manager rejects an empty server address")
+	_check(NetworkManager.session_mode == "offline", "invalid network settings do not start a session")
+
 	var progression: Node = ProgressionManagerScript.new()
 	root.add_child(progression)
 	_check(int(progression.get("level")) == 1, "progression starts at level 1")
