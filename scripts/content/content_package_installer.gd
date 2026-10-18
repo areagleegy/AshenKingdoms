@@ -177,7 +177,7 @@ func _remove_tree(absolute_path: String) -> Error:
 
 
 func _is_allowed_extension(path: String) -> bool:
-	var allowed := ["glb", "gltf", "bin", "png", "jpg", "jpeg", "webp", "ktx2", "ogg", "wav", "mp3", "json"]
+	var allowed := ["glb", "png", "jpg", "jpeg", "webp", "ktx2", "ogg", "wav", "mp3", "json"]
 	return allowed.has(path.get_extension().to_lower())
 
 
