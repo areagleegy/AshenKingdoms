@@ -1,3 +1,4 @@
+class_name AshenVirtualJoystick
 extends Control
 
 signal direction_changed(direction: Vector2)
