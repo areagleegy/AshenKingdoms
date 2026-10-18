@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Unit tests for the deterministic, offline diagnostics layer."""
+import json
 import os
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from ai_test_diagnostics import classify_text, redact_sensitive, request_ai_advice
@@ -81,6 +83,20 @@ class DiagnosticsClassifierTests(unittest.TestCase):
         findings = classify_text("MISSING REQUIRED FILE: tests/gameplay_smoke_test.gd")
         self.assertEqual(findings[0]["category"], "required_files")
         self.assertIn("الملف", findings[0]["recommended_action"])
+
+    def test_labeled_corpus_distinguishes_known_errors_and_clean_logs(self):
+        corpus_path = Path(__file__).with_name("diagnostic_cases.json")
+        cases = json.loads(corpus_path.read_text(encoding="utf-8"))
+        self.assertGreaterEqual(len(cases), 10)
+        for case in cases:
+            with self.subTest(case=case["id"]):
+                findings = classify_text(case["log"])
+                categories = {item["category"] for item in findings}
+                expected = case["expected_category"]
+                if expected is None:
+                    self.assertEqual(findings, [], case["id"])
+                else:
+                    self.assertIn(expected, categories, case["id"])
 
     def test_remote_ai_is_off_by_default_and_makes_no_request(self):
         report = {"diagnostics": []}
