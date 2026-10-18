@@ -32,6 +32,7 @@ jobs:
           test -f scenes/network/MultiplayerArena.tscn
           test -f scenes/network/NetworkAvatar.tscn
           test -f scenes/network/NetworkEnemy.tscn
+          test -f scenes/ui/TouchControls.tscn
           test -f scripts/core/main.gd
           test -f scripts/core/server.gd
           test -f scripts/core/network_manager.gd
@@ -39,6 +40,7 @@ jobs:
           test -f scripts/networking/network_avatar.gd
           test -f scripts/networking/network_enemy.gd
           test -f scripts/ui/main_menu.gd
+          test -f scripts/ui/virtual_joystick.gd
           test -f README.md
           test -f LICENSE
           test -f docs/TECHNICAL_ARCHITECTURE.md
