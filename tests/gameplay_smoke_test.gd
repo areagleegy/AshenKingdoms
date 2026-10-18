@@ -80,7 +80,8 @@ func _run() -> void:
 	else:
 		corrupt_file.store_string("{invalid json")
 		corrupt_file.close()
-		_check((save_system.call("load_game") as Dictionary).is_empty(), "malformed JSON is rejected safely")
+		var corrupt_data = save_system.call("load_game")
+		_check(corrupt_data is Dictionary and corrupt_data.is_empty(), "malformed JSON is rejected safely")
 
 	_restore_original_save(had_original_save, original_save, save_system)
 
