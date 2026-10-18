@@ -52,6 +52,10 @@ func _ready() -> void:
 	add_to_group("network_enemies")
 	_home_position = global_position
 	current_health = clampf(current_health, 0.0, max_health)
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color(0.24, 0.30, 0.38, 1.0)
+	material.roughness = 0.85
+	_body_mesh.material_override = material
 	if not multiplayer.is_server():
 		set_physics_process(false)
 
