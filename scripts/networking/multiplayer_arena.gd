@@ -58,7 +58,7 @@ func _register_input_actions() -> void:
 	_add_key_action(&"move_forward", [KEY_W, KEY_UP])
 	_add_key_action(&"move_back", [KEY_S, KEY_DOWN])
 	_add_key_action(&"move_left", [KEY_A, KEY_LEFT])
-	_add_key_action(&"move_right", [KEY_D, KEY_DOWN])
+	_add_key_action(&"move_right", [KEY_D, KEY_RIGHT])
 	_add_key_action(&"jump", [KEY_SPACE])
 	_add_key_action(&"sprint", [KEY_SHIFT])
 	_add_key_action(&"pause", [KEY_ESCAPE])
