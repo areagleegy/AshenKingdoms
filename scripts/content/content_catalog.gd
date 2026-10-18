@@ -38,7 +38,7 @@ func parse_signed_envelope(raw_json: String, public_key_pem: String) -> Dictiona
 	if public_key.load_from_string(public_key_pem, true) != OK or not public_key.is_public_only():
 		return _error("Catalog public key is invalid.")
 	var crypto := Crypto.new()
-	var payload_hash: PackedByteArray = payload_bytes.sha256_buffer()
+	var payload_hash: PackedByteArray = _sha256_bytes(payload_bytes)
 	if not crypto.verify(HashingContext.HASH_SHA256, payload_hash, signature, public_key):
 		return _error("Catalog signature verification failed.")
 	var payload_value: Variant = JSON.parse_string(payload_bytes.get_string_from_utf8())
@@ -148,7 +148,7 @@ func _validate_pack(pack: Dictionary) -> Dictionary:
 func is_safe_relative_path(path: String) -> bool:
 	if path.is_empty() or path.length() > 240:
 		return false
-	if path.begins_with("/") or path.begins_with("\\") or path.contains(":") or path.contains("\\") or path.contains("\u0000"):
+	if path.begins_with("/") or path.begins_with("\\") or path.contains(":") or path.contains("\\") or path.to_utf8_buffer().has(0):
 		return false
 	var segments := path.split("/", false)
 	if segments.is_empty():
@@ -181,6 +181,15 @@ func _is_safe_version(value: String) -> bool:
 		if not allowed:
 			return false
 	return true
+
+
+func _sha256_bytes(bytes: PackedByteArray) -> PackedByteArray:
+	var context := HashingContext.new()
+	if context.start(HashingContext.HASH_SHA256) != OK:
+		return PackedByteArray()
+	if context.update(bytes) != OK:
+		return PackedByteArray()
+	return context.finish()
 
 
 func _is_sha256(value: String) -> bool:
