@@ -10,6 +10,7 @@ const PROGRESSION_SCRIPT: Script = preload("res://scripts/core/progression_manag
 const QUEST_SCRIPT: Script = preload("res://scripts/core/quest_manager.gd")
 const SAVE_SCRIPT: Script = preload("res://scripts/core/save_system.gd")
 const HUD_SCRIPT: Script = preload("res://scripts/ui/hud.gd")
+const TOUCH_CONTROLS_SCENE: PackedScene = preload("res://scenes/ui/TouchControls.tscn")
 const NPC_SCENE: PackedScene = preload("res://scenes/npc/NPC.tscn")
 const INTERACTION_SCRIPT: Script = preload("res://scripts/player/interaction_detector.gd")
 
@@ -40,6 +41,7 @@ func _ready() -> void:
 	_create_enemies()
 	_create_npcs()
 	_create_hud()
+	_add_touch_controls()
 
 	if OS.get_cmdline_user_args().has("--continue"):
 		_load_game()
@@ -47,6 +49,12 @@ func _ready() -> void:
 	if not (OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios")):
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	print("AshenKingdoms playable vertical slice started.")
+
+
+func _add_touch_controls() -> void:
+	var controls := TOUCH_CONTROLS_SCENE.instantiate()
+	controls.name = "TouchControls"
+	add_child(controls)
 
 
 func _process(_delta: float) -> void:
@@ -333,35 +341,30 @@ func _save_game() -> void:
 
 
 func _load_game() -> void:
-	var data: Dictionary = save_system.call("load_game")
-	print("[LOAD] data keys: %s" % str(data.keys()))
-	print("[LOAD] dialogue: %s" % str(data.get("dialogue", {})))
-	if data.is_empty():
-		if is_instance_valid(hud):
-			hud.call("show_message", "لا يوجد ملف حفظ بعد.")
+	if not is_instance_valid(player):
 		return
-
-	if data.has("player_position") and data["player_position"] is Dictionary:
-		var position_data: Dictionary = data["player_position"]
+	var data = save_system.call("load_game")
+	if not data is Dictionary or data.is_empty():
+		if is_instance_valid(hud):
+			hud.call("show_message", "لا توجد لعبة محفوظة صالحة.")
+		return
+	if int(data.get("version", 0)) != 1:
+		if is_instance_valid(hud):
+			hud.call("show_message", "إصدار ملف الحفظ غير مدعوم.")
+		return
+	var position_data = data.get("player_position", {})
+	if position_data is Dictionary:
 		player.global_position = Vector3(
-			float(position_data.get("x", 0.0)), float(position_data.get("y", 0.92)), float(position_data.get("z", 0.0))
+			float(position_data.get("x", 0.0)),
+			float(position_data.get("y", 0.92)),
+			float(position_data.get("z", 0.0))
 		)
-
-	progression.call(
-		"restore_state",
-		int(data.get("level", 1)),
-		int(data.get("experience", 0))
-	)
-	var restored_level := int(progression.get("level"))
-	var level_bonus := maxi(restored_level - 1, 0)
 	var health := player.get_node("Health") as Health
-	health.max_health = 100.0 + (float(level_bonus) * 10.0)
-	player.set("attack_damage", 20.0 + (float(level_bonus) * 3.0))
-	health.set_current_health(float(data.get("player_health", health.max_health)))
-	player.get_node("Inventory").call("restore_save_data", data.get("inventory", []))
+	health.set("current", clampf(float(data.get("player_health", health.current)), 0.0, health.max_health))
+	progression.set("level", maxi(1, int(data.get("level", 1)))
+	progression.set("experience", maxi(0, int(data.get("experience", 0)))
+	player.get_node("Inventory").call("load_state", data.get("inventory", {}))
 	quests.call("load_state", data.get("quest", {}))
-	var dialogue_data = data.get("dialogue", {})
-	DialogueManager.deserialize(dialogue_data if dialogue_data is Dictionary else {})
+	DialogueManager.deserialize(data.get("dialogue", {}))
 	if is_instance_valid(hud):
-		hud.call("close_overlays")
-		hud.call("show_message", "تم تحميل الحفظ.")
+		hud.call("show_message", "تم تحميل اللعبة.")
