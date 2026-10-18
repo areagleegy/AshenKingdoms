@@ -49,6 +49,7 @@ Workflow التحقق يعمل على main وعند Pull Request. Workflow ال�
 - البنية الحالية وخريطة السكربتات: docs/TECHNICAL_ARCHITECTURE.md.
 - خطوات التحقق اليدوي: docs/TEST_PLAN.md.
 - سجل الأصول: docs/ASSET_CREDITS.md.
+- ربط إضافة فحص أصول Godot وتوليد GLB من صورة مرجعية: docs/PLUGIN_INTEGRATION_AR.md.
 
 الكود تحت MIT. لا توجد أصول فنية خارجية مضمنة؛ يجب توثيق رخصة كل نموذج أو خامة أو صوت أو خط يضاف لاحقًا. لا ترفع أسرارًا أو مفاتيح توقيع Android إلى المستودع.
 
