@@ -71,46 +71,44 @@ func _build_ui() -> void:
 	network_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	layout.add_child(network_title)
 
-	var address_label := Label.new()
-	address_label.text = "عنوان الخادم (IP أو اسم المضيف)"
-	layout.add_child(address_label)
-
 	_address_input = LineEdit.new()
 	_address_input.text = "127.0.0.1"
-	_address_input.placeholder_text = "مثال: 192.168.1.20"
+	_address_input.placeholder_text = "عنوان الخادم (IP أو اسم المضيف)"
 	_address_input.clear_button_enabled = true
 	layout.add_child(_address_input)
 
-	var port_label := Label.new()
-	port_label.text = "منفذ الاتصال"
-	layout.add_child(port_label)
-
 	_port_input = LineEdit.new()
 	_port_input.text = str(DEFAULT_PORT)
-	_port_input.placeholder_text = str(DEFAULT_PORT)
+	_port_input.placeholder_text = "منفذ الاتصال"
 	_port_input.max_length = 5
 	_port_input.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER
 	layout.add_child(_port_input)
 
+	var network_supported := not OS.has_feature("web")
 	var host_button := Button.new()
 	host_button.text = "استضافة جلسة على هذا الجهاز"
 	host_button.custom_minimum_size = Vector2(0.0, 46.0)
+	host_button.disabled = not network_supported
 	host_button.pressed.connect(_start_host)
 	layout.add_child(host_button)
 
 	_join_button = Button.new()
 	_join_button.text = "الانضمام إلى الخادم"
 	_join_button.custom_minimum_size = Vector2(0.0, 46.0)
+	_join_button.disabled = not network_supported
 	_join_button.pressed.connect(_start_client)
 	layout.add_child(_join_button)
 
 	var note := Label.new()
-	note.text = "هذه المرحلة تختبر الاتصال وحركة اللاعبين المتزامنة. القتال الجماعي والمهام المشتركة لم تُفعّل بعد."
+	if network_supported:
+		note.text = "تختبر هذه المرحلة الاتصال وحركة اللاعبين المتزامنة. القتال الجماعي والمهام المشتركة لم تُفعّل بعد."
+	else:
+		note.text = "نسخة Web تدعم اللعب الفردي في هذه المرحلة. جلسة ENet التجريبية متاحة عبر Desktop أو Android."
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	layout.add_child(note)
 
 	_status_label = Label.new()
-	_status_label.text = "اختر اللعب الفردي أو ابدأ جلسة شبكة."
+	_status_label.text = "اختر اللعب الفردي أو ابدأ جلسة شبكة." if network_supported else "استخدم نسخة Desktop أو Android لاختبار الشبكة."
 	_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_status_label.custom_minimum_size = Vector2(0.0, 44.0)
 	layout.add_child(_status_label)
@@ -124,6 +122,9 @@ func _start_solo() -> void:
 
 
 func _start_host() -> void:
+	if OS.has_feature("web"):
+		_set_status("الاستضافة عبر ENet غير متاحة في نسخة Web.")
+		return
 	var port := _read_port()
 	if port < 1 or port > 65535:
 		_set_status("أدخل منفذًا صحيحًا بين 1 و65535.")
@@ -137,6 +138,9 @@ func _start_host() -> void:
 
 
 func _start_client() -> void:
+	if OS.has_feature("web"):
+		_set_status("الاتصال عبر ENet غير متاح في نسخة Web.")
+		return
 	var port := _read_port()
 	var address := _address_input.text.strip_edges()
 	if address.is_empty():
