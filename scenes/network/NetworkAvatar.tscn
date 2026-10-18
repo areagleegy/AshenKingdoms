@@ -1,0 +1,50 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/networking/network_avatar.gd" id="1_avatar"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_avatar"]
+radius = 0.42
+height = 1.84
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_avatar"]
+radius = 0.42
+height = 1.84
+radial_segments = 12
+rings = 6
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_avatar"]
+properties/0/path = NodePath(".:position")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+properties/1/path = NodePath(".:rotation")
+properties/1/spawn = true
+properties/1/replication_mode = 1
+properties/2/path = NodePath(".:velocity")
+properties/2/spawn = true
+properties/2/replication_mode = 1
+
+[node name="NetworkAvatar" type="CharacterBody3D"]
+collision_layer = 1
+collision_mask = 1
+script = ExtResource("1_avatar")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("CapsuleShape3D_avatar")
+
+[node name="VisualRoot" type="Node3D" parent="."]
+
+[node name="BodyMesh" type="MeshInstance3D" parent="VisualRoot"]
+mesh = SubResource("CapsuleMesh_avatar")
+
+[node name="CameraRig" type="Node3D" parent="."]
+position = Vector3(0, 1.35, 0)
+
+[node name="SpringArm3D" type="SpringArm3D" parent="CameraRig"]
+spring_length = 4.8
+margin = 0.25
+
+[node name="Camera3D" type="Camera3D" parent="CameraRig/SpringArm3D"]
+current = false
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_config = SubResource("SceneReplicationConfig_avatar")
