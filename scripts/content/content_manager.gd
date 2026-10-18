@@ -22,6 +22,7 @@ var _last_error := ""
 
 
 func _ready() -> void:
+	set_process(true)
 	_load_registry()
 	var configured_url := str(ProjectSettings.get_setting("ashen/content/catalog_url", ""))
 	if configured_url.is_empty():
@@ -29,6 +30,14 @@ func _ready() -> void:
 		_last_error = "Content catalog URL is not configured."
 	else:
 		_catalog_state = "not_loaded"
+
+
+func _process(_delta: float) -> void:
+	for pack_id in _downloads:
+		var state: Dictionary = _downloads[pack_id]
+		var request: HTTPRequest = state.get("request")
+		if request != null and is_instance_valid(request):
+			download_progress.emit(str(pack_id), int(request.downloaded_bytes), int(state.get("record", {}).get("download_size", 0)))
 
 
 func get_catalog_state() -> String:
@@ -188,10 +197,9 @@ func _on_catalog_request_completed(result: int, response_code: int, _headers: Pa
 	if not bool(parsed.get("ok", false)):
 		_fail_catalog(str(parsed.get("error", "Catalog validation failed.")))
 		return
-	_catalog = parsed["catalog"].get("packs", []).reduce(func(acc: Dictionary, pack: Dictionary) -> Dictionary:
-		acc[str(pack["id"])] = pack
-		return acc
-	, {})
+	_catalog.clear()
+	for pack in parsed["catalog"].get("packs", []):
+		_catalog[str(pack["id"])] = pack
 	_catalog_state = "ready"
 	_last_error = ""
 	catalog_updated.emit(_catalog.duplicate(true))
@@ -265,11 +273,20 @@ func _save_registry() -> bool:
 	file.close()
 	var temporary_absolute := ProjectSettings.globalize_path(REGISTRY_TEMP_PATH)
 	var destination_absolute := ProjectSettings.globalize_path(REGISTRY_PATH)
+	var backup_path := ProjectSettings.globalize_path("user://content/registry.bak")
 	if FileAccess.file_exists(REGISTRY_PATH):
-		if DirAccess.remove_absolute(destination_absolute) != OK:
+		if FileAccess.file_exists("user://content/registry.bak"):
+			_remove_file("user://content/registry.bak")
+		if DirAccess.rename_absolute(destination_absolute, backup_path) != OK:
 			_remove_file(REGISTRY_TEMP_PATH)
 			return false
-	return DirAccess.rename_absolute(temporary_absolute, destination_absolute) == OK
+	if DirAccess.rename_absolute(temporary_absolute, destination_absolute) != OK:
+		if FileAccess.file_exists("user://content/registry.bak"):
+			DirAccess.rename_absolute(backup_path, destination_absolute)
+		_remove_file(REGISTRY_TEMP_PATH)
+		return false
+	_remove_file("user://content/registry.bak")
+	return true
 
 
 func _cleanup_download(pack_id: String, temporary_path: String) -> void:
