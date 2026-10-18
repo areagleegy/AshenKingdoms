@@ -3,6 +3,8 @@ extends SceneTree
 const ProgressionManagerScript: Script = preload("res://scripts/core/progression_manager.gd")
 const QuestManagerScript: Script = preload("res://scripts/core/quest_manager.gd")
 const SaveSystemScript: Script = preload("res://scripts/core/save_system.gd")
+const NetworkAvatarScene: PackedScene = preload("res://scenes/network/NetworkAvatar.tscn")
+const NetworkEnemyScene: PackedScene = preload("res://scenes/network/NetworkEnemy.tscn")
 const SAVE_PATH: String = "user://savegame.json"
 
 var _failures: int = 0
@@ -66,6 +68,41 @@ func _run() -> void:
 	restored_quest.call("load_state", quests.call("to_save_data"))
 	_check(int(restored_quest.get("progress")) == 3, "quest progress survives save-data round-trip")
 	_check(not bool(restored_quest.get("active")), "completed state survives save-data round-trip")
+
+	# Exercise the new network combat components in offline-server mode. These
+	# tests verify server-side logic, not live transport or two-device latency.
+	var network_avatar := NetworkAvatarScene.instantiate() as CharacterBody3D
+	network_avatar.call("configure_owner", 1)
+	root.add_child(network_avatar)
+	_check(float(network_avatar.get("current_health")) == 100.0, "network avatar starts with server-owned health")
+	network_avatar.call("server_grant_experience", 100)
+	_check(int(network_avatar.get("level")) == 2, "network avatar levels up from server-granted XP")
+	_check(float(network_avatar.get("max_health")) == 110.0, "network avatar gains max health on level-up")
+
+	network_avatar.call("register_enemy_defeat")
+	network_avatar.call("register_enemy_defeat")
+	network_avatar.call("register_enemy_defeat")
+	_check(int(network_avatar.get("quest_progress")) == 3, "network kill quest records three enemy defeats")
+	_check(bool(network_avatar.get("quest_completed")), "network kill quest completes at its target")
+	_check(int(network_avatar.get("level")) >= 3, "network quest reward can level up the player")
+	var completed_progress := int(network_avatar.get("quest_progress"))
+	network_avatar.call("register_enemy_defeat")
+	_check(int(network_avatar.get("quest_progress")) == completed_progress, "network kill quest progress stops after completion")
+
+	var network_enemy := NetworkEnemyScene.instantiate() as CharacterBody3D
+	network_enemy.call("configure_spawn", 1)
+	root.add_child(network_enemy)
+	var death_event: Dictionary = {"count": 0, "attacker": 0}
+	network_enemy.died.connect(func(_enemy: Node, attacker_peer_id: int) -> void:
+		death_event["count"] = int(death_event["count"]) + 1
+		death_event["attacker"] = attacker_peer_id
+	)
+	network_enemy.call("apply_damage_from_server", 999.0, 1)
+	_check(bool(network_enemy.get("is_dead")), "lethal server damage marks the network enemy dead")
+	_check(float(network_enemy.get("current_health")) == 0.0, "network enemy health cannot fall below zero")
+	_check(int(death_event["count"]) == 1 and int(death_event["attacker"]) == 1, "enemy death emits one server-owned killer event")
+	network_enemy.queue_free()
+	network_avatar.queue_free()
 
 	var save_system: Node = SaveSystemScript.new()
 	root.add_child(save_system)
