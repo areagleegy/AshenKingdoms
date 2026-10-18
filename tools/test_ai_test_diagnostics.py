@@ -107,5 +107,35 @@ class DiagnosticsClassifierTests(unittest.TestCase):
         self.assertEqual(status, "disabled")
 
 
+class DiagnosticBenchmarkTests(unittest.TestCase):
+    def test_benchmark_reports_hits_misses_and_false_positives(self):
+        from diagnostic_benchmark import evaluate_cases
+
+        cases = [
+            {"id": "hit", "expected_category": "network", "log": "ENet connection failed: timed out"},
+            {"id": "miss", "expected_category": "android_export", "log": "Android SDK configured"},
+            {"id": "false-positive", "expected_category": None, "log": "ERROR: unexpected failure"},
+        ]
+        result = evaluate_cases(cases, classify_text)
+        self.assertEqual(result["total_cases"], 3)
+        self.assertEqual(result["positive_cases"], 2)
+        self.assertEqual(result["negative_cases"], 1)
+        self.assertEqual(result["detected_expected_category"], 1)
+        self.assertEqual(result["missed_positive_cases"], ["miss"])
+        self.assertEqual(result["false_positive_cases"], ["false-positive"])
+        self.assertEqual(result["expected_category_recall_percent"], 50.0)
+        self.assertEqual(result["negative_case_specificity_percent"], 0.0)
+
+    def test_benchmark_rejects_duplicate_case_ids(self):
+        from diagnostic_benchmark import evaluate_cases
+
+        cases = [
+            {"id": "duplicate", "expected_category": None, "log": "clean"},
+            {"id": "duplicate", "expected_category": None, "log": "clean"},
+        ]
+        with self.assertRaisesRegex(ValueError, "duplicate"):
+            evaluate_cases(cases, classify_text)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
