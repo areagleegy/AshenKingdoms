@@ -20,6 +20,10 @@ window/size/window_width_override=960
 window/size/window_height_override=540
 window/stretch/mode="canvas_items"
 
+[ashen]
+content/catalog_url=""
+content/catalog_public_key=""
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"
