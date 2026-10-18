@@ -70,7 +70,7 @@ def classify_text(text: str) -> list[dict[str, Any]]:
     lines = text.splitlines()
     # Successful unittest rows can contain words such as "parse_error" in the
     # test name; they are not evidence of a runtime failure.
-    successful_unittest = re.compile(r"\btest_[A-Za-z0-9_]+\s+\.\.\.\s+ok\s*$", re.IGNORECASE)
+    successful_unittest = re.compile(r"\btest_[A-Za-z0-9_]+(?:\s+\([^)]*\))?\s+\.\.\.\s+ok\s*$", re.IGNORECASE)
     expected_bad_json_test_passed = re.search(
         r"\[PASS\].*malformed JSON is rejected safely", text, re.IGNORECASE
     ) is not None
