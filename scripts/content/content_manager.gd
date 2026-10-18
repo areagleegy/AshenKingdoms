@@ -1,5 +1,4 @@
 extends Node
-class_name ContentManager
 
 signal catalog_updated(catalog: Dictionary)
 signal pack_state_changed(pack_id: String, state: String, details: Dictionary)
@@ -124,6 +123,10 @@ func cancel_download(pack_id: String) -> void:
 	var temporary_path := str(state.get("path", ""))
 	_cleanup_download(pack_id, temporary_path)
 	_emit_pack_state(pack_id, "cancelled", {})
+
+
+func is_downloading(pack_id: String) -> bool:
+	return _downloads.has(pack_id)
 
 
 func is_pack_installed(pack_id: String) -> bool:
