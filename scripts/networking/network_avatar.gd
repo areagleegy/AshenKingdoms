@@ -177,9 +177,9 @@ func _server_try_attack() -> void:
 			continue
 		if bool(candidate.get("is_dead")):
 			continue
-		var offset := candidate.global_position - global_position
+		var offset: Vector3 = candidate.global_position - global_position
 		offset.y = 0.0
-		var distance := offset.length()
+		var distance: float = offset.length()
 		if distance > closest_distance or distance <= 0.001:
 			continue
 		if forward.dot(offset.normalized()) < 0.1:
