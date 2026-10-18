@@ -48,6 +48,7 @@ jobs:
               tests/gameplay_smoke_test.gd
               tools/ai_test_diagnostics.py
               tools/test_ai_test_diagnostics.py
+              tools/diagnostic_cases.json
             )
             missing=0
             for path in "${required_files[@]}"; do
