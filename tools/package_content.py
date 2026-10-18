@@ -10,6 +10,7 @@ import json
 import os
 import pathlib
 import re
+import shutil
 import subprocess
 import tempfile
 import zipfile
@@ -61,6 +62,14 @@ def validate_package_url(value: str) -> str:
     return value
 
 
+def sha256_file(path: pathlib.Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def collect_files(source_dir: pathlib.Path) -> list[dict[str, Any]]:
     root = source_dir.resolve(strict=True)
     if not root.is_dir():
@@ -94,7 +103,7 @@ def collect_files(source_dir: pathlib.Path) -> list[dict[str, Any]]:
             total_size += size
             if total_size > MAX_TOTAL_BYTES:
                 raise PackageError("Package exceeds total unpacked size limit.")
-            digest = hashlib.sha256(file_path.read_bytes()).hexdigest()
+            digest = sha256_file(file_path)
             records.append({"path": relative, "size": size, "sha256": digest})
             if len(records) > MAX_FILES:
                 raise PackageError("Package contains too many files.")
@@ -116,7 +125,7 @@ def create_archive(source_dir: pathlib.Path, output_zip: pathlib.Path, records: 
                 info.compress_type = zipfile.ZIP_DEFLATED
                 info.create_system = 3
                 info.external_attr = 0o100644 << 16
-                archive.writestr(info, (root / relative).read_bytes(), compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
+                with archive.open(info, "w", force_zip64=True) as output:\n                    with (root / relative).open("rb") as source:\n                        shutil.copyfileobj(source, output, length=1024 * 1024)
         if temporary_path.stat().st_size > MAX_ARCHIVE_BYTES:
             raise PackageError("Compressed archive exceeds the download size limit.")
         os.replace(temporary_path, output_zip)
@@ -156,12 +165,14 @@ def build_package(
     validate_pack_id(pack_id)
     validate_version(version)
     validate_package_url(url)
+    if not pathlib.Path(private_key).is_file():
+        raise PackageError("Signing key is missing; refusing to create an unsigned catalog.")
     if pack_type not in PACK_TYPES:
         raise PackageError("Unsupported pack type.")
     records = collect_files(pathlib.Path(source_dir))
     create_archive(pathlib.Path(source_dir), pathlib.Path(output_zip), records)
     archive_size = pathlib.Path(output_zip).stat().st_size
-    archive_digest = hashlib.sha256(pathlib.Path(output_zip).read_bytes()).hexdigest()
+    archive_digest = sha256_file(pathlib.Path(output_zip))
     pack_record = {
         "id": pack_id,
         "name": pack_id.replace("_", " ").replace("-", " ").title(),
