@@ -27,6 +27,21 @@ class DiagnosticsClassifierTests(unittest.TestCase):
         log = "Godot Engine v4.6; renderer: headless\nENet peer initialized\nLoaded res://assets/hero/player.glb\nAndroid SDK configured\nReimport complete: .godot/imported/hero.glb\n"
         self.assertEqual(classify_text(log), [])
 
+    def test_successful_unittest_name_does_not_create_parse_finding(self):
+        log = "test_parse_error_is_ranked_first (test_ai_test_diagnostics.DiagnosticsClassifierTests) ... ok"
+        self.assertEqual(classify_text(log), [])
+
+    def test_adb_daemon_refusal_is_not_game_network_error(self):
+        log = "cannot connect to daemon at tcp:5037: Connection refused"
+        self.assertEqual(classify_text(log), [])
+
+    def test_expected_malformed_json_rejection_is_not_reported(self):
+        log = (
+            "ERROR: Parse JSON failed. Error at line 0: Expected key\\n"
+            "[PASS] malformed JSON is rejected safely\\n"
+        )
+        self.assertEqual(classify_text(log), [])
+
     def test_missing_resource_is_detected(self):
         findings = classify_text("Failed loading resource: res://assets/hero/player.glb")
         categories = {item["category"] for item in findings}
