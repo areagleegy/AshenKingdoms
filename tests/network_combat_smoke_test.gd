@@ -49,11 +49,17 @@ func _run() -> void:
 	enemy.call("configure_spawn", 1)
 	add_child(enemy)
 	print("[network-smoke] enemy ready")
+	enemy.global_position = avatar.global_position + Vector3(0.0, 0.0, -2.0)
 	var death_event: Dictionary = {"count": 0, "attacker": 0}
 	enemy.died.connect(func(_dead_enemy: Node, attacker_peer_id: int) -> void:
 		death_event["count"] = int(death_event["count"]) + 1
 		death_event["attacker"] = attacker_peer_id
 	)
+	avatar.call("_server_try_attack")
+	_check(is_equal_approx(float(enemy.get("current_health")), 65.0), "server attack damages an enemy within range and in front")
+	avatar.call("_server_try_attack")
+	_check(is_equal_approx(float(enemy.get("current_health")), 65.0), "server attack cooldown rejects an immediate repeat")
+
 	enemy.call("apply_damage_from_server", 999.0, 1)
 	print("[network-smoke] lethal hit applied")
 	_check(bool(enemy.get("is_dead")), "lethal server damage marks the enemy dead")
