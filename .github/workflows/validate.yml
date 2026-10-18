@@ -73,3 +73,8 @@ jobs:
         env:
           GODOT_SILENCE_ROOT_WARNING: "1"
         run: timeout 45s godot --headless --path . res://tests/network_combat_smoke_test.tscn
+
+      - name: Run local ENet host/client integration test
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: bash tools/test-network-loopback.sh
