@@ -36,11 +36,19 @@ jobs:
           test -f docs/TEST_PLAN.md
           test -f tests/gameplay_smoke_test.gd
           test -f tests/player_character_smoke_test.gd
+          test -f addons/ashen_asset_bridge/plugin.cfg
+          test -f addons/ashen_asset_bridge/plugin.gd
+          test -f tools/generate_player_glb.py
 
       - name: Import and parse project
         env:
           GODOT_SILENCE_ROOT_WARNING: "1"
         run: godot --headless --path . --editor --quit
+
+      - name: Validate Meshy asset-generation helper
+        run: |
+          python3 -m py_compile tools/generate_player_glb.py
+          python3 tools/generate_player_glb.py --help > /dev/null
 
       - name: Run gameplay smoke tests
         env:
