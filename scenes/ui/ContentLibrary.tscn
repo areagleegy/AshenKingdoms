@@ -1,0 +1,75 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/content_library.gd" id="1_content_library"]
+
+[node name="ContentLibrary" type="CanvasLayer"]
+layer = 65
+script = ExtResource("1_content_library")
+
+[node name="OpenButton" type="Button" parent="."]
+offset_left = -180.0
+offset_top = 14.0
+offset_right = -20.0
+offset_bottom = 58.0
+anchor_left = 1.0
+anchor_right = 1.0
+text = "المحتوى"
+
+[node name="Panel" type="PanelContainer" parent="."]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 72.0
+offset_top = 72.0
+offset_right = -72.0
+offset_bottom = -72.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Margin" type="MarginContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 18
+
+[node name="VBox" type="VBoxContainer" parent="Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox"]
+layout_mode = 2
+text = "مكتبة محتوى ممالك الرماد"
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 24
+
+[node name="Status" type="Label" parent="Panel/Margin/VBox"]
+layout_mode = 2
+text = "حزم المحتوى اختيارية"
+autowrap_mode = 3
+
+[node name="Scroll" type="ScrollContainer" parent="Panel/Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+size_flags_horizontal = 3
+
+[node name="Packs" type="VBoxContainer" parent="Panel/Margin/VBox/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="Actions" type="HBoxContainer" parent="Panel/Margin/VBox"]
+layout_mode = 2
+alignment = 2
+theme_override_constants/separation = 10
+
+[node name="Refresh" type="Button" parent="Panel/Margin/VBox/Actions"]
+custom_minimum_size = Vector2(140, 46)
+layout_mode = 2
+text = "تحديث الحزم"
+
+[node name="Close" type="Button" parent="Panel/Margin/VBox/Actions"]
+custom_minimum_size = Vector2(110, 46)
+layout_mode = 2
+text = "إغلاق"
