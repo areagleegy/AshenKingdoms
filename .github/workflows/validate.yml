@@ -54,6 +54,7 @@ jobs:
               tools/ai_test_diagnostics.py
               tools/test_ai_test_diagnostics.py
               tools/diagnostic_cases.json
+              tools/diagnostic_benchmark.py
             )
             missing=0
             for path in "${required_files[@]}"; do
