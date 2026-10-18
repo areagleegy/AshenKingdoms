@@ -30,7 +30,6 @@ func _ready() -> void:
 		server_node.name = "ServerBootstrap"
 		add_child(server_node)
 		return
-
 	_register_input_actions()
 	_create_world()
 	_create_managers()
@@ -42,10 +41,8 @@ func _ready() -> void:
 	_create_npcs()
 	_create_hud()
 	_add_touch_controls()
-
 	if OS.get_cmdline_user_args().has("--continue"):
 		_load_game()
-
 	if not (OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios")):
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	print("AshenKingdoms playable vertical slice started.")
@@ -63,11 +60,7 @@ func _process(_delta: float) -> void:
 
 
 func _is_server_mode() -> bool:
-	return (
-		DisplayServer.get_name() == "headless"
-		or OS.has_feature("dedicated_server")
-		or "--server" in OS.get_cmdline_user_args()
-	)
+	return DisplayServer.get_name() == "headless" or OS.has_feature("dedicated_server") or "--server" in OS.get_cmdline_user_args()
 
 
 func _register_input_actions() -> void:
@@ -102,20 +95,17 @@ func _create_world() -> void:
 	world = Node3D.new()
 	world.name = "World"
 	add_child(world)
-
 	var environment_node := WorldEnvironment.new()
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_COLOR
 	environment.background_color = Color(0.035, 0.035, 0.055, 1.0)
 	environment_node.environment = environment
 	world.add_child(environment_node)
-
 	var sun := DirectionalLight3D.new()
 	sun.name = "Sun"
 	sun.rotation_degrees = Vector3(-48.0, -32.0, 0.0)
 	sun.light_energy = 1.25
 	world.add_child(sun)
-
 	var ground_body := StaticBody3D.new()
 	ground_body.name = "Ground"
 	ground_body.position.y = -0.5
@@ -125,7 +115,6 @@ func _create_world() -> void:
 	ground_shape_node.shape = ground_shape
 	ground_body.add_child(ground_shape_node)
 	world.add_child(ground_body)
-
 	var ground_mesh_node := MeshInstance3D.new()
 	ground_mesh_node.name = "GroundVisual"
 	var ground_mesh := PlaneMesh.new()
@@ -144,13 +133,11 @@ func _create_managers() -> void:
 	progression.name = "ProgressionManager"
 	add_child(progression)
 	progression.connect("level_up", _on_level_up)
-
 	quests = QUEST_SCRIPT.new()
 	quests.name = "QuestManager"
 	quests.set("progression", progression)
 	add_child(quests)
 	quests.call("refresh_ui")
-
 	save_system = SAVE_SCRIPT.new()
 	save_system.name = "SaveSystem"
 	add_child(save_system)
@@ -163,16 +150,13 @@ func _create_player() -> void:
 	player.position = Vector3(0.0, 0.92, 0.0)
 	player.collision_mask = 3
 	_add_capsule_parts(player, 0.42, 1.84, Color(0.62, 0.38, 0.22, 1.0))
-
 	var health_node: Node = HEALTH_SCRIPT.new()
 	health_node.name = "Health"
 	health_node.set("max_health", 100.0)
 	player.add_child(health_node)
-
 	var inventory_node: Node = INVENTORY_SCRIPT.new()
 	inventory_node.name = "Inventory"
 	player.add_child(inventory_node)
-
 	var interaction_detector := Area3D.new()
 	interaction_detector.name = "InteractionDetector"
 	interaction_detector.set_script(INTERACTION_SCRIPT)
@@ -184,30 +168,24 @@ func _create_player() -> void:
 	interaction_shape_node.shape = interaction_shape
 	interaction_detector.add_child(interaction_shape_node)
 	player.add_child(interaction_detector)
-
 	world.add_child(player)
 	player.add_to_group("player")
 	player.connect("died", _on_player_died)
-
 	camera_pivot = Node3D.new()
 	camera_pivot.name = "CameraPivot"
 	camera_pivot.set_script(CAMERA_SCRIPT)
 	camera_pivot.position = player.position + Vector3.UP * 1.35
 	world.add_child(camera_pivot)
-
 	var spring_arm := SpringArm3D.new()
 	spring_arm.name = "SpringArm3D"
 	spring_arm.spring_length = 4.8
 	spring_arm.margin = 0.25
 	camera_pivot.add_child(spring_arm)
-
 	var camera := Camera3D.new()
 	camera.name = "Camera3D"
 	camera.current = true
 	spring_arm.add_child(camera)
-
 	player.set("camera_pivot", camera_pivot)
-
 	var potion := load("res://resources/items/health_potion.tres") as ItemResource
 	if potion != null:
 		inventory_node.call("add_item", potion, 3)
@@ -220,7 +198,6 @@ func _add_capsule_parts(body: CharacterBody3D, radius: float, height: float, tin
 	collision.height = height
 	collision_node.shape = collision
 	body.add_child(collision_node)
-
 	var mesh_node := MeshInstance3D.new()
 	var capsule_mesh := CapsuleMesh.new()
 	capsule_mesh.radius = radius
@@ -237,13 +214,7 @@ func _create_enemies() -> void:
 	enemies_container = Node3D.new()
 	enemies_container.name = "Enemies"
 	world.add_child(enemies_container)
-
-	var spawn_points: Array[Vector3] = [
-		Vector3(0.0, 0.92, -6.0),
-		Vector3(5.0, 0.92, -8.0),
-		Vector3(-5.0, 0.92, -8.0),
-		Vector3(8.0, 0.92, 1.0)
-	]
+	var spawn_points: Array[Vector3] = [Vector3(0.0, 0.92, -6.0), Vector3(5.0, 0.92, -8.0), Vector3(-5.0, 0.92, -8.0), Vector3(8.0, 0.92, 1.0)]
 	for index in range(spawn_points.size()):
 		var enemy := CharacterBody3D.new()
 		enemy.name = "AshWraith_%02d" % (index + 1)
@@ -251,7 +222,6 @@ func _create_enemies() -> void:
 		enemy.set("player", player)
 		enemy.position = spawn_points[index]
 		_add_capsule_parts(enemy, 0.4, 1.7, Color(0.32, 0.36, 0.43, 1.0))
-
 		var health_node: Node = HEALTH_SCRIPT.new()
 		health_node.name = "Health"
 		health_node.set("max_health", 55.0)
@@ -275,10 +245,7 @@ func _on_dialogue_start_quest(quest_id: StringName) -> void:
 		return
 	var started := bool(quests.call("start_quest", quest_id))
 	if is_instance_valid(hud):
-		if started:
-			hud.call("show_message", "تم قبول المهمة: اقتفاء الرماد.")
-		else:
-			hud.call("show_message", "تعذر بدء المهمة أو أنها مكتملة بالفعل.")
+		hud.call("show_message", "تم قبول المهمة: اقتفاء الرماد." if started else "تعذر بدء المهمة أو أنها مكتملة بالفعل.")
 
 
 func _create_hud() -> void:
@@ -334,9 +301,7 @@ func _save_game() -> void:
 		"quest": quests.call("to_save_data"),
 		"dialogue": DialogueManager.serialize()
 	}
-	print("[SAVE] dialogue: %s" % str(data.get("dialogue", {})))
 	var success := bool(save_system.call("save_game", data))
-	print("[SAVE] success: %s" % str(success))
 	hud.call("show_saved_status", success)
 
 
@@ -354,15 +319,11 @@ func _load_game() -> void:
 		return
 	var position_data = data.get("player_position", {})
 	if position_data is Dictionary:
-		player.global_position = Vector3(
-			float(position_data.get("x", 0.0)),
-			float(position_data.get("y", 0.92)),
-			float(position_data.get("z", 0.0))
-		)
+		player.global_position = Vector3(float(position_data.get("x", 0.0)), float(position_data.get("y", 0.92)), float(position_data.get("z", 0.0)))
 	var health := player.get_node("Health") as Health
 	health.set("current", clampf(float(data.get("player_health", health.current)), 0.0, health.max_health))
-	progression.set("level", maxi(1, int(data.get("level", 1)))
-	progression.set("experience", maxi(0, int(data.get("experience", 0)))
+	progression.set("level", maxi(1, int(data.get("level", 1))))
+	progression.set("experience", maxi(0, int(data.get("experience", 0))))
 	player.get_node("Inventory").call("load_state", data.get("inventory", {}))
 	quests.call("load_state", data.get("quest", {}))
 	DialogueManager.deserialize(data.get("dialogue", {}))
