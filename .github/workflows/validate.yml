@@ -45,6 +45,8 @@ jobs:
           test -f docs/TEST_PLAN.md
           test -f docs/NETWORKING.md
           test -f tests/gameplay_smoke_test.gd
+          test -f tests/network_combat_smoke_test.gd
+          test -f tests/network_combat_smoke_test.tscn
 
       - name: Import and parse project
         env:
@@ -55,3 +57,8 @@ jobs:
         env:
           GODOT_SILENCE_ROOT_WARNING: "1"
         run: godot --headless --path . --script res://tests/gameplay_smoke_test.gd
+
+      - name: Run network combat smoke tests
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: godot --headless --path . res://tests/network_combat_smoke_test.tscn
