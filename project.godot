@@ -7,6 +7,7 @@ config_version=5
 config/name="ممالك الرماد - AshenKingdoms"
 run/main_scene="res://scenes/ui/MainMenu.tscn"
 config/features=PackedStringArray("4.6", "GL Compatibility")
+config/icon="res://assets/ashenkingdoms_icon.svg"
 
 [autoload]
 DialogueManager="*res://scripts/dialogue/dialogue_manager.gd"

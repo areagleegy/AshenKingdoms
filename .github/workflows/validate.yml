@@ -27,6 +27,7 @@ jobs:
         run: |
           test -f project.godot
           test -f export_presets.cfg
+          test -f assets/ashenkingdoms_icon.svg
           test -f scenes/boot/Main.tscn
           test -f scenes/ui/MainMenu.tscn
           test -f scenes/network/MultiplayerArena.tscn
@@ -47,6 +48,7 @@ jobs:
           test -f docs/TEST_PLAN.md
           test -f docs/NETWORKING.md
           test -f tests/gameplay_smoke_test.gd
+          test -f tests/script_load_smoke_test.gd
           test -f tests/network_combat_smoke_test.gd
           test -f tests/network_combat_smoke_test.tscn
 
@@ -54,6 +56,11 @@ jobs:
         env:
           GODOT_SILENCE_ROOT_WARNING: "1"
         run: godot --headless --path . --editor --quit
+
+      - name: Load every GDScript and scene
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: godot --headless --path . --script res://tests/script_load_smoke_test.gd
 
       - name: Run gameplay and network-input smoke tests
         env:

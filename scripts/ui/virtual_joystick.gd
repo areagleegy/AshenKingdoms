@@ -19,10 +19,10 @@ func _ready() -> void:
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
-		var local_position := to_local(touch.position)
+		var local_position := make_canvas_position_local(touch.position)
 		if touch.pressed and _active_touch_index == -1 and Rect2(Vector2.ZERO, size).has_point(local_position):
 			_active_touch_index = touch.index
-			_update_from_screen_position(touch.position)
+			_update_from_local_position(local_position)
 			accept_event()
 		elif not touch.pressed and touch.index == _active_touch_index:
 			_active_touch_index = -1
@@ -31,14 +31,14 @@ func _gui_input(event: InputEvent) -> void:
 	elif event is InputEventScreenDrag:
 		var drag := event as InputEventScreenDrag
 		if drag.index == _active_touch_index:
-			_update_from_screen_position(drag.position)
+			_update_from_local_position(make_canvas_position_local(drag.position))
 			accept_event()
 
 
-func _update_from_screen_position(screen_position: Vector2) -> void:
+func _update_from_local_position(local_position: Vector2) -> void:
 	var center := size * 0.5
 	var radius := maxf(minf(size.x, size.y) * radius_ratio, 1.0)
-	var raw_direction := (to_local(screen_position) - center) / radius
+	var raw_direction := (local_position - center) / radius
 	if raw_direction.length_squared() > 1.0:
 		raw_direction = raw_direction.normalized()
 	if raw_direction.length() < deadzone:
