@@ -82,10 +82,8 @@ func leave_session(notify: bool = true) -> void:
 	var old_mode := session_mode
 	session_mode = "offline"
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
-	if old_mode != "offline":
+	if notify and old_mode != "offline":
 		status_changed.emit("تم إنهاء الجلسة.")
-	if notify:
-		return
 
 
 func is_session_active() -> bool:
