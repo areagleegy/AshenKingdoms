@@ -14,6 +14,12 @@ from pathlib import Path
 from typing import Any
 
 RULES: list[dict[str, Any]] = [
+    {"category": "required_files", "title": "ملفات المشروع الأساسية غير موجودة", "severity": "critical", "score": 99,
+     "patterns": [r"missing required file:\s*\S+", r"required file.{0,50}(?:missing|not found|does not exist)"],
+     "action": "الملف الأساسي غير موجود أو أن مساره غير صحيح. تحقق من اسم الملف وحالة الأحرف والفرع الحالي، ثم تأكد أنه مضاف إلى Git قبل إعادة الفحص."},
+    {"category": "godot_installation", "title": "فشل تنزيل أو تثبيت Godot CLI", "severity": "high", "score": 92,
+     "patterns": [r"curl:\s*\(\d+\)", r"godot cli setup failed", r"(?:download|install|extract).{0,60}godot.{0,40}(?:failed|error|not found)", r"unzip:.*(?:cannot find|not found|end-of-central-directory)"],
+     "action": "راجع سجل إعداد Godot: افحص رمز HTTP والاتصال بعنوان التنزيل ومساحة التخزين وسلامة ملف ZIP. أعد محاولة التنزيل بعد التحقق من المصدر، ولا تستخدم ملفًا تنفيذيًا من مصدر غير موثوق."},
     {"category": "gdscript_parse", "title": "خطأ تحليل أو تحميل GDScript", "severity": "critical", "score": 100,
      "patterns": [r"parse error", r"parse_error", r"parser error", r"failed to load script", r"script compilation failed", r"error at .*\.gd:\d+", r"unexpected token"],
      "action": "افتح أول خطأ GDScript في السجل، وراجع اسم الملف ورقم السطر والسطر السابق له؛ أصلح أول خطأ ثم أعد الاختبار لأن الأخطاء التالية قد تكون متسلسلة."},
