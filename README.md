@@ -21,6 +21,19 @@
 
 ملف الحفظ المحلي هو user://savegame.json. على Android تظهر أزرار لمس للمناورة والقتال.
 
+## حزم المحتوى الاختيارية
+
+أُضيفت بنية أولية لمكتبة محتوى داخل اللعبة ومدير محتوى يقبل فهرسًا موقّعًا، وينزّل ZIP إلى مساحة التطبيق الخاصة، ويتحقق من SHA-256 وملفات الحزمة قبل التثبيت. الأصول الاختيارية لا تُحمّل إلى الذاكرة كلها دفعة واحدة؛ يمكن تحميل GLB وصوت من حزمة مثبتة.
+
+**التنزيل الإنتاجي معطل افتراضيًا** لأن المستودع لا يحتوي على CDN أو فهرس حقيقي أو مفتاح توقيع إنتاجي. يجب إعداد ashen/content/catalog_url وashen/content/catalog_public_key في project.godot بعد نشر فهرس HTTPS موقّع. لا تضع المفتاح الخاص داخل المستودع أو APK. تفاصيل النشر وصيغة الحزم في content/README.md.
+
+- مدير الحزم: scripts/content/
+- مكتبة المحتوى: scenes/ui/ContentLibrary.tscn
+- أداة إعداد ZIP وفهرس RSA-SHA256: tools/package_content.py
+- اختبارات الحزم: tests/content_catalog_smoke_test.gd وtools/test_package_content.py
+
+هذه مرحلة تنفيذ أولية وليست تأكيدًا على اكتمال تجربة التنزيل على Android. استئناف التنزيل، فحص المساحة الحرة، وتحديث الفهرس متعدد الحزم تحتاج إلى استكمال، ويجب اختبار الأداء على جهاز فعلي.
+
 ## العمل من الهاتف عبر Codespaces
 
 1. افتح Code ثم Codespaces ثم Create codespace on main.
@@ -29,6 +42,9 @@
 
    ~~~bash
    godot --headless --path . --editor --quit
+   godot --headless --path . --script res://tests/gameplay_smoke_test.gd
+   godot --headless --path . --script res://tests/content_catalog_smoke_test.gd
+   python -m unittest tools.test_package_content -v
    ~~~
 
 4. استخدم Source Control ثم Commit وPush لحفظ التعديلات.
@@ -48,10 +64,10 @@ Workflow التحقق يعمل على main وعند Pull Request. Workflow ال�
 
 - البنية الحالية وخريطة السكربتات: docs/TECHNICAL_ARCHITECTURE.md.
 - خطوات التحقق اليدوي: docs/TEST_PLAN.md.
+- نشر حزم المحتوى: content/README.md.
 - سجل الأصول: docs/ASSET_CREDITS.md.
 
-الكود تحت MIT. لا توجد أصول فنية خارجية مضمنة؛ يجب توثيق رخصة كل نموذج أو خامة أو صوت أو خط يضاف لاحقًا. لا ترفع أسرارًا أو مفاتيح توقيع Android إلى المستودع.
-
+الكود تحت MIT. لا توجد أصول فنية خارجية مضمنة؛ يجب توثيق رخصة كل نموذج أو خامة أو صوت أو خط يضاف لاحقًا. لا ترفع أسرارًا أو مفاتيح توقيع Android إلى المستودع العام.
 
 ## الحوار والشخصيات
 
