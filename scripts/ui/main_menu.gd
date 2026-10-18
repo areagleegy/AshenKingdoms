@@ -89,7 +89,7 @@ func _build_ui() -> void:
 	_port_input.text = str(DEFAULT_PORT)
 	_port_input.placeholder_text = str(DEFAULT_PORT)
 	_port_input.max_length = 5
-	_port_input.input_filter = "0123456789"
+	_port_input.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER
 	layout.add_child(_port_input)
 
 	var host_button := Button.new()
