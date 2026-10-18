@@ -156,7 +156,7 @@ func _create_player() -> void:
 	player.position = Vector3(0.0, 0.92, 0.0)
 	player.collision_mask = 3
 	if not _add_player_model_or_placeholder(player):
-		_add_capsule_parts(player, 0.42, 1.84, Color(0.62, 0.38, 0.22, 1.0))
+		_add_hero_fallback_visual(player)
 
 	var health_node: Node = HEALTH_SCRIPT.new()
 	health_node.name = "Health"
@@ -229,6 +229,131 @@ func _add_player_model_or_placeholder(body: CharacterBody3D) -> bool:
 	visual_root.add_child(model_instance)
 	print("[PLAYER] Loaded optional model: %s" % PLAYER_MODEL_PATH)
 	return true
+
+
+func _add_hero_fallback_visual(body: CharacterBody3D) -> void:
+	# Temporary original low-poly silhouette for development before a licensed GLB is supplied.
+	# Keep collision independent from the visible meshes.
+	_add_capsule_collision(body, 0.42, 1.84)
+
+	var visual_root := Node3D.new()
+	visual_root.name = "HeroFallbackVisual"
+	visual_root.position.y = -0.92
+	body.add_child(visual_root)
+
+	var charcoal := Color(0.085, 0.095, 0.115, 1.0)
+	var armor_gray := Color(0.20, 0.22, 0.24, 1.0)
+	var leather_brown := Color(0.22, 0.145, 0.095, 1.0)
+	var muted_bronze := Color(0.48, 0.33, 0.15, 1.0)
+	var skin_tone := Color(0.36, 0.235, 0.17, 1.0)
+	var dark_metal := Color(0.10, 0.115, 0.13, 1.0)
+
+	var cape_mesh := BoxMesh.new()
+	cape_mesh.size = Vector3(0.60, 0.76, 0.075)
+	_add_hero_part(visual_root, "Cape", cape_mesh, Vector3(0.0, 1.03, 0.19), charcoal)
+
+	var tunic_mesh := BoxMesh.new()
+	tunic_mesh.size = Vector3(0.46, 0.62, 0.31)
+	_add_hero_part(visual_root, "Tunic", tunic_mesh, Vector3(0.0, 1.05, 0.0), leather_brown)
+
+	var chest_mesh := BoxMesh.new()
+	chest_mesh.size = Vector3(0.39, 0.42, 0.065)
+	_add_hero_part(visual_root, "ChestArmor", chest_mesh, Vector3(0.0, 1.13, -0.175), armor_gray)
+
+	var belt_mesh := BoxMesh.new()
+	belt_mesh.size = Vector3(0.48, 0.095, 0.34)
+	_add_hero_part(visual_root, "Belt", belt_mesh, Vector3(0.0, 0.78, 0.0), charcoal)
+
+	var buckle_mesh := BoxMesh.new()
+	buckle_mesh.size = Vector3(0.085, 0.075, 0.025)
+	_add_hero_part(visual_root, "BeltBuckle", buckle_mesh, Vector3(0.0, 0.78, -0.185), muted_bronze)
+
+	var leg_mesh := CapsuleMesh.new()
+	leg_mesh.radius = 0.095
+	leg_mesh.height = 0.44
+	var boot_mesh := BoxMesh.new()
+	boot_mesh.size = Vector3(0.21, 0.16, 0.32)
+	for side in [-1.0, 1.0]:
+		_add_hero_part(
+			visual_root, "Leg_%s" % str(side), leg_mesh,
+			Vector3(side * 0.145, 0.38, 0.0), charcoal
+		)
+		_add_hero_part(
+			visual_root, "Boot_%s" % str(side), boot_mesh,
+			Vector3(side * 0.145, 0.09, -0.035), leather_brown
+		)
+
+	var arm_mesh := CapsuleMesh.new()
+	arm_mesh.radius = 0.072
+	arm_mesh.height = 0.47
+	var shoulder_mesh := CapsuleMesh.new()
+	shoulder_mesh.radius = 0.12
+	shoulder_mesh.height = 0.25
+	for side in [-1.0, 1.0]:
+		_add_hero_part(
+			visual_root, "Arm_%s" % str(side), arm_mesh,
+			Vector3(side * 0.30, 1.02, 0.0), leather_brown,
+			Vector3(0.0, 0.0, side * 9.0)
+		)
+		_add_hero_part(
+			visual_root, "Shoulder_%s" % str(side), shoulder_mesh,
+			Vector3(side * 0.275, 1.29, -0.015), armor_gray
+		)
+
+	var hood_mesh := CapsuleMesh.new()
+	hood_mesh.radius = 0.17
+	hood_mesh.height = 0.34
+	_add_hero_part(visual_root, "Hood", hood_mesh, Vector3(0.0, 1.60, 0.015), charcoal)
+
+	var face_mesh := SphereMesh.new()
+	face_mesh.radius = 0.105
+	face_mesh.height = 0.21
+	_add_hero_part(visual_root, "Face", face_mesh, Vector3(0.0, 1.57, -0.12), skin_tone)
+
+	var eye_mesh := BoxMesh.new()
+	eye_mesh.size = Vector3(0.025, 0.018, 0.012)
+	for side in [-1.0, 1.0]:
+		_add_hero_part(
+			visual_root, "Eye_%s" % str(side), eye_mesh,
+			Vector3(side * 0.037, 1.595, -0.218), dark_metal
+		)
+
+	var sheath_mesh := BoxMesh.new()
+	sheath_mesh.size = Vector3(0.075, 0.58, 0.075)
+	_add_hero_part(
+		visual_root, "SwordSheath", sheath_mesh,
+		Vector3(0.34, 0.78, 0.105), leather_brown,
+		Vector3(0.0, 0.0, -14.0)
+	)
+	var sword_handle_mesh := BoxMesh.new()
+	sword_handle_mesh.size = Vector3(0.065, 0.18, 0.065)
+	_add_hero_part(
+		visual_root, "SwordHandle", sword_handle_mesh,
+		Vector3(0.38, 1.13, 0.085), muted_bronze,
+		Vector3(0.0, 0.0, -14.0)
+	)
+	print("[PLAYER] Using procedural low-poly fallback; no player.glb was loaded.")
+
+
+func _add_hero_part(
+	parent: Node3D,
+	part_name: String,
+	mesh: Mesh,
+	local_position: Vector3,
+	tint: Color,
+	local_rotation_degrees: Vector3 = Vector3.ZERO
+) -> void:
+	var mesh_node := MeshInstance3D.new()
+	mesh_node.name = part_name
+	mesh_node.mesh = mesh
+	mesh_node.position = local_position
+	mesh_node.rotation_degrees = local_rotation_degrees
+
+	var material := StandardMaterial3D.new()
+	material.albedo_color = tint
+	material.roughness = 0.92
+	mesh_node.material_override = material
+	parent.add_child(mesh_node)
 
 
 func _add_capsule_parts(body: CharacterBody3D, radius: float, height: float, tint: Color) -> void:
