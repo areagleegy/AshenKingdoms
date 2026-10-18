@@ -5,7 +5,7 @@
 [node name="MultiplayerArena" type="Node3D"]
 script = ExtResource("1_arena")
 
-[node name="Players" type="Node3D" parent="."]
+[node name="Entities" type="Node3D" parent="."]
 
-[node name="PlayerSpawner" type="MultiplayerSpawner" parent="."]
-spawn_path = NodePath("../Players")
+[node name="EntitySpawner" type="MultiplayerSpawner" parent="."]
+spawn_path = NodePath("../Entities")
