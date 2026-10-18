@@ -33,9 +33,10 @@ func _test_model_loader_and_placeholder() -> void:
 		_check(not loaded_model, "missing player.glb selects the documented placeholder path")
 
 	if not loaded_model:
-		main_node.call("_add_capsule_parts", body, 0.42, 1.84, Color(0.62, 0.38, 0.22, 1.0))
-		_check(body.get_node_or_null("CollisionShape3D") != null, "placeholder keeps player collision")
-		_check(body.get_node_or_null("MeshInstance3D") != null, "placeholder keeps a visible mesh")
+		main_node.call("_add_hero_fallback_visual", body)
+		_check(body.get_node_or_null("CollisionShape3D") != null, "fallback keeps independent player collision")
+		_check(body.get_node_or_null("HeroFallbackVisual") != null, "fallback creates a separate visual root")
+		_check(body.get_node_or_null("HeroFallbackVisual/ChestArmor") != null, "fallback includes a visible chest armor mesh")
 	else:
 		_check(body.get_node_or_null("CollisionShape3D") != null, "GLB player keeps independent capsule collision")
 		_check(body.get_node_or_null("PlayerVisual/GeneratedPlayerModel") != null, "GLB is attached below PlayerVisual")
