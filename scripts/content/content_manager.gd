@@ -103,7 +103,6 @@ func download_pack(pack_id: String) -> Error:
 	var state := {"request": request, "path": temporary_path, "record": pack_record.duplicate(true)}
 	_downloads[pack_id] = state
 	request.request_completed.connect(_on_download_completed.bind(pack_id, pack_record.duplicate(true), temporary_path))
-	request.downloaded_bytes = 0
 	_emit_pack_state(pack_id, "downloading", {"download_size": int(pack_record.get("download_size", 0))})
 	var request_error := request.request(str(pack_record.get("url", "")))
 	if request_error != OK:
@@ -167,8 +166,7 @@ func delete_pack(pack_id: String) -> Dictionary:
 		if str(installed_id) == pack_id:
 			continue
 		var installed_record: Dictionary = _installed[installed_id]
-		var catalog_record: Dictionary = _catalog.get(str(installed_id), {})
-		var dependencies: Array = catalog_record.get("dependencies", [])
+		var dependencies: Array = installed_record.get("dependencies", [])
 		if dependencies.has(pack_id):
 			return _error("Package is required by installed package %s." % installed_id)
 	var record: Dictionary = _installed[pack_id]
@@ -227,13 +225,21 @@ func _on_download_completed(result: int, response_code: int, _headers: PackedStr
 	if not bool(installed.get("ok", false)):
 		_emit_pack_state(pack_id, "failed", {"error": str(installed.get("error", "Package installation failed."))})
 		return
+	var previous_record: Variant = _installed.get(pack_id)
 	_installed[pack_id] = {
 		"id": pack_id,
 		"version": str(pack_record.get("version", "")),
 		"path": str(installed.get("installed_path", "")),
+		"dependencies": pack_record.get("dependencies", []).duplicate(),
 		"installed_at": int(Time.get_unix_time_from_system())
 	}
 	if not _save_registry():
+		if previous_record is Dictionary:
+			_installed[pack_id] = previous_record
+		else:
+			_installed.erase(pack_id)
+		installer.remove_installed_pack(pack_id, str(pack_record.get("version", "")))
+		_save_registry()
 		_emit_pack_state(pack_id, "failed", {"error": "Installed package could not be registered; please retry."})
 		return
 	_emit_pack_state(pack_id, "installed", {"path": _installed[pack_id]["path"]})
@@ -258,7 +264,7 @@ func _load_registry() -> void:
 			continue
 		var path := str(record.get("path", ""))
 		var version := str(record.get("version", ""))
-		if path != "%s/%s/%s" % [InstallerScript.INSTALLED_ROOT, pack_id, version]:
+		if not _is_safe_version(version) or path != "%s/%s/%s" % [InstallerScript.INSTALLED_ROOT, pack_id, version]:
 			continue
 		var manifest_path := path.path_join("installed_manifest.json")
 		if FileAccess.file_exists(manifest_path):
@@ -325,6 +331,17 @@ func _is_safe_id(value: String) -> bool:
 	for index in value.length():
 		var code := value.unicode_at(index)
 		if not ((code >= 48 and code <= 57) or (code >= 97 and code <= 122) or code == 95 or code == 45):
+			return false
+	return true
+
+
+func _is_safe_version(value: String) -> bool:
+	if value.is_empty() or value.length() > 64 or value == "." or value == "..":
+		return false
+	for index in value.length():
+		var code := value.unicode_at(index)
+		var allowed := (code >= 48 and code <= 57) or (code >= 65 and code <= 90) or (code >= 97 and code <= 122) or code == 46 or code == 95 or code == 45
+		if not allowed:
 			return false
 	return true
 
