@@ -1,0 +1,89 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/touch_controls.gd" id="1"]
+
+[node name="TouchControls" type="CanvasLayer"]
+script = ExtResource("1")
+
+[node name="Controls" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="MovePad" type="Panel" parent="Controls"]
+visible = false
+custom_minimum_size = Vector2(108, 108)
+offset_left = 24.0
+offset_top = 420.0
+offset_right = 132.0
+offset_bottom = 528.0
+mouse_filter = 2
+
+[node name="Hint" type="Label" parent="Controls"]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 12.0
+offset_right = 520.0
+offset_bottom = 42.0
+theme_override_colors/font_color = Color(0.92, 0.9, 0.82, 0.9)
+text = "الحركة يسار الشاشة • اسحب يمين الشاشة للكاميرا"
+mouse_filter = 2
+
+[node name="Jump" type="Button" parent="Controls"]
+custom_minimum_size = Vector2(82, 64)
+offset_left = -190.0
+offset_top = -172.0
+offset_right = -108.0
+offset_bottom = -108.0
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+text = "قفز"
+
+[node name="Attack" type="Button" parent="Controls"]
+custom_minimum_size = Vector2(92, 72)
+offset_left = -112.0
+offset_top = -94.0
+offset_right = -20.0
+offset_bottom = -22.0
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+text = "هجوم"
+
+[node name="Interact" type="Button" parent="Controls"]
+custom_minimum_size = Vector2(76, 54)
+offset_left = -288.0
+offset_top = -88.0
+offset_right = -212.0
+offset_bottom = -34.0
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+text = "تفاعل"
+
+[node name="Inventory" type="Button" parent="Controls"]
+custom_minimum_size = Vector2(76, 54)
+offset_left = -288.0
+offset_top = -150.0
+offset_right = -212.0
+offset_bottom = -96.0
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+text = "حقيبة"
+
+[connection signal="button_down" from="Controls/Jump" to="." method="_on_jump_pressed"]
+[connection signal="button_up" from="Controls/Jump" to="." method="_on_jump_released"]
+[connection signal="button_down" from="Controls/Attack" to="." method="_on_attack_pressed"]
+[connection signal="button_up" from="Controls/Attack" to="." method="_on_attack_released"]
+[connection signal="pressed" from="Controls/Interact" to="." method="_on_interact_pressed"]
+[connection signal="pressed" from="Controls/Inventory" to="." method="_on_inventory_pressed"]
