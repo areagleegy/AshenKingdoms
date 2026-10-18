@@ -45,7 +45,7 @@ func _run() -> void:
 	var private_key: CryptoKey = Crypto.new().generate_rsa(2048)
 	var payload_text := JSON.stringify(valid_catalog)
 	var payload_bytes := payload_text.to_utf8_buffer()
-	var signature := Crypto.new().sign(HashingContext.HASH_SHA256, payload_bytes.sha256_buffer(), private_key)
+	var signature := Crypto.new().sign(HashingContext.HASH_SHA256, _sha256_bytes(payload_bytes), private_key)
 	var signed_envelope := JSON.stringify({
 		"algorithm": "RSA-SHA256",
 		"payload_base64": Marshalls.raw_to_base64(payload_bytes),
@@ -107,6 +107,13 @@ func _run() -> void:
 
 	_check(ContentManager.get_catalog_state() == "not_configured", "base game starts with content downloads disabled when no service is configured")
 	_finish()
+
+
+func _sha256_bytes(bytes: PackedByteArray) -> PackedByteArray:
+	var context := HashingContext.new()
+	context.start(HashingContext.HASH_SHA256)
+	context.update(bytes)
+	return context.finish()
 
 
 func _check(condition: bool, description: String) -> void:
