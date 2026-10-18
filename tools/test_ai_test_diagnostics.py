@@ -86,7 +86,8 @@ class DiagnosticsClassifierTests(unittest.TestCase):
 
     def test_labeled_corpus_distinguishes_known_errors_and_clean_logs(self):
         corpus_path = Path(__file__).with_name("diagnostic_cases.json")
-        cases = json.loads(corpus_path.read_text(encoding="utf-8"))
+        corpus = json.loads(corpus_path.read_text(encoding="utf-8"))
+        cases = corpus["cases"]
         self.assertGreaterEqual(len(cases), 10)
         for case in cases:
             with self.subTest(case=case["id"]):
