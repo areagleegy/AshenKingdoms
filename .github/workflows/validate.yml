@@ -49,6 +49,8 @@ jobs:
           test -f docs/NETWORKING.md
           test -f tests/gameplay_smoke_test.gd
           test -f tests/script_load_smoke_test.gd
+          test -f tests/network_client_smoke_test.gd
+          test -f tools/test-network-loopback.sh
           test -f tests/network_combat_smoke_test.gd
           test -f tests/network_combat_smoke_test.tscn
 
