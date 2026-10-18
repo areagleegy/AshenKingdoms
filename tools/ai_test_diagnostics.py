@@ -21,7 +21,7 @@ RULES: list[dict[str, Any]] = [
      "patterns": [r"resource file not found", r"failed loading resource", r"cannot open file.*res://", r"can't open.*res://", r"does not exist", r"missing dependency", r"no loader found for resource"],
      "action": "تحقق من تطابق مسار res:// وحالة الأحرف ووجود الملف في Git؛ ثم أعد استيراد المشروع في Godot. افحص مشاهد TSCN والموارد التي تشير إلى الملف."},
     {"category": "assertion_or_regression", "title": "فشل تحقق أو تراجع سلوكي", "severity": "high", "score": 88,
-     "patterns": [r"assertion failed", r"assert failed", r"test failed", r"smoke test failed", r"check failed", r"expected .{0,100} but got", r"\bFAILED\b"],
+     "patterns": [r"assertion failed", r"assert failed", r"test failed", r"smoke test failed", r"check failed", r"expected .{0,100} but got", r"\bFAIL:\s+test_", r"\bFAILED\s+\(failures?="],
      "action": "حدد اسم الاختبار والتوقع والقيمة الفعلية. أعد تشغيل الاختبار المعني منفردًا، ثم افحص التغيير الأخير في المنطق والإشارات وتهيئة الحالة."},
     {"category": "android_export", "title": "إعداد Android أو قوالب التصدير", "severity": "high", "score": 82,
      "patterns": [r"android sdk", r"sdkmanager", r"java sdk", r"keystore", r"could not find.*export template", r"export template.*not found", r"android.*export.*failed"],
