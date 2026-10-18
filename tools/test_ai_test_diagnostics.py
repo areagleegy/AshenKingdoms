@@ -42,6 +42,17 @@ class DiagnosticsClassifierTests(unittest.TestCase):
         )
         self.assertEqual(classify_text(log), [])
 
+    def test_expected_json_error_does_not_hide_another_log_error(self):
+        log = (
+            "gameplay-tests.log: ERROR: Parse JSON failed. Error at line 0: Expected key\n"
+            "gameplay-tests.log: [PASS] malformed JSON is rejected safely\n"
+            "other-tests.log: ERROR: Parse JSON failed. Unexpected malformed test fixture\n"
+        )
+        findings = classify_text(log)
+        self.assertTrue(findings)
+        self.assertEqual(findings[-1]["category"], "generic_error")
+        self.assertTrue(any("other-tests.log" in line for line in findings[-1]["evidence"]))
+
     def test_missing_resource_is_detected(self):
         findings = classify_text("Failed loading resource: res://assets/hero/player.glb")
         categories = {item["category"] for item in findings}
