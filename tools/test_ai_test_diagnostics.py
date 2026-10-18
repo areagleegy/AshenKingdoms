@@ -55,6 +55,22 @@ class DiagnosticsClassifierTests(unittest.TestCase):
         self.assertNotIn("supersecretvalue", cleaned)
         self.assertIn("[REDACTED]", cleaned)
 
+
+    def test_godot_cli_download_failure_gets_installation_category(self):
+        log = (
+            "curl: (22) The requested URL returned error: 503\n"
+            "unzip: cannot find zipfile directory\n"
+            "Godot CLI setup failed\n"
+        )
+        findings = classify_text(log)
+        self.assertEqual(findings[0]["category"], "godot_installation")
+        self.assertIn("التنزيل", findings[0]["recommended_action"])
+
+    def test_missing_required_file_has_actionable_category(self):
+        findings = classify_text("MISSING REQUIRED FILE: tests/gameplay_smoke_test.gd")
+        self.assertEqual(findings[0]["category"], "required_files")
+        self.assertIn("الملف", findings[0]["recommended_action"])
+
     def test_remote_ai_is_off_by_default_and_makes_no_request(self):
         report = {"diagnostics": []}
         with patch.dict(os.environ, {"ASHEN_AI_DIAGNOSE": "false", "ASHEN_AI_ENDPOINT": "https://example.invalid/v1"}):
