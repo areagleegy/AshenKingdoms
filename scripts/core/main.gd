@@ -3,6 +3,7 @@ extends Node3D
 const SERVER_SCRIPT: Script = preload("res://scripts/core/server.gd")
 const HEALTH_SCRIPT: Script = preload("res://scripts/components/health.gd")
 const PLAYER_SCRIPT: Script = preload("res://scripts/player/player.gd")
+const PLAYER_MODEL_PATH: String = "res://assets/characters/player/player.glb"
 const CAMERA_SCRIPT: Script = preload("res://scripts/player/player_camera.gd")
 const ENEMY_SCRIPT: Script = preload("res://scripts/enemies/enemy.gd")
 const INVENTORY_SCRIPT: Script = preload("res://scripts/components/inventory.gd")
@@ -154,7 +155,8 @@ func _create_player() -> void:
 	player.set_script(PLAYER_SCRIPT)
 	player.position = Vector3(0.0, 0.92, 0.0)
 	player.collision_mask = 3
-	_add_capsule_parts(player, 0.42, 1.84, Color(0.62, 0.38, 0.22, 1.0))
+	if not _add_player_model_or_placeholder(player):
+		_add_capsule_parts(player, 0.42, 1.84, Color(0.62, 0.38, 0.22, 1.0))
 
 	var health_node: Node = HEALTH_SCRIPT.new()
 	health_node.name = "Health"
@@ -205,13 +207,32 @@ func _create_player() -> void:
 		inventory_node.call("add_item", potion, 3)
 
 
+func _add_player_model_or_placeholder(body: CharacterBody3D) -> bool:
+	if not ResourceLoader.exists(PLAYER_MODEL_PATH):
+		return false
+
+	var model_scene := load(PLAYER_MODEL_PATH) as PackedScene
+	if model_scene == null:
+		push_warning("Player model exists but could not be loaded as a PackedScene: %s" % PLAYER_MODEL_PATH)
+		return false
+
+	# The legacy CharacterBody3D pivot is centered at half-height (y = 0.92).
+	# Player GLB assets are expected to have their origin at the feet.
+	_add_capsule_collision(body, 0.42, 1.84)
+	var visual_root := Node3D.new()
+	visual_root.name = "PlayerVisual"
+	visual_root.position.y = -0.92
+	body.add_child(visual_root)
+
+	var model_instance := model_scene.instantiate()
+	model_instance.name = "GeneratedPlayerModel"
+	visual_root.add_child(model_instance)
+	print("[PLAYER] Loaded optional model: %s" % PLAYER_MODEL_PATH)
+	return true
+
+
 func _add_capsule_parts(body: CharacterBody3D, radius: float, height: float, tint: Color) -> void:
-	var collision_node := CollisionShape3D.new()
-	var collision := CapsuleShape3D.new()
-	collision.radius = radius
-	collision.height = height
-	collision_node.shape = collision
-	body.add_child(collision_node)
+	_add_capsule_collision(body, radius, height)
 
 	var mesh_node := MeshInstance3D.new()
 	var capsule_mesh := CapsuleMesh.new()
@@ -223,6 +244,15 @@ func _add_capsule_parts(body: CharacterBody3D, radius: float, height: float, tin
 	material.roughness = 0.8
 	mesh_node.material_override = material
 	body.add_child(mesh_node)
+
+
+func _add_capsule_collision(body: CharacterBody3D, radius: float, height: float) -> void:
+	var collision_node := CollisionShape3D.new()
+	var collision := CapsuleShape3D.new()
+	collision.radius = radius
+	collision.height = height
+	collision_node.shape = collision
+	body.add_child(collision_node)
 
 
 func _create_enemies() -> void:
