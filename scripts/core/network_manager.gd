@@ -71,7 +71,8 @@ func start_client(address: String, port: int = DEFAULT_PORT) -> int:
 	_ready_peers.clear()
 	_connection_generation += 1
 	status_changed.emit("جارٍ الاتصال بـ %s:%d ..." % [clean_address, port])
-	_watch_connection_timeout(_connection_generation)
+	var timer := get_tree().create_timer(CONNECTION_TIMEOUT_SECONDS)
+	timer.timeout.connect(_on_connection_timeout.bind(_connection_generation))
 	return OK
 
 
@@ -167,8 +168,7 @@ func _on_peer_disconnected(peer_id: int) -> void:
 	peer_left.emit(peer_id)
 
 
-func _watch_connection_timeout(generation: int) -> void:
-	await get_tree().create_timer(CONNECTION_TIMEOUT_SECONDS).timeout
+func _on_connection_timeout(generation: int) -> void:
 	if generation != _connection_generation:
 		return
 	if session_mode != "client" or _client_connected:
