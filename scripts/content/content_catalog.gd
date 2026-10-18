@@ -125,8 +125,8 @@ func _validate_pack(pack: Dictionary) -> Dictionary:
 			return _error("Pack %s has an invalid file record." % pack_id)
 		var file_record: Dictionary = raw_file
 		var path := str(file_record.get("path", ""))
-		if not is_safe_relative_path(path):
-			return _error("Pack %s contains an unsafe path." % pack_id)
+		if not is_safe_relative_path(path) or path.to_lower() == "installed_manifest.json":
+			return _error("Pack %s contains an unsafe or reserved path." % pack_id)
 		var normalized_path := path.to_lower()
 		if seen_paths.has(normalized_path):
 			return _error("Pack %s contains duplicate paths." % pack_id)
