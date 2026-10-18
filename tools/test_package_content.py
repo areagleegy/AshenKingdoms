@@ -2,7 +2,7 @@ import pathlib
 import tempfile
 import unittest
 
-import package_content
+from tools import package_content
 
 
 class PackageContentTests(unittest.TestCase):
