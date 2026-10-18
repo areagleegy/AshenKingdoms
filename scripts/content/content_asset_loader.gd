@@ -6,7 +6,7 @@ const MANIFEST_NAME := "installed_manifest.json"
 
 
 func load_gltf(pack_id: String, relative_path: String) -> Dictionary:
-	var resolved := _resolve_verified_path(pack_id, relative_path, ["glb", "gltf"])
+	var resolved := _resolve_verified_path(pack_id, relative_path, ["glb"])
 	if not bool(resolved.get("ok", false)):
 		return resolved
 	var absolute_path := ProjectSettings.globalize_path(str(resolved["path"]))
@@ -77,6 +77,9 @@ func _resolve_verified_path(pack_id: String, relative_path: String, allowed_exte
 	file.close()
 	if actual_size != expected_size:
 		return _error("Installed asset size no longer matches the manifest.")
+	var expected_digest := str(record.get("sha256", "")).to_lower()
+	if FileAccess.get_sha256(resolved_path).to_lower() != expected_digest:
+		return _error("Installed asset SHA-256 no longer matches the manifest.")
 	return {"ok": true, "error": "", "path": resolved_path}
 
 
