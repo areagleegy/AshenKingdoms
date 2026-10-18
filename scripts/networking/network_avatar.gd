@@ -4,6 +4,7 @@ const INPUT_SEND_INTERVAL: float = 0.05
 const INPUT_TIMEOUT_MSEC: int = 350
 
 @export var move_speed: float = 5.0
+@export var sprint_speed: float = 7.5
 @export var jump_velocity: float = 5.5
 @export var rotation_speed: float = 10.0
 
@@ -14,6 +15,7 @@ const INPUT_TIMEOUT_MSEC: int = 350
 var owner_peer_id: int = 1
 var _gravity: float = float(ProjectSettings.get_setting("physics/3d/default_gravity"))
 var _requested_direction: Vector3 = Vector3.ZERO
+var _sprint_requested: bool = false
 var _jump_buffered: bool = false
 var _last_jump_down: bool = false
 var _last_input_msec: int = 0
@@ -36,7 +38,7 @@ func _ready() -> void:
 
 	var local_owner := _owns_local_input()
 	camera.current = local_owner and DisplayServer.get_name() != "headless"
-	camera_rig.set_process_unhandled_input(local_owner)
+	set_process_unhandled_input(local_owner)
 	if local_owner and not (OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios")):
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
@@ -44,7 +46,11 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if multiplayer.is_server():
 		if owner_peer_id == 1:
-			_set_requested_input(_read_world_direction(), Input.is_action_pressed("jump"))
+			_set_requested_input(
+				_read_world_direction(),
+				Input.is_action_pressed("jump"),
+				Input.is_action_pressed("sprint")
+			)
 		_server_step(delta)
 		return
 
@@ -54,11 +60,17 @@ func _physics_process(delta: float) -> void:
 	_input_send_accumulator += delta
 	if _input_send_accumulator >= INPUT_SEND_INTERVAL:
 		_input_send_accumulator = 0.0
-		rpc_id(1, "_rpc_submit_input", _read_world_direction(), Input.is_action_pressed("jump"))
+		rpc_id(
+			1,
+			"_rpc_submit_input",
+			_read_world_direction(),
+			Input.is_action_pressed("jump"),
+			Input.is_action_pressed("sprint")
+		)
 
 
 @rpc("any_peer", "call_remote", "unreliable")
-func _rpc_submit_input(direction: Vector3, jump_down: bool) -> void:
+func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool) -> void:
 	if not multiplayer.is_server():
 		return
 	var sender_id := multiplayer.get_remote_sender_id()
@@ -68,14 +80,15 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool) -> void:
 	var safe_direction := Vector3(direction.x, 0.0, direction.z)
 	if safe_direction.length_squared() > 1.0:
 		safe_direction = safe_direction.normalized()
-	_set_requested_input(safe_direction, jump_down)
+	_set_requested_input(safe_direction, jump_down, sprint_down)
 	_last_input_msec = Time.get_ticks_msec()
 
 
-func _set_requested_input(direction: Vector3, jump_down: bool) -> void:
+func _set_requested_input(direction: Vector3, jump_down: bool, sprint_down: bool) -> void:
 	_requested_direction = Vector3(direction.x, 0.0, direction.z)
 	if _requested_direction.length_squared() > 1.0:
 		_requested_direction = _requested_direction.normalized()
+	_sprint_requested = sprint_down
 	if jump_down and not _last_jump_down:
 		_jump_buffered = true
 	_last_jump_down = jump_down
@@ -84,6 +97,7 @@ func _set_requested_input(direction: Vector3, jump_down: bool) -> void:
 func _server_step(delta: float) -> void:
 	if owner_peer_id > 1 and Time.get_ticks_msec() - _last_input_msec > INPUT_TIMEOUT_MSEC:
 		_requested_direction = Vector3.ZERO
+		_sprint_requested = false
 		_jump_buffered = false
 
 	if not is_on_floor():
@@ -95,8 +109,9 @@ func _server_step(delta: float) -> void:
 		velocity.y = jump_velocity
 		_jump_buffered = false
 
-	velocity.x = _requested_direction.x * move_speed
-	velocity.z = _requested_direction.z * move_speed
+	var current_speed := sprint_speed if _sprint_requested else move_speed
+	velocity.x = _requested_direction.x * current_speed
+	velocity.z = _requested_direction.z * current_speed
 	if _requested_direction.length_squared() > 0.001:
 		var target_y := atan2(-_requested_direction.x, -_requested_direction.z)
 		rotation.y = lerp_angle(rotation.y, target_y, rotation_speed * delta)
