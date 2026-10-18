@@ -125,7 +125,9 @@ def create_archive(source_dir: pathlib.Path, output_zip: pathlib.Path, records: 
                 info.compress_type = zipfile.ZIP_DEFLATED
                 info.create_system = 3
                 info.external_attr = 0o100644 << 16
-                with archive.open(info, "w", force_zip64=True) as output:\n                    with (root / relative).open("rb") as source:\n                        shutil.copyfileobj(source, output, length=1024 * 1024)
+                with archive.open(info, "w", force_zip64=True) as output:
+                    with (root / relative).open("rb") as source:
+                        shutil.copyfileobj(source, output, length=1024 * 1024)
         if temporary_path.stat().st_size > MAX_ARCHIVE_BYTES:
             raise PackageError("Compressed archive exceeds the download size limit.")
         os.replace(temporary_path, output_zip)
