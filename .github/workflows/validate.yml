@@ -17,6 +17,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Run diagnostics classifier unit tests
+        run: python3 -m unittest discover -s tools -p 'test_ai_test_diagnostics.py' -v
+
       - name: Install Godot CLI
         run: bash tools/setup-godot-cli.sh
 
@@ -35,13 +38,41 @@ jobs:
           test -f docs/TECHNICAL_ARCHITECTURE.md
           test -f docs/TEST_PLAN.md
           test -f tests/gameplay_smoke_test.gd
+          test -f tools/ai_test_diagnostics.py
+          test -f tools/test_ai_test_diagnostics.py
 
       - name: Import and parse project
         env:
           GODOT_SILENCE_ROOT_WARNING: "1"
-        run: godot --headless --path . --editor --quit
+        run: |
+          set -o pipefail
+          godot --headless --path . --editor --quit 2>&1 | tee "$RUNNER_TEMP/godot-import.log"
 
       - name: Run gameplay smoke tests
         env:
           GODOT_SILENCE_ROOT_WARNING: "1"
-        run: godot --headless --path . --script res://tests/gameplay_smoke_test.gd
+        run: |
+          set -o pipefail
+          godot --headless --path . --script res://tests/gameplay_smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/gameplay-tests.log"
+
+      - name: Diagnose test logs
+        if: always()
+        env:
+          ASHEN_AI_DIAGNOSE: ${{ vars.ASHEN_AI_DIAGNOSE }}
+          ASHEN_AI_ENDPOINT: ${{ secrets.ASHEN_AI_ENDPOINT }}
+          ASHEN_AI_API_KEY: ${{ secrets.ASHEN_AI_API_KEY }}
+          ASHEN_AI_MODEL: ${{ vars.ASHEN_AI_MODEL }}
+        run: |
+          python3 tools/ai_test_diagnostics.py \
+            --log "$RUNNER_TEMP/godot-import.log" \
+            --log "$RUNNER_TEMP/gameplay-tests.log" \
+            --output "$RUNNER_TEMP/ashen-test-diagnostics.json"
+
+      - name: Upload diagnostic report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ashen-test-diagnostics
+          path: ${{ runner.temp }}/ashen-test-diagnostics.json
+          if-no-files-found: warn
+          retention-days: 7
