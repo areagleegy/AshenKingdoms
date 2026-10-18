@@ -9,7 +9,7 @@ const MAX_SINGLE_FILE_BYTES := 512 * 1024 * 1024
 const MAX_TOTAL_UNPACKED_BYTES := 4 * 1024 * 1024 * 1024
 const ALLOWED_PACK_TYPES := ["character", "world", "equipment", "audio", "language"]
 const ALLOWED_EXTENSIONS := [
-	"glb", "gltf", "bin", "png", "jpg", "jpeg", "webp", "ktx2",
+	"glb", "png", "jpg", "jpeg", "webp", "ktx2",
 	"ogg", "wav", "mp3", "json"
 ]
 const SHA256_HEX_LENGTH := 64
@@ -92,7 +92,7 @@ func validate_catalog(catalog: Variant) -> Dictionary:
 func _validate_pack(pack: Dictionary) -> Dictionary:
 	var pack_id := str(pack.get("id", ""))
 	var version := str(pack.get("version", ""))
-	if version.is_empty() or version.length() > 64:
+	if not _is_safe_version(version):
 		return _error("Pack %s has an invalid version." % pack_id)
 	if not ALLOWED_PACK_TYPES.has(str(pack.get("type", ""))):
 		return _error("Pack %s has an unsupported type." % pack_id)
@@ -167,6 +167,17 @@ func _is_safe_id(value: String) -> bool:
 	for index in value.length():
 		var code := value.unicode_at(index)
 		var allowed := (code >= 48 and code <= 57) or (code >= 97 and code <= 122) or code == 95 or code == 45
+		if not allowed:
+			return false
+	return true
+
+
+func _is_safe_version(value: String) -> bool:
+	if value.is_empty() or value.length() > 64 or value == "." or value == "..":
+		return false
+	for index in value.length():
+		var code := value.unicode_at(index)
+		var allowed := (code >= 48 and code <= 57) or (code >= 65 and code <= 90) or (code >= 97 and code <= 122) or code == 46 or code == 95 or code == 45
 		if not allowed:
 			return false
 	return true
