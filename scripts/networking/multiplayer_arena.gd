@@ -309,7 +309,19 @@ func _on_network_enemy_died(enemy: Node, attacker_peer_id: int) -> void:
 
 
 func _respawn_enemy_after_delay(slot: int) -> void:
-	await get_tree().create_timer(ENEMY_RESPAWN_SECONDS).timeout
+	if not is_inside_tree() or not multiplayer.is_server():
+		return
+	var timer := Timer.new()
+	timer.one_shot = true
+	timer.wait_time = ENEMY_RESPAWN_SECONDS
+	add_child(timer)
+	timer.timeout.connect(_on_enemy_respawn_timer_timeout.bind(slot, timer))
+	timer.start()
+
+
+func _on_enemy_respawn_timer_timeout(slot: int, timer: Timer) -> void:
+	if is_instance_valid(timer):
+		timer.queue_free()
 	if not is_inside_tree() or not multiplayer.is_server():
 		return
 	_spawn_enemy(slot)
