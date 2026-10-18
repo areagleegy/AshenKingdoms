@@ -15,6 +15,41 @@ const ALLOWED_EXTENSIONS := [
 const SHA256_HEX_LENGTH := 64
 
 
+func parse_signed_envelope(raw_json: String, public_key_pem: String) -> Dictionary:
+	if raw_json.is_empty() or raw_json.length() > 4 * 1024 * 1024:
+		return _error("Signed catalog envelope is empty or too large.")
+	if public_key_pem.strip_edges().is_empty():
+		return _error("Catalog verification key is not configured.")
+	var envelope_value: Variant = JSON.parse_string(raw_json)
+	if not envelope_value is Dictionary:
+		return _error("Signed catalog envelope must be a JSON object.")
+	var envelope: Dictionary = envelope_value
+	if str(envelope.get("algorithm", "")) != "RSA-SHA256":
+		return _error("Unsupported catalog signature algorithm.")
+	var payload_b64 := str(envelope.get("payload_base64", ""))
+	var signature_b64 := str(envelope.get("signature_base64", ""))
+	if payload_b64.is_empty() or signature_b64.is_empty():
+		return _error("Signed catalog envelope is incomplete.")
+	var payload_bytes: PackedByteArray = Marshalls.base64_to_raw(payload_b64)
+	var signature: PackedByteArray = Marshalls.base64_to_raw(signature_b64)
+	if payload_bytes.is_empty() or signature.is_empty() or payload_bytes.size() > 2 * 1024 * 1024:
+		return _error("Signed catalog payload or signature is invalid.")
+	var public_key := CryptoKey.new()
+	if public_key.load_from_string(public_key_pem, true) != OK or not public_key.is_public_only():
+		return _error("Catalog public key is invalid.")
+	var crypto := Crypto.new()
+	var payload_hash: PackedByteArray = payload_bytes.sha256_buffer()
+	if not crypto.verify(HashingContext.HASH_SHA256, payload_hash, signature, public_key):
+		return _error("Catalog signature verification failed.")
+	var payload_value: Variant = JSON.parse_string(payload_bytes.get_string_from_utf8())
+	if not payload_value is Dictionary:
+		return _error("Signed catalog payload must be a JSON object.")
+	var validation := validate_catalog(payload_value)
+	if not bool(validation.get("ok", false)):
+		return validation
+	return {"ok": true, "error": "", "catalog": payload_value}
+
+
 func validate_catalog(catalog: Variant) -> Dictionary:
 	if not catalog is Dictionary:
 		return _error("Catalog root must be an object.")
