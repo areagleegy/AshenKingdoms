@@ -13,15 +13,29 @@ signal died(player: Node)
 @onready var health: Health = $Health
 @onready var inventory: Inventory = $Inventory
 
+const ANIMATION_ALIASES: Dictionary = {
+	"idle": ["idle", "stand", "breath"],
+	"walk": ["walk", "walking"],
+	"run": ["run", "running", "sprint"],
+	"jump": ["jump", "leap"],
+	"attack": ["attack", "slash", "swing", "strike"],
+	"death": ["death", "die", "dead"]
+}
+
 var camera_pivot: Node3D
 var _gravity: float = float(ProjectSettings.get_setting("physics/3d/default_gravity"))
 var _can_attack: bool = true
 var is_dead: bool = false
+var _animation_player: AnimationPlayer
+var _resolved_animations: Dictionary = {}
+var _is_attacking: bool = false
 
 
 func _ready() -> void:
 	add_to_group("player")
 	health.died.connect(_on_health_died)
+	_find_animation_player()
+	_play_animation(&"idle")
 
 
 func _physics_process(delta: float) -> void:
@@ -60,6 +74,9 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 
+	if not _is_attacking:
+		_update_animation(direction)
+
 	if Input.is_action_just_pressed("attack") and _can_attack:
 		_attack()
 
@@ -74,10 +91,14 @@ func reset_after_death(spawn_position: Vector3) -> void:
 	velocity = Vector3.ZERO
 	health.set_current_health(health.max_health)
 	is_dead = false
+	_is_attacking = false
+	_play_animation(&"idle")
 
 
 func _attack() -> void:
 	_can_attack = false
+	_is_attacking = true
+	_play_animation(&"attack")
 	var from := global_position + Vector3.UP * 0.65
 	var to := from - global_transform.basis.z * attack_range
 	var query := PhysicsRayQueryParameters3D.create(from, to)
@@ -91,9 +112,70 @@ func _attack() -> void:
 
 	await get_tree().create_timer(attack_cooldown).timeout
 	_can_attack = true
+	_is_attacking = false
+
+
+func _find_animation_player() -> void:
+	var animation_nodes := find_children("*", "AnimationPlayer", true, false)
+	if animation_nodes.is_empty():
+		return
+	_animation_player = animation_nodes[0] as AnimationPlayer
+	if _animation_player == null:
+		return
+
+	for state in ANIMATION_ALIASES.keys():
+		var clip_name := _find_animation_clip(String(state))
+		if not clip_name.is_empty():
+			_resolved_animations[String(state)] = clip_name
+
+
+func _find_animation_clip(state: String) -> String:
+	var aliases: Array = ANIMATION_ALIASES.get(state, [])
+	var animation_names: PackedStringArray = _animation_player.get_animation_list()
+
+	for alias_value in aliases:
+		var alias_name := _normalise_animation_name(String(alias_value))
+		for animation_name in animation_names:
+			if _normalise_animation_name(animation_name) == alias_name:
+				return animation_name
+
+	for alias_value in aliases:
+		var alias_name := _normalise_animation_name(String(alias_value))
+		if alias_name.is_empty():
+			continue
+		for animation_name in animation_names:
+			if _normalise_animation_name(animation_name).contains(alias_name):
+				return animation_name
+
+	return ""
+
+
+func _normalise_animation_name(value: String) -> String:
+	return value.to_lower().replace("_", "").replace("-", "").replace(" ", "").replace("|", "").replace(".", "")
+
+
+func _play_animation(state: StringName) -> void:
+	if _animation_player == null or not is_instance_valid(_animation_player):
+		return
+	var clip_name := String(_resolved_animations.get(String(state), ""))
+	if clip_name.is_empty() or _animation_player.current_animation == clip_name:
+		return
+	_animation_player.play(clip_name)
+
+
+func _update_animation(direction: Vector3) -> void:
+	if not is_on_floor():
+		_play_animation(&"jump")
+	elif direction.length_squared() <= 0.001:
+		_play_animation(&"idle")
+	elif Input.is_action_pressed("sprint"):
+		_play_animation(&"run")
+	else:
+		_play_animation(&"walk")
 
 
 func _on_health_died() -> void:
 	is_dead = true
 	velocity = Vector3.ZERO
+	_play_animation(&"death")
 	died.emit(self)
