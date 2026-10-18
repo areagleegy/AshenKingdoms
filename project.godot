@@ -1,5 +1,5 @@
 ; Godot project configuration for AshenKingdoms.
-
+ 
 config_version=5
 
 [application]
@@ -28,4 +28,4 @@ environment/defaults/default_clear_color=Color(0.035, 0.035, 0.055, 1.0)
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/ashen_asset_bridge/plugin.cfg")
+enabled=PackedStringArray("res://addons/ashen_asset_bridge/plugin.cfg", "res://addons/ashen_free_asset_pipeline/plugin.cfg")
