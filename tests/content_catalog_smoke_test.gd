@@ -97,6 +97,15 @@ func _run() -> void:
 	_check(not bool(_catalog.call("is_safe_relative_path", "../escape.txt")), "parent traversal is rejected by path helper")
 	_check(not bool(_catalog.call("is_safe_relative_path", "/absolute/path.txt")), "absolute paths are rejected by path helper")
 	_check(bool(_catalog.call("is_safe_relative_path", "characters/hero.glb")), "nested relative asset path is accepted")
+
+	var installer_script: Script = load("res://scripts/content/content_package_installer.gd") as Script
+	_check(installer_script != null, "content package installer script exists and loads")
+	if installer_script != null:
+		var installer: RefCounted = installer_script.new()
+		_check(not bool(installer.call("verify_archive", "user://missing-content-pack.zip", valid_catalog["packs"][0]).get("ok", true)), "missing package archives are rejected")
+		_check(not bool(installer.call("remove_installed_pack", "../outside", "1.0.0").get("ok", true)), "unsafe package IDs cannot delete files")
+
+	_check(ContentManager.get_catalog_state() == "not_configured", "base game starts with content downloads disabled when no service is configured")
 	_finish()
 
 
