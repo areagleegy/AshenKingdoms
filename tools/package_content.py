@@ -89,8 +89,8 @@ def collect_files(source_dir: pathlib.Path) -> list[dict[str, Any]]:
             if file_path.is_symlink() or not file_path.is_file():
                 raise PackageError(f"Symlinks and special files are not allowed: {filename}")
             relative = file_path.relative_to(root).as_posix()
-            if not is_safe_relative_path(relative):
-                raise PackageError(f"Unsafe relative path: {relative}")
+            if not is_safe_relative_path(relative) or relative.casefold() == "installed_manifest.json":
+                raise PackageError(f"Unsafe or reserved relative path: {relative}")
             if file_path.suffix.lower() not in ALLOWED_EXTENSIONS:
                 raise PackageError(f"Disallowed content type: {relative}")
             normalized = relative.casefold()
