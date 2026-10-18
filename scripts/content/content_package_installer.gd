@@ -69,7 +69,7 @@ func verify_archive(archive_path: String, pack_record: Dictionary) -> Dictionary
 		if bytes.size() != int(expected["size"]):
 			zip.close()
 			return _error("File size does not match the catalog: %s" % path)
-		if bytes.sha256_text().to_lower() != str(expected["sha256"]):
+		if _sha256_bytes(bytes).hex_encode().to_lower() != str(expected["sha256"]):
 			zip.close()
 			return _error("File SHA-256 verification failed: %s" % path)
 	zip.close()
@@ -200,6 +200,15 @@ func _is_safe_version(value: String) -> bool:
 		if not allowed:
 			return false
 	return true
+
+
+func _sha256_bytes(bytes: PackedByteArray) -> PackedByteArray:
+	var context := HashingContext.new()
+	if context.start(HashingContext.HASH_SHA256) != OK:
+		return PackedByteArray()
+	if context.update(bytes) != OK:
+		return PackedByteArray()
+	return context.finish()
 
 
 func _is_sha256(value: String) -> bool:
