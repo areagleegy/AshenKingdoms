@@ -22,6 +22,11 @@ jobs:
           set -o pipefail
           python3 -m unittest discover -s tools -p 'test_ai_test_diagnostics.py' -v 2>&1 | tee "$RUNNER_TEMP/diagnostics-unit-tests.log"
 
+      - name: Benchmark diagnostic corpus
+        run: |
+          set -o pipefail
+          python3 tools/diagnostic_benchmark.py --corpus tools/diagnostic_cases.json --output "$RUNNER_TEMP/diagnostic-benchmark.json" --summary "$GITHUB_STEP_SUMMARY" 2>&1 | tee "$RUNNER_TEMP/diagnostic-benchmark.log"
+
       - name: Install Godot CLI
         run: |
           set -o pipefail
