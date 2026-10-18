@@ -28,12 +28,20 @@ jobs:
           test -f project.godot
           test -f export_presets.cfg
           test -f scenes/boot/Main.tscn
+          test -f scenes/ui/MainMenu.tscn
+          test -f scenes/network/MultiplayerArena.tscn
+          test -f scenes/network/NetworkAvatar.tscn
           test -f scripts/core/main.gd
           test -f scripts/core/server.gd
+          test -f scripts/core/network_manager.gd
+          test -f scripts/networking/multiplayer_arena.gd
+          test -f scripts/networking/network_avatar.gd
+          test -f scripts/ui/main_menu.gd
           test -f README.md
           test -f LICENSE
           test -f docs/TECHNICAL_ARCHITECTURE.md
           test -f docs/TEST_PLAN.md
+          test -f docs/NETWORKING.md
           test -f tests/gameplay_smoke_test.gd
 
       - name: Import and parse project
@@ -41,7 +49,7 @@ jobs:
           GODOT_SILENCE_ROOT_WARNING: "1"
         run: godot --headless --path . --editor --quit
 
-      - name: Run gameplay smoke tests
+      - name: Run gameplay and network-input smoke tests
         env:
           GODOT_SILENCE_ROOT_WARNING: "1"
         run: godot --headless --path . --script res://tests/gameplay_smoke_test.gd
