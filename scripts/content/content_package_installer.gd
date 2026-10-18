@@ -13,7 +13,11 @@ const MAX_UNPACKED_BYTES := 4 * 1024 * 1024 * 1024
 func verify_archive(archive_path: String, pack_record: Dictionary) -> Dictionary:
 	if not FileAccess.file_exists(archive_path):
 		return _error("Package archive does not exist.")
-	var file_size := FileAccess.get_file_as_bytes(archive_path).size()
+	var archive_file := FileAccess.open(archive_path, FileAccess.READ)
+	if archive_file == null:
+		return _error("Package archive cannot be opened.")
+	var file_size := archive_file.get_length()
+	archive_file.close()
 	if file_size < 1 or file_size > MAX_ARCHIVE_BYTES:
 		return _error("Package archive size is outside allowed limits.")
 	var expected_archive_size := int(pack_record.get("download_size", -1))
