@@ -22,6 +22,27 @@ properties/1/replication_mode = 1
 properties/2/path = NodePath(".:velocity")
 properties/2/spawn = true
 properties/2/replication_mode = 1
+properties/3/path = NodePath(".:current_health")
+properties/3/spawn = true
+properties/3/replication_mode = 1
+properties/4/path = NodePath(".:max_health")
+properties/4/spawn = true
+properties/4/replication_mode = 1
+properties/5/path = NodePath(".:level")
+properties/5/spawn = true
+properties/5/replication_mode = 1
+properties/6/path = NodePath(".:experience")
+properties/6/spawn = true
+properties/6/replication_mode = 1
+properties/7/path = NodePath(".:quest_progress")
+properties/7/spawn = true
+properties/7/replication_mode = 1
+properties/8/path = NodePath(".:quest_completed")
+properties/8/spawn = true
+properties/8/replication_mode = 1
+properties/9/path = NodePath(".:is_dead")
+properties/9/spawn = true
+properties/9/replication_mode = 1
 
 [node name="NetworkAvatar" type="CharacterBody3D"]
 collision_layer = 1
