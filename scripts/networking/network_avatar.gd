@@ -38,6 +38,7 @@ var _last_input_msec: int = 0
 var _next_attack_msec: int = 0
 var _death_generation: int = 0
 var _input_send_accumulator: float = 0.0
+var _base_color: Color = Color.WHITE
 
 
 func configure_owner(peer_id: int) -> void:
@@ -50,7 +51,8 @@ func configure_owner(peer_id: int) -> void:
 func _ready() -> void:
 	add_to_group("network_players")
 	var material := StandardMaterial3D.new()
-	material.albedo_color = Color.from_hsv(fposmod(float(owner_peer_id) * 0.173, 1.0), 0.56, 0.88)
+	_base_color = Color.from_hsv(fposmod(float(owner_peer_id) * 0.173, 1.0), 0.56, 0.88)
+	material.albedo_color = _base_color
 	material.roughness = 0.78
 	visual_mesh.material_override = material
 
@@ -63,8 +65,8 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	var material := visual_mesh.material_override as StandardMaterial3D
-	if material != null and is_dead:
-		material.albedo_color = Color(0.14, 0.12, 0.16, 1.0)
+	if material != null:
+		material.albedo_color = Color(0.14, 0.12, 0.16, 1.0) if is_dead else _base_color
 
 
 func _physics_process(delta: float) -> void:
