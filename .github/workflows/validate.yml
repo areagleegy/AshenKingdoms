@@ -18,7 +18,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run diagnostics classifier unit tests
-        run: python3 -m unittest discover -s tools -p 'test_ai_test_diagnostics.py' -v
+        run: |
+          set -o pipefail
+          python3 -m unittest discover -s tools -p 'test_ai_test_diagnostics.py' -v 2>&1 | tee "$RUNNER_TEMP/diagnostics-unit-tests.log"
 
       - name: Install Godot CLI
         run: bash tools/setup-godot-cli.sh
@@ -64,6 +66,7 @@ jobs:
           ASHEN_AI_MODEL: ${{ vars.ASHEN_AI_MODEL }}
         run: |
           python3 tools/ai_test_diagnostics.py \
+            --log "$RUNNER_TEMP/diagnostics-unit-tests.log" \
             --log "$RUNNER_TEMP/godot-import.log" \
             --log "$RUNNER_TEMP/gameplay-tests.log" \
             --output "$RUNNER_TEMP/ashen-test-diagnostics.json"
