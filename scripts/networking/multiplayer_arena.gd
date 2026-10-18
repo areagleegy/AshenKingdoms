@@ -63,15 +63,28 @@ func _register_input_actions() -> void:
 	_add_key_action(&"pause", [KEY_ESCAPE])
 	if not InputMap.has_action("attack"):
 		InputMap.add_action("attack")
-	var attack_event := InputEventMouseButton.new()
-	attack_event.button_index = MOUSE_BUTTON_LEFT
-	InputMap.action_add_event("attack", attack_event)
+	var mouse_attack_exists := false
+	for existing_event in InputMap.action_get_events("attack"):
+		if existing_event is InputEventMouseButton and (existing_event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
+			mouse_attack_exists = true
+			break
+	if not mouse_attack_exists:
+		var attack_event := InputEventMouseButton.new()
+		attack_event.button_index = MOUSE_BUTTON_LEFT
+		InputMap.action_add_event("attack", attack_event)
 
 
 func _add_key_action(action: StringName, key_codes: Array) -> void:
 	if not InputMap.has_action(action):
 		InputMap.add_action(action)
 	for key_code in key_codes:
+		var already_added := false
+		for existing_event in InputMap.action_get_events(action):
+			if existing_event is InputEventKey and (existing_event as InputEventKey).physical_keycode == int(key_code):
+				already_added = true
+				break
+		if already_added:
+			continue
 		var key_event := InputEventKey.new()
 		key_event.physical_keycode = int(key_code)
 		InputMap.action_add_event(action, key_event)
