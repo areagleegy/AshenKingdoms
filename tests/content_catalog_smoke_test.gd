@@ -41,6 +41,20 @@ func _run() -> void:
 	}
 	var valid_result: Dictionary = _catalog.call("validate_catalog", valid_catalog)
 	_check(bool(valid_result.get("ok", false)), "valid catalog is accepted")
+	_check(not bool(_catalog.call("parse_signed_envelope", "{}", "").get("ok", true)), "remote catalog fails closed when no public key is configured")
+	var private_key: CryptoKey = Crypto.new().generate_rsa(2048)
+	var payload_text := JSON.stringify(valid_catalog)
+	var payload_bytes := payload_text.to_utf8_buffer()
+	var signature := Crypto.new().sign(HashingContext.HASH_SHA256, payload_bytes.sha256_buffer(), private_key)
+	var signed_envelope := JSON.stringify({
+		"algorithm": "RSA-SHA256",
+		"payload_base64": Marshalls.raw_to_base64(payload_bytes),
+		"signature_base64": Marshalls.raw_to_base64(signature)
+	})
+	var signed_result: Dictionary = _catalog.call("parse_signed_envelope", signed_envelope, private_key.save_to_string(true))
+	_check(bool(signed_result.get("ok", false)), "catalog with a valid RSA-SHA256 signature is accepted")
+	var tampered_envelope := signed_envelope.replace("ashen_outskirts", "ashen_outskirtx")
+	_check(not bool(_catalog.call("parse_signed_envelope", tampered_envelope, private_key.save_to_string(true)).get("ok", true)), "tampered signed catalog is rejected")
 
 	var duplicate_catalog: Dictionary = valid_catalog.duplicate(true)
 	duplicate_catalog["packs"].append((valid_catalog["packs"][0] as Dictionary).duplicate(true))
