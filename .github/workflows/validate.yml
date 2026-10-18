@@ -23,25 +23,44 @@ jobs:
           python3 -m unittest discover -s tools -p 'test_ai_test_diagnostics.py' -v 2>&1 | tee "$RUNNER_TEMP/diagnostics-unit-tests.log"
 
       - name: Install Godot CLI
-        run: bash tools/setup-godot-cli.sh
+        run: |
+          set -o pipefail
+          bash tools/setup-godot-cli.sh 2>&1 | tee "$RUNNER_TEMP/godot-setup.log"
 
       - name: Add Godot to PATH
         run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Check required files
         run: |
-          test -f project.godot
-          test -f export_presets.cfg
-          test -f scenes/boot/Main.tscn
-          test -f scripts/core/main.gd
-          test -f scripts/core/server.gd
-          test -f README.md
-          test -f LICENSE
-          test -f docs/TECHNICAL_ARCHITECTURE.md
-          test -f docs/TEST_PLAN.md
-          test -f tests/gameplay_smoke_test.gd
-          test -f tools/ai_test_diagnostics.py
-          test -f tools/test_ai_test_diagnostics.py
+          set -o pipefail
+          {
+            set -euo pipefail
+            required_files=(
+              project.godot
+              export_presets.cfg
+              scenes/boot/Main.tscn
+              scripts/core/main.gd
+              scripts/core/server.gd
+              README.md
+              LICENSE
+              docs/TECHNICAL_ARCHITECTURE.md
+              docs/TEST_PLAN.md
+              tests/gameplay_smoke_test.gd
+              tools/ai_test_diagnostics.py
+              tools/test_ai_test_diagnostics.py
+            )
+            missing=0
+            for path in "\${required_files[@]}"; do
+              if [[ -f "$path" ]]; then
+                echo "[OK] Required file: $path"
+              else
+                echo "::error file=$path::Missing required file: $path"
+                echo "MISSING REQUIRED FILE: $path"
+                missing=1
+              fi
+            done
+            exit "$missing"
+          } 2>&1 | tee "$RUNNER_TEMP/required-files.log"
 
       - name: Import and parse project
         env:
@@ -65,8 +84,7 @@ jobs:
           ASHEN_AI_API_KEY: ${{ secrets.ASHEN_AI_API_KEY }}
           ASHEN_AI_MODEL: ${{ vars.ASHEN_AI_MODEL }}
         run: |
-          python3 tools/ai_test_diagnostics.py \
-            --log "$RUNNER_TEMP/diagnostics-unit-tests.log" \
+          python3 tools/ai_test_diagnostics.py --log "$RUNNER_TEMP/diagnostics-unit-tests.log" --log "$RUNNER_TEMP/godot-setup.log" --log "$RUNNER_TEMP/required-files.log" --log "$RUNNER_TEMP/godot-import.log" --log "$RUNNER_TEMP/gameplay-tests.log" --output "$RUNNER_TEMP/ashen-test-diagnostics.json"
             --log "$RUNNER_TEMP/godot-import.log" \
             --log "$RUNNER_TEMP/gameplay-tests.log" \
             --output "$RUNNER_TEMP/ashen-test-diagnostics.json"
