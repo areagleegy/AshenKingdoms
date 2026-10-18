@@ -3,6 +3,7 @@ extends SceneTree
 const CATALOG_SCRIPT_PATH := "res://scripts/content/content_catalog.gd"
 var _failures := 0
 var _catalog_script: Script
+var _catalog: RefCounted
 
 
 func _initialize() -> void:
@@ -13,6 +14,11 @@ func _run() -> void:
 	_catalog_script = load(CATALOG_SCRIPT_PATH) as Script
 	_check(_catalog_script != null, "content catalog script exists and loads")
 	if _catalog_script == null:
+		_finish()
+		return
+	_catalog = _catalog_script.new() as RefCounted
+	_check(_catalog != null, "content catalog can be instantiated")
+	if _catalog == null:
 		_finish()
 		return
 
@@ -33,7 +39,7 @@ func _run() -> void:
 			"dependencies": []
 		}]
 	}
-	var valid_result: Dictionary = _catalog_script.call("validate_catalog", valid_catalog)
+	var valid_result: Dictionary = _catalog.call("validate_catalog", valid_catalog)
 	_check(bool(valid_result.get("ok", false)), "valid catalog is accepted")
 
 	var duplicate_catalog: Dictionary = valid_catalog.duplicate(true)
@@ -72,7 +78,7 @@ func _run() -> void:
 	cyclic_catalog["packs"].append(second_pack)
 	_check(not bool(_catalog_script.call("validate_catalog", cyclic_catalog).get("ok", true)), "cyclic dependencies are rejected")
 
-	_check(not bool(_catalog_script.call("is_safe_relative_path", "../escape.txt")), "parent traversal is rejected by path helper")
+	_check(not bool(_catalog.call("is_safe_relative_path", "../escape.txt")), "parent traversal is rejected by path helper")
 	_check(not bool(_catalog_script.call("is_safe_relative_path", "/absolute/path.txt")), "absolute paths are rejected by path helper")
 	_check(bool(_catalog_script.call("is_safe_relative_path", "characters/hero.glb")), "nested relative asset path is accepted")
 	_finish()
