@@ -15,6 +15,10 @@ func _run() -> void:
 	# Run inside a real Node3D scene tree so 3D physics and multiplayer nodes
 	# have their normal viewport/world context in headless CI.
 	var avatar := NetworkAvatarScene.instantiate() as CharacterBody3D
+	if avatar == null or not avatar.has_method("configure_owner"):
+		_check(false, "network avatar scene and script load correctly")
+		get_tree().quit(1)
+		return
 	avatar.call("configure_owner", 1)
 	add_child(avatar)
 	print("[network-smoke] avatar ready")
@@ -37,6 +41,11 @@ func _run() -> void:
 	_check(int(avatar.get("quest_progress")) == 3, "completed network quest progress stays capped")
 
 	var enemy := NetworkEnemyScene.instantiate() as CharacterBody3D
+	if enemy == null or not enemy.has_method("configure_spawn"):
+		_check(false, "network enemy scene and script load correctly")
+		avatar.queue_free()
+		get_tree().quit(1)
+		return
 	enemy.call("configure_spawn", 1)
 	add_child(enemy)
 	print("[network-smoke] enemy ready")
