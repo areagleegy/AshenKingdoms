@@ -3,6 +3,7 @@ extends Node3D
 const MENU_SCENE: String = "res://scenes/ui/MainMenu.tscn"
 const NETWORK_AVATAR_SCENE: PackedScene = preload("res://scenes/network/NetworkAvatar.tscn")
 const NETWORK_ENEMY_SCENE: PackedScene = preload("res://scenes/network/NetworkEnemy.tscn")
+const TOUCH_CONTROLS_SCENE: PackedScene = preload("res://scenes/ui/TouchControls.tscn")
 const INITIAL_ENEMY_COUNT: int = 4
 const ENEMY_RESPAWN_SECONDS: float = 5.0
 
@@ -194,13 +195,27 @@ func _build_touch_controls(layer: CanvasLayer) -> void:
 	if not (OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios")):
 		return
 
-	_add_touch_button(layer, "↑", &"move_forward", 0.0, 1.0, 92.0, -208.0, 62.0, 62.0)
-	_add_touch_button(layer, "←", &"move_left", 0.0, 1.0, 26.0, -142.0, 62.0, 62.0)
-	_add_touch_button(layer, "→", &"move_right", 0.0, 1.0, 158.0, -142.0, 62.0, 62.0)
-	_add_touch_button(layer, "↓", &"move_back", 0.0, 1.0, 92.0, -76.0, 62.0, 62.0)
+	var joystick := TOUCH_CONTROLS_SCENE.instantiate() as AshenVirtualJoystick
+	if joystick != null:
+		joystick.direction_changed.connect(_on_virtual_joystick_direction_changed)
+		layer.add_child(joystick)
+
 	_add_touch_button(layer, "هجوم", &"attack", 1.0, 1.0, -100.0, -92.0, 84.0, 68.0)
 	_add_touch_button(layer, "قفز", &"jump", 1.0, 1.0, -194.0, -158.0, 84.0, 68.0)
 	_add_touch_button(layer, "ركض", &"sprint", 1.0, 1.0, -100.0, -174.0, 84.0, 68.0)
+
+
+func _on_virtual_joystick_direction_changed(direction: Vector2) -> void:
+	_set_input_strength(&"move_left", maxf(-direction.x, 0.0))
+	_set_input_strength(&"move_right", maxf(direction.x, 0.0))
+	_set_input_strength(&"move_forward", maxf(-direction.y, 0.0))
+	_set_input_strength(&"move_back", maxf(direction.y, 0.0))
+
+
+func _set_input_strength(action: StringName, strength: float) -> void:
+	Input.action_release(action)
+	if strength > 0.001:
+		Input.action_press(action, clampf(strength, 0.0, 1.0))
 
 
 func _add_touch_button(
