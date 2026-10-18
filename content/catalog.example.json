@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "packs": [
+    {
+      "id": "example_character_pack",
+      "name": "Example Character Pack",
+      "version": "1.0.0",
+      "type": "character",
+      "url": "https://REPLACE-WITH-YOUR-CDN.example/packs/example_character_pack.zip",
+      "download_size": 12345,
+      "sha256": "REPLACE_WITH_64_HEX_SHA256_CHARACTERS",
+      "files": [
+        {
+          "path": "characters/example.glb",
+          "size": 10000,
+          "sha256": "REPLACE_WITH_64_HEX_SHA256_CHARACTERS"
+        }
+      ],
+      "dependencies": []
+    }
+  ]
+}
