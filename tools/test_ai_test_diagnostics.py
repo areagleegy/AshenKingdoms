@@ -23,6 +23,10 @@ class DiagnosticsClassifierTests(unittest.TestCase):
         self.assertEqual(findings[0]["category"], "network")
         self.assertIn("المنفذ", findings[0]["recommended_action"])
 
+    def test_benign_success_logs_do_not_create_findings(self):
+        log = "Godot Engine v4.6; renderer: headless\nENet peer initialized\nLoaded res://assets/hero/player.glb\nAndroid SDK configured\nReimport complete: .godot/imported/hero.glb\n"
+        self.assertEqual(classify_text(log), [])
+
     def test_missing_resource_is_detected(self):
         findings = classify_text("Failed loading resource: res://assets/hero/player.glb")
         categories = {item["category"] for item in findings}
