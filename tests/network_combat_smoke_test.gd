@@ -24,6 +24,10 @@ func _run() -> void:
 	print("[network-smoke] avatar ready")
 	_check(float(avatar.get("current_health")) == 100.0, "network avatar starts with expected health")
 	_check(bool(multiplayer.is_server()), "offline smoke harness is allowed to exercise server logic")
+	_check(
+		NetworkManager.start_websocket_client("localhost:7778") == ERR_INVALID_PARAMETER,
+		"WebSocket client rejects endpoints without an explicit ws:// or wss:// scheme"
+	)
 
 	avatar.call("server_grant_experience", 100)
 	print("[network-smoke] XP tested")
