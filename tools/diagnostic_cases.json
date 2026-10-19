@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "purpose": "Synthetic labeled regression corpus for the offline AshenKingdoms diagnostic rules. Contains no real user or CI secrets.",
+  "cases": [
+    {
+      "id": "gdscript-parse-error",
+      "expected_category": "gdscript_parse",
+      "log": "SCRIPT ERROR: Parse Error: Unexpected token at res://scripts/player/player.gd:21"
+    },
+    {
+      "id": "missing-resource",
+      "expected_category": "missing_resource",
+      "log": "ERROR: Failed loading resource: res://assets/characters/player.glb"
+    },
+    {
+      "id": "godot-cli-download-failure",
+      "expected_category": "godot_installation",
+      "log": "curl: (22) The requested URL returned error: 503\nGodot CLI setup failed"
+    },
+    {
+      "id": "required-file-missing",
+      "expected_category": "required_files",
+      "log": "MISSING REQUIRED FILE: tests/gameplay_smoke_test.gd"
+    },
+    {
+      "id": "enet-connection-timeout",
+      "expected_category": "network",
+      "log": "ENet connection failed: timed out waiting for server"
+    },
+    {
+      "id": "android-template-missing",
+      "expected_category": "android_export",
+      "log": "Could not find export template for Android"
+    },
+    {
+      "id": "filesystem-permission",
+      "expected_category": "filesystem_or_runner",
+      "log": "Permission denied: user://savegame.json"
+    },
+    {
+      "id": "clean-success-log",
+      "expected_category": null,
+      "log": "Godot Engine v4.6; renderer: headless\nENet peer initialized\nLoaded res://assets/characters/player.glb\nAndroid SDK configured\nReimport complete: .godot/imported/hero.glb"
+    },
+    {
+      "id": "adb-is-not-game-network",
+      "expected_category": null,
+      "log": "cannot connect to daemon at tcp:5037: Connection refused"
+    },
+    {
+      "id": "expected-invalid-json-rejection",
+      "expected_category": null,
+      "log": "smoke.log: ERROR: Parse JSON failed. Error at line 0: Expected key\nsmoke.log: [PASS] malformed JSON is rejected safely"
+    },
+    {
+      "id": "independent-json-error-remains-visible",
+      "expected_category": "generic_error",
+      "log": "expected.log: ERROR: Parse JSON failed. Expected key\nexpected.log: [PASS] malformed JSON is rejected safely\nunexpected.log: ERROR: Parse JSON failed. Another fixture is malformed"
+    },
+    {
+      "id": "successful-test-name-is-not-error",
+      "expected_category": null,
+      "log": "test_parse_error_is_ranked_first (DiagnosticsClassifierTests) ... ok"
+    }
+  ]
+}

@@ -17,8 +17,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Run diagnostics classifier unit tests
+        run: |
+          set -o pipefail
+          python3 -m unittest discover -s tools -p 'test_ai_test_diagnostics.py' -v 2>&1 | tee "$RUNNER_TEMP/diagnostics-unit-tests.log"
+
+      - name: Benchmark diagnostic corpus
+        run: |
+          set -o pipefail
+          python3 tools/diagnostic_benchmark.py --corpus tools/diagnostic_cases.json --output "$RUNNER_TEMP/diagnostic-benchmark.json" --summary "$GITHUB_STEP_SUMMARY" 2>&1 | tee "$RUNNER_TEMP/diagnostic-benchmark.log"
+
       - name: Install Godot CLI
-        run: bash tools/setup-godot-cli.sh
+        run: |
+          set -o pipefail
+          bash tools/setup-godot-cli.sh 2>&1 | tee "$RUNNER_TEMP/godot-setup.log"
 
       - name: Add Godot to PATH
         run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
@@ -47,26 +59,70 @@ jobs:
           test -f tools/test_package_content.py
           test -f tools/sign_content_catalog.py
           test -f tools/test_sign_content_catalog.py
+          test -f tools/test_ai_test_diagnostics.py
+          test -f tools/diagnostic_cases.json
+          test -f tools/diagnostic_benchmark.py
+          test -f tools/ai_test_diagnostics.py
 
       - name: Import and parse project
         env:
           GODOT_SILENCE_ROOT_WARNING: "1"
-        run: godot --headless --path . --editor --quit
+        run: |
+          set -o pipefail
+          godot --headless --path . --editor --quit 2>&1 | tee "$RUNNER_TEMP/godot-import.log"
 
       - name: Run gameplay smoke tests
         env:
           GODOT_SILENCE_ROOT_WARNING: "1"
-        run: godot --headless --path . --script res://tests/gameplay_smoke_test.gd
+        run: |
+          set -o pipefail
+          godot --headless --path . --script res://tests/gameplay_smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/gameplay-tests.log"
 
       - name: Run gameplay regression tests
         env:
           GODOT_SILENCE_ROOT_WARNING: "1"
-        run: godot --headless --path . --script res://tests/gameplay_regression_test.gd
+        run: |
+          set -o pipefail
+          godot --headless --path . --script res://tests/gameplay_regression_test.gd 2>&1 | tee "$RUNNER_TEMP/gameplay-regression.log"
 
       - name: Run content catalog and installer smoke tests
         env:
           GODOT_SILENCE_ROOT_WARNING: "1"
-        run: godot --headless --path . --script res://tests/content_catalog_smoke_test.gd
+        run: |
+          set -o pipefail
+          godot --headless --path . --script res://tests/content_catalog_smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/content-tests.log"
 
       - name: Run content package builder tests
-        run: python -m unittest tools.test_package_content tools.test_sign_content_catalog -v
+        run: |
+          set -o pipefail
+          python -m unittest tools.test_package_content tools.test_sign_content_catalog -v 2>&1 | tee "$RUNNER_TEMP/python-tests.log"
+
+      - name: Diagnose test logs
+        if: always()
+        env:
+          ASHEN_AI_DIAGNOSE: ${{ vars.ASHEN_AI_DIAGNOSE }}
+          ASHEN_AI_ENDPOINT: ${{ secrets.ASHEN_AI_ENDPOINT }}
+          ASHEN_AI_API_KEY: ${{ secrets.ASHEN_AI_API_KEY }}
+          ASHEN_AI_MODEL: ${{ vars.ASHEN_AI_MODEL }}
+        run: |
+          python3 tools/ai_test_diagnostics.py \\
+            --log "$RUNNER_TEMP/diagnostics-unit-tests.log" \\
+            --log "$RUNNER_TEMP/diagnostic-benchmark.log" \\
+            --log "$RUNNER_TEMP/godot-setup.log" \\
+            --log "$RUNNER_TEMP/godot-import.log" \\
+            --log "$RUNNER_TEMP/gameplay-tests.log" \\
+            --log "$RUNNER_TEMP/gameplay-regression.log" \\
+            --log "$RUNNER_TEMP/content-tests.log" \\
+            --log "$RUNNER_TEMP/python-tests.log" \\
+            --output "$RUNNER_TEMP/ashen-test-diagnostics.json"
+
+      - name: Upload diagnostic report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ashen-test-diagnostics
+          path: |
+            ${{ runner.temp }}/ashen-test-diagnostics.json
+            ${{ runner.temp }}/diagnostic-benchmark.json
+          if-no-files-found: warn
+          retention-days: 7
