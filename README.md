@@ -29,7 +29,7 @@
 
 - مدير الحزم: scripts/content/
 - مكتبة المحتوى: scenes/ui/ContentLibrary.tscn
-- أداة إعداد ZIP وفهرس RSA-SHA256: tools/package_content.py
+- أداة إعداد ZIP وفهرس RSA-SHA256: tools/package_content.py؛ وتوقيع فهرس متعدد الحزم: tools/sign_content_catalog.py
 - اختبارات الحزم: tests/content_catalog_smoke_test.gd وtools/test_package_content.py
 
 هذه مرحلة تنفيذ أولية وليست تأكيدًا على اكتمال تجربة التنزيل على Android. استئناف التنزيل، فحص المساحة الحرة، وتحديث الفهرس متعدد الحزم تحتاج إلى استكمال، ويجب اختبار الأداء على جهاز فعلي.
@@ -44,7 +44,7 @@
    godot --headless --path . --editor --quit
    godot --headless --path . --script res://tests/gameplay_smoke_test.gd
    godot --headless --path . --script res://tests/content_catalog_smoke_test.gd
-   python -m unittest tools.test_package_content -v
+   python -m unittest tools.test_package_content tools.test_sign_content_catalog -v
    ~~~
 
 4. استخدم Source Control ثم Commit وPush لحفظ التعديلات.
