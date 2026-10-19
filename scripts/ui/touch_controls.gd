@@ -5,7 +5,6 @@ extends CanvasLayer
 
 @onready var controls: Control = $Controls
 @onready var move_pad: Control = $Controls/MovePad
-@onready var look_pad: Control = $Controls/LookPad
 @onready var status_label: Label = $Controls/Hint
 
 var _move_touch := -1
