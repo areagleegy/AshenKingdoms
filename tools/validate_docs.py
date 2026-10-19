@@ -15,7 +15,7 @@ from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
-LINK_RE = re.compile(r"!??\[[^\]]*\]\(\s*(<[^>]+>|[^)\s]+)")
+LINK_RE = re.compile(r"!?\[[^\]]*\]\(\s*(<[^>]+>|[^)\s]+)")
 FENCE_OPEN_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
 MARKDOWN_SKIP_DIRS = {".git", ".godot", "build", "node_modules"}
 
