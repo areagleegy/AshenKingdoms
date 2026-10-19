@@ -25,12 +25,19 @@ func _run() -> void:
 		return
 	var port := port_text.to_int()
 
-	var start_result: int = int(manager.call("start_client", "127.0.0.1", port))
+	var transport := OS.get_environment("ASHEN_TEST_TRANSPORT").strip_edges()
+	if transport.is_empty():
+		transport = "enet"
+	var start_result: int
+	if transport == "websocket":
+		start_result = int(manager.call("start_websocket_client", "ws://127.0.0.1:%d" % port))
+	else:
+		start_result = int(manager.call("start_client", "127.0.0.1", port))
 	if start_result != OK:
-		_fail("Client failed to initialize: %s" % error_string(start_result))
+		_fail("Client failed to initialize over %s: %s" % [transport, error_string(start_result)])
 		quit(1)
 		return
-	print("[network-loopback] client transport initialized")
+	print("[network-loopback] %s client transport initialized" % transport)
 
 	var connection_deadline := Time.get_ticks_msec() + CONNECTION_TIMEOUT_MSEC
 	while Time.get_ticks_msec() < connection_deadline:
@@ -39,11 +46,11 @@ func _run() -> void:
 		await process_frame
 
 	if not bool(manager.call("is_connected_to_server")):
-		_fail("Client did not connect to the local ENet host before timeout")
+		_fail("Client did not connect to the local %s host before timeout" % transport)
 		manager.call("leave_session", false)
 		quit(1)
 		return
-	print("[PASS] independent client connects to the local ENet host")
+	print("[PASS] independent client connects to the local %s host" % transport)
 
 	var scene_result := change_scene_to_file(NETWORK_ARENA_PATH)
 	if scene_result != OK:
