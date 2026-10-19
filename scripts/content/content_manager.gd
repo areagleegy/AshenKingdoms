@@ -97,6 +97,15 @@ func download_pack(pack_id: String) -> Error:
 		if not is_pack_installed(str(dependency)):
 			_emit_pack_state(pack_id, "failed", {"error": "Install required package first: %s" % dependency})
 			return ERR_UNAVAILABLE
+	var required_space := _required_space_bytes(pack_record)
+	var storage_directory := DirAccess.open("user://")
+	if storage_directory != null:
+		var available_space := storage_directory.get_space_left()
+		if available_space > 0 and available_space < required_space:
+			_emit_pack_state(pack_id, "failed", {
+				"error": "Not enough free storage. Required approximately %d MB." % int(ceil(float(required_space) / 1048576.0))
+			})
+			return ERR_OUT_OF_MEMORY
 	var download_root_absolute := ProjectSettings.globalize_path(DOWNLOAD_ROOT)
 	if DirAccess.make_dir_recursive_absolute(download_root_absolute) != OK:
 		_emit_pack_state(pack_id, "failed", {"error": "Could not prepare private download storage."})
@@ -336,6 +345,14 @@ func _fail_catalog(message: String) -> void:
 
 func _emit_pack_state(pack_id: String, state: String, details: Dictionary) -> void:
 	pack_state_changed.emit(pack_id, state, details.duplicate(true))
+
+
+func _required_space_bytes(pack_record: Dictionary) -> int:
+	var unpacked_bytes := 0
+	for file_record in pack_record.get("files", []):
+		if file_record is Dictionary:
+			unpacked_bytes += maxi(0, int(file_record.get("size", 0)))
+	return int(pack_record.get("download_size", 0)) + unpacked_bytes + 64 * 1024 * 1024
 
 
 func _is_safe_id(value: String) -> bool:
