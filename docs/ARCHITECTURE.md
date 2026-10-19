@@ -50,7 +50,7 @@ The approved release target is solo and multiplayer gameplay on Android and Web.
 
 | Platform | Current known support | Release limitation |
 |---|---|---|
-| Desktop | Solo prototype and experimental ENet arena | No production authentication, persistent network saves or managed public service |
+| Desktop | Solo prototype and experimental ENet/WebSocket host-client arena | No production authentication, persistent network saves or managed public service |
 | Android | Solo prototype, touch UI, experimental ENet/WebSocket host-client arena; CI creates a debug APK | Physical-device acceptance and production signing remain separate gates |
 | Web | HTML5 export; experimental WebSocket client can join a server on the development branch | Real browser-to-public-WSS acceptance test remains outstanding; browser hosting is unsupported, and the change is still proposed in PR #24 |
 
