@@ -78,9 +78,10 @@ func _run() -> void:
 	rival.name = "PvPRival"
 	rival.call("configure_owner", 2)
 	rival.call("configure_battle_royale", true)
-	rival.position = avatar.global_position + Vector3(0.0, 0.0, -2.0)
 	add_child(rival)
-	await get_tree().create_timer(0.7).timeout
+	rival.global_position = avatar.global_position - avatar.global_transform.basis.z * 1.5
+	avatar.set("_next_attack_msec", 0)
+	print("[network-smoke] PvP test distance: %.2f" % avatar.global_position.distance_to(rival.global_position))
 	avatar.call("_server_try_attack")
 	_check(is_equal_approx(float(rival.get("current_health")), 80.0), "server attack damages an enemy player in range and in front")
 	rival.call("apply_damage_from_server", 999.0, 1)
