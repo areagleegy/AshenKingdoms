@@ -59,6 +59,25 @@ jobs:
           test -f tools/test_package_content.py
           test -f tools/sign_content_catalog.py
           test -f tools/test_sign_content_catalog.py
+          test -f tools/validate_free_assets.py
+          test -f tools/generate_player_glb.py
+          test -f tests/player_character_smoke_test.gd
+          test -f docs/PLUGIN_INTEGRATION_AR.md
+          test -f docs/FREE_ASSET_PIPELINE_AR.md
+          test -f docs/AI_PLAYER_CHARACTER_PIPELINE_AR.md
+          test -f assets/video/cinematics/.gitkeep
+          test -f assets/ui/.gitkeep
+          test -f assets/materials/.gitkeep
+          test -f assets/environments/.gitkeep
+          test -f assets/characters/player/README.md
+          test -f assets/audio/voice/ar/.gitkeep
+          test -f assets/audio/sfx/.gitkeep
+          test -f assets/audio/music/.gitkeep
+          test -f assets/asset_manifest.json
+          test -f addons/ashen_free_asset_pipeline/plugin.gd
+          test -f addons/ashen_free_asset_pipeline/plugin.cfg
+          test -f addons/ashen_asset_bridge/plugin.gd
+          test -f addons/ashen_asset_bridge/plugin.cfg
           test -f tools/test_ai_test_diagnostics.py
           test -f tools/diagnostic_cases.json
           test -f tools/diagnostic_benchmark.py
@@ -70,6 +89,12 @@ jobs:
         run: |
           set -o pipefail
           godot --headless --path . --editor --quit 2>&1 | tee "$RUNNER_TEMP/godot-import.log"
+
+      - name: Validate local asset tools and license manifest
+        run: |
+          python3 -m py_compile tools/generate_player_glb.py tools/validate_free_assets.py
+          python3 tools/generate_player_glb.py --help > /dev/null
+          python3 tools/validate_free_assets.py
 
       - name: Run gameplay smoke tests
         env:
@@ -84,6 +109,13 @@ jobs:
         run: |
           set -o pipefail
           godot --headless --path . --script res://tests/gameplay_regression_test.gd 2>&1 | tee "$RUNNER_TEMP/gameplay-regression.log"
+
+      - name: Run player character smoke tests
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -o pipefail
+          godot --headless --path . --script res://tests/player_character_smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/player-character-tests.log"
 
       - name: Run content catalog and installer smoke tests
         env:
@@ -104,7 +136,7 @@ jobs:
           ASHEN_AI_ENDPOINT: ${{ secrets.ASHEN_AI_ENDPOINT }}
           ASHEN_AI_API_KEY: ${{ secrets.ASHEN_AI_API_KEY }}
           ASHEN_AI_MODEL: ${{ vars.ASHEN_AI_MODEL }}
-        run: python3 tools/ai_test_diagnostics.py --log "$RUNNER_TEMP/diagnostics-unit-tests.log" --log "$RUNNER_TEMP/diagnostic-benchmark.log" --log "$RUNNER_TEMP/godot-setup.log" --log "$RUNNER_TEMP/godot-import.log" --log "$RUNNER_TEMP/gameplay-tests.log" --log "$RUNNER_TEMP/gameplay-regression.log" --log "$RUNNER_TEMP/content-tests.log" --log "$RUNNER_TEMP/python-tests.log" --output "$RUNNER_TEMP/ashen-test-diagnostics.json"
+        run: python3 tools/ai_test_diagnostics.py --log "$RUNNER_TEMP/diagnostics-unit-tests.log" --log "$RUNNER_TEMP/diagnostic-benchmark.log" --log "$RUNNER_TEMP/godot-setup.log" --log "$RUNNER_TEMP/godot-import.log" --log "$RUNNER_TEMP/gameplay-tests.log" --log "$RUNNER_TEMP/gameplay-regression.log" --log "$RUNNER_TEMP/content-tests.log" --log "$RUNNER_TEMP/python-tests.log" --log "$RUNNER_TEMP/player-character-tests.log" --output "$RUNNER_TEMP/ashen-test-diagnostics.json"
 
       - name: Upload diagnostic report
         if: always()

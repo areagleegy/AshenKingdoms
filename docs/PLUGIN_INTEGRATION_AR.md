@@ -1,0 +1,80 @@
+# ربط أدوات الأصول الإضافية — ممالك الرماد
+
+أضيف مساران متكاملان للمشروع:
+
+1. **Ashen Asset Bridge**: إضافة داخل محرر Godot لفحص ملف اللاعب بعد استيراده.
+2. **Meshy Image-to-3D CLI**: أداة محلية لتوليد ملف GLB من صورة مرجعية وتنزيله إلى مسار اللاعب. لا يُضمّن مفتاح API داخل ملفات اللعبة.
+
+## 1. إضافة Godot
+
+الملفات:
+- `addons/ashen_asset_bridge/plugin.cfg`
+- `addons/ashen_asset_bridge/plugin.gd`
+
+الإضافة مفعلة في `project.godot`. افتح المشروع في Godot 4.6 وابحث عن لوحة **Ashen Assets** في اللوحة السفلية. اختر **فحص نموذج اللاعب** للتحقق من:
+- نجاح تحميل الملف كـ `PackedScene`.
+- وجود `MeshInstance3D` مرئي.
+- وجود `Skeleton3D` ومشغّل `AnimationPlayer` ومقاطع الحركة، إن وجدت.
+
+يوجد زر لفتح مجلد `assets/characters/player`. إذا لم يُضف `player.glb`، ستوضح اللوحة أن اللعبة تستخدم هيئة البطل المؤقتة.
+
+## 2. أداة التوليد عبر Meshy
+
+البرنامج `tools/generate_player_glb.py` يستخدم مكتبة Python القياسية فقط؛ لا يحتاج إلى `pip install`. يقبل صورة محلية أو رابط صورة عام، وينشئ مهمة Image-to-3D، ويتابع حالتها، ثم ينزل GLB إلى:
+
+`assets/characters/player/player.glb`
+
+الإعداد الافتراضي يطلب GLB بخامات، وA-pose، وأصل عند القدمين، وإعادة تشكيل تستهدف 20,000 وجه. العدد النهائي قد يختلف، وليس هذا بديلًا عن فحص النموذج.
+
+### ملاحظة رسوم وحسابات
+
+- لا تُرسل الأداة أي طلب إنشاء قبل إضافة الخيار `--confirm-credits`.
+- يحتاج التشغيل البرمجي إلى مفتاح Meshy API صالح. راجع خطتك وحدود الرصيد قبل الإرسال؛ قد تتكلف المهمة أرصدة أو أموالًا.
+- وفق وثائق Meshy الحالية، يمكن للحسابات المجانية تجربة Image-to-3D من خلال Playground بمفتاح مدمج، لكنها لا تستطيع إنشاء أو إدارة مفاتيح API خاصة بها. إذا لم يكن لديك مفتاح API، استخدم Playground يدويًا ثم نزّل GLB إن كان التنزيل متاحًا لخطة الحساب.
+- لا تلصق المفتاح في المحادثة، ولا تحفظه في المستودع أو `project.godot` أو موارد اللعبة.
+
+المرجع الرسمي: [Meshy Image-to-3D API](https://docs.meshy.ai/en/api/image-to-3d) و[المصادقة](https://docs.meshy.ai/en/api/authentication).
+
+### أوامر Termux
+
+ثبّت Python وامنح Termux الوصول إلى ملفات الهاتف:
+
+```bash
+pkg update
+pkg install python
+termux-setup-storage
+cd ~/AshenKingdoms
+git switch feat/ai-player-character-pipeline
+git pull --ff-only origin feat/ai-player-character-pipeline
+```
+
+ضع صورة بطل واضحة في مجلد صور الهاتف، ثم أدخل مفتاحك دون إظهاره في سجل أوامر shell:
+
+```bash
+read -rsp "Meshy API key: " MESHY_API_KEY
+printf '\n'
+export MESHY_API_KEY
+```
+
+شغّل التوليد بعد مراجعة حدود الرصيد:
+
+```bash
+python3 tools/generate_player_glb.py \
+  --image-file "$HOME/storage/shared/Pictures/player-reference.png" \
+  --target-polycount 15000 \
+  --confirm-credits
+```
+
+عدّل مسار الصورة إلى الملف الموجود على جهازك. إذا لم يكن لديك مفتاح API، لا تشغّل أمر CLI؛ استخدم Playground ثم احفظ الناتج في مسار الأصول المستهدف.
+
+بعد التنزيل، افتح المشروع في Godot واضغط **فحص نموذج اللاعب** من لوحة Ashen Assets. افحص اتجاه الشخصية وارتفاعها وملمسها، وتأكد من وجود هيكل عظمي وحركات إذا كنت تريد حركة عظمية. إن كان النموذج بلا هيكل عظمي أو أنيميشن، فاللوحة ستبلغك بذلك، لكن ستحتاج إلى تجهيز الهيكل والحركات بأداة مناسبة.
+
+## 3. التحقق الآلي
+
+GitHub Actions يشغّل:
+- استيراد وتحليل مشروع Godot 4.6.
+- اختبارات منطق اللعب.
+- اختبار اللاعب ومسار النموذج الاختياري.
+- فحص صياغة أداة Meshy وأمر المساعدة دون إرسال طلب API أو استهلاك أرصدة.
+
+النجاح في CI لا يعني أن ملف GLB موجود، ولا يحل محل فحص النموذج الحقيقي وتشغيله على Android.
