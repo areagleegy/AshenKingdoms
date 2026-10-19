@@ -101,7 +101,7 @@ func _build_ui() -> void:
 
 	var note := Label.new()
 	if network_supported:
-		note.text = "تختبر هذه المرحلة الاتصال وحركة اللاعبين المتزامنة. القتال الجماعي والمهام المشتركة لم تُفعّل بعد."
+		note.text = "تشمل هذه المرحلة حركة متزامنة وقتالًا وصحة وأعداءً ومهمة قتل تجريبية. لا تتوفر مزامنة كاملة للجرد والحوار أو حفظ شبكي دائم."
 	else:
 		note.text = "نسخة Web تدعم اللعب الفردي في هذه المرحلة. جلسة ENet التجريبية متاحة عبر Desktop أو Android."
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
