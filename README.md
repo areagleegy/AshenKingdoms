@@ -1,6 +1,6 @@
 # ممالك الرماد | AshenKingdoms
 
-لعبة تقمّص أدوار فانتازيا ثلاثية الأبعاد مفتوحة المصدر مبنية باستخدام Godot 4.6 وGDScript. المشروع **نموذج أولي قيد التطوير**: توجد حلقة لعب فردي، حوار ومهمة تجريبية، حفظ محلي، حزم محتوى اختيارية، وساحة شبكة ENet تجريبية. لا يعني ذلك أن الأصول النهائية أو اللعب الجماعي أو النشر الإنتاجي اكتملت.
+لعبة تقمّص أدوار فانتازيا ثلاثية الأبعاد مفتوحة المصدر مبنية باستخدام Godot 4.6 وGDScript. المشروع **نموذج أولي قيد التطوير** يضم حلقة لعب فردي وحوارًا ومهمة تجريبية وحفظًا محليًا وبنية لحزم محتوى اختيارية. يتضمن فرع التطوير الحالي ساحة شبكة تجريبية عبر ENet وWebSocket وشريحة أولية لقواعد باتل رويال؛ ولا يعني وجودها اكتمال اللعب الجماعي أو جاهزية النشر الإنتاجي.
 
 > **نطاق الإصدار المستهدف:** اللعب الفردي والجماعي على Android وWeb، مع إضافة أصول جديدة مجانية ومفتوحة الترخيص وتأجيل تنزيل حزم المحتوى. هذا هو الهدف المعتمد وليس وصفًا لقدرات مكتملة؛ مسار WebSocket للانضمام من المتصفح تجريبي ولم يُثبت بعد باختبار خادم منشور، وساحة ENet تجريبية.
 
@@ -10,12 +10,16 @@
 - [حالة التنفيذ الحالية](docs/PROJECT_STATUS_AR.md) — ما هو منفذ وما هو تجريبي أو مؤجل.
 - [نطاق الإصدار وبوابات القبول](docs/RELEASE_SCOPE_AR.md) — القرارات ومتطلبات الجاهزية.
 - [دليل كتابة وصيانة الوثائق](docs/DOCUMENTATION_GUIDE_AR.md) — قواعد تحديث التوثيق والتحقق منه.
+- [جرد الوثائق ونتائج المراجعة](docs/DOCUMENTATION_AUDIT_AR.md) — خريطة الملفات ومصادر الحقيقة.
+- [دليل المساهمة](CONTRIBUTING.md) — سير العمل والاختبارات ومتطلبات طلبات الدمج.
+- [سياسة الأمان](SECURITY.md) — حدود الأمان وكيفية الإبلاغ عن الثغرات.
+- [سجل التغييرات](CHANGELOG.md) — ملخص التغييرات غير المنشورة.
 
 ## المنصات والحالة
 
 - **Android:** يبني GitHub Actions ملف APK تجريبيًا لمعمارية ARM64. ملف CI غير موقّع كمخرج إصدار إنتاجي؛ يلزم اختباره على هاتف فعلي.
 - **Web:** تصدير HTML5 يصلح للاستضافة الثابتة عبر HTTP/HTTPS. يدعم مسار الشبكة التجريبي الانضمام عبر WebSocket؛ لا يمكن للمتصفح استضافة الخادم. للموقع المنشور عبر HTTPS استخدم رابط `wss://` عبر وكيل TLS. يجب اختبار المسار في متصفح حقيقي قبل اعتباره جاهزًا للإصدار.
-- **Desktop / Android — شبكة تجريبية:** تتضمن القائمة الرئيسية الاستضافة أو الانضمام عبر ENet، أو WebSocket. ساحة الشبكة منفصلة عن اللعب الفردي وتزامن الحركة والقتال والصحة والأعداء ومهمة قتل تجريبية. يوجد اختبار اتصال ENet محلي آلي في CI؛ يلزم اختبار WebSocket وWeb على أجهزة/خادم فعليين.
+- **Desktop / Android — شبكة تجريبية:** تتضمن القائمة الرئيسية الاستضافة أو الانضمام عبر ENet أو WebSocket. تشمل اختبارات CI اتصال المضيف/العميل المحلي لكلا الناقلين واختبارات قتال وقواعد باتل رويال. هذه الاختبارات لا تثبت جاهزية خادم عام أو اتصالًا بين أجهزة فعلية.
 - **الخادم المخصص:** يمكن تشغيل وضع headless عبر القائمة الرئيسية باستخدام ENet (UDP) أو إضافة `--server-transport=websocket` لتشغيل WebSocket. ليس هناك استضافة عامة مُدارة أو مصادقة حسابات أو حفظ شبكي دائم أو ضمان أمان إنتاجي. الملف `scripts/core/server.gd` ما زال هيكلًا تمهيديًا قديمًا؛ مسار أمر الخادم الحالي يمر عبر `scenes/ui/MainMenu.tscn` و`scripts/ui/main_menu.gd` و`NetworkManager`.
 
 ## التشغيل والتحكم
@@ -72,7 +76,9 @@ godot --headless --path . --script res://tests/gameplay_smoke_test.gd
 godot --headless --path . --script res://tests/gameplay_regression_test.gd
 godot --headless --path . --script res://tests/player_character_smoke_test.gd
 timeout 45s godot --headless --path . res://tests/network_combat_smoke_test.tscn
-bash tools/test-network-loopback.sh
+godot --headless --path . --script res://tests/battle_royale_rules_smoke_test.gd
+bash tools/test-network-loopback.sh enet
+bash tools/test-network-loopback.sh websocket
 godot --headless --path . --script res://tests/content_catalog_smoke_test.gd
 python -m unittest tools.test_package_content tools.test_sign_content_catalog -v
 python -m unittest discover -s tools -p 'test_ai_test_diagnostics.py' -v
@@ -85,7 +91,7 @@ python3 tools/validate_free_assets.py
 
 كل من Workflow التحقق وWorkflow بناء Android/Web يعمل عند فتح أو تحديث Pull Request، كما يعملان عند الدفع إلى `main`. يتوفر تشغيل يدوي عبر `workflow_dispatch`.
 
-- `Validate Godot Project`: تحليل واستيراد الموارد، تحميل السكربتات والمشاهد، اختبارات اللعب والانحدار واللاعب والشبكة والمحتوى، وفحوص أدوات Python والتوثيق.
+- `Validate Godot Project`: تحليل واستيراد الموارد، تحميل السكربتات والمشاهد، اختبارات اللعب والانحدار واللاعب والقتال الشبكي وقواعد باتل رويال وENet/WebSocket loopback والمحتوى، وفحوص أدوات Python والتوثيق.
 - `Build Android and Web`: تصدير Web وAPK تجريبي ورفع المخرجات كـ Artifacts.
 - أسماء Artifacts: `ashen-kingdoms-web` و`ashen-kingdoms-android-debug`.
 - الاحتفاظ بملفات البناء والتشخيص مؤقت؛ صلاحيتها الحالية 7 أيام.
@@ -110,6 +116,6 @@ python3 tools/validate_free_assets.py
 
 ## التوثيق والتراخيص
 
-ابدأ من [فهرس التوثيق](docs/README.md)، ثم راجع [حالة التنفيذ](docs/PROJECT_STATUS_AR.md) و[دليل صيانة الوثائق](docs/DOCUMENTATION_GUIDE_AR.md) عند إجراء تغييرات.
+ابدأ من [فهرس التوثيق](docs/README.md)، ثم راجع [حالة التنفيذ](docs/PROJECT_STATUS_AR.md) و[جرد الوثائق](docs/DOCUMENTATION_AUDIT_AR.md) و[دليل صيانة الوثائق](docs/DOCUMENTATION_GUIDE_AR.md) عند إجراء تغييرات. راجع [دليل المساهمة](CONTRIBUTING.md) قبل فتح طلب دمج.
 
 الكود تحت رخصة MIT. يجب توثيق مصدر ورخصة كل نموذج أو خامة أو صوت أو خط خارجي قبل دمجه أو توزيعه. ملف سجل الأصول إجراء تدقيق داخلي ولا يحل محل قراءة نص الرخصة. لا ترفع مفاتيح توقيع Android أو ملفات الأسرار إلى المستودع العام.
