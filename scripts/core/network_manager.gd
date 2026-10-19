@@ -9,11 +9,14 @@ signal peer_left(peer_id: int)
 signal peer_arena_ready(peer_id: int)
 
 const DEFAULT_PORT: int = 7777
+const DEFAULT_WEBSOCKET_PORT: int = 7778
 const DEFAULT_MAX_CLIENTS: int = 8
 const CONNECTION_TIMEOUT_SECONDS: float = 12.0
 
 var session_mode: String = "offline"
+var session_transport: String = "none"
 var session_port: int = DEFAULT_PORT
+var _max_clients: int = DEFAULT_MAX_CLIENTS
 
 var _client_connected: bool = false
 var _connection_generation: int = 0
@@ -44,10 +47,12 @@ func start_host(port: int = DEFAULT_PORT, max_clients: int = DEFAULT_MAX_CLIENTS
 
 	multiplayer.multiplayer_peer = peer
 	session_mode = "host"
+	session_transport = "enet"
 	session_port = port
+	_max_clients = max_clients
 	_client_connected = false
 	_ready_peers.clear()
-	status_changed.emit("تستضيف جلسة تجريبية على المنفذ %d." % port)
+	status_changed.emit("تستضيف جلسة ENet تجريبية على المنفذ %d." % port)
 	return OK
 
 
@@ -66,11 +71,63 @@ func start_client(address: String, port: int = DEFAULT_PORT) -> int:
 
 	multiplayer.multiplayer_peer = peer
 	session_mode = "client"
+	session_transport = "enet"
 	session_port = port
 	_client_connected = false
 	_ready_peers.clear()
 	_connection_generation += 1
-	status_changed.emit("جارٍ الاتصال بـ %s:%d ..." % [clean_address, port])
+	status_changed.emit("جارٍ الاتصال عبر ENet بـ %s:%d ..." % [clean_address, port])
+	var timer := get_tree().create_timer(CONNECTION_TIMEOUT_SECONDS)
+	timer.timeout.connect(_on_connection_timeout.bind(_connection_generation))
+	return OK
+
+
+func start_websocket_host(port: int = DEFAULT_WEBSOCKET_PORT, max_clients: int = DEFAULT_MAX_CLIENTS) -> int:
+	if port < 1 or port > 65535 or max_clients < 1 or max_clients > 64:
+		return ERR_INVALID_PARAMETER
+
+	leave_session(false)
+	var peer := WebSocketMultiplayerPeer.new()
+	var result := peer.create_server(port)
+	if result != OK:
+		var message := "تعذر فتح منفذ WebSocket %d: %s" % [port, error_string(result)]
+		status_changed.emit(message)
+		return result
+
+	multiplayer.multiplayer_peer = peer
+	session_mode = "host"
+	session_transport = "websocket"
+	session_port = port
+	_max_clients = max_clients
+	_client_connected = false
+	_ready_peers.clear()
+	status_changed.emit("تستضيف جلسة WebSocket تجريبية على المنفذ %d." % port)
+	return OK
+
+
+func start_websocket_client(url: String) -> int:
+	var clean_url := url.strip_edges()
+	if not (clean_url.begins_with("ws://") or clean_url.begins_with("wss://")):
+		return ERR_INVALID_PARAMETER
+	if clean_url.length() <= 5:
+		return ERR_INVALID_PARAMETER
+
+	leave_session(false)
+	var peer := WebSocketMultiplayerPeer.new()
+	var result := peer.create_client(clean_url)
+	if result != OK:
+		var message := "تعذر بدء اتصال WebSocket: %s" % error_string(result)
+		status_changed.emit(message)
+		return result
+
+	multiplayer.multiplayer_peer = peer
+	session_mode = "client"
+	session_transport = "websocket"
+	session_port = DEFAULT_WEBSOCKET_PORT
+	_client_connected = false
+	_ready_peers.clear()
+	_connection_generation += 1
+	status_changed.emit("جارٍ الاتصال عبر WebSocket بـ %s ..." % clean_url)
 	var timer := get_tree().create_timer(CONNECTION_TIMEOUT_SECONDS)
 	timer.timeout.connect(_on_connection_timeout.bind(_connection_generation))
 	return OK
@@ -82,6 +139,8 @@ func leave_session(notify: bool = true) -> void:
 	_ready_peers.clear()
 	var old_mode := session_mode
 	session_mode = "offline"
+	session_transport = "none"
+	_max_clients = DEFAULT_MAX_CLIENTS
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
 	if notify and old_mode != "offline":
 		status_changed.emit("تم إنهاء الجلسة.")
@@ -158,6 +217,10 @@ func _on_server_disconnected() -> void:
 
 func _on_peer_connected(peer_id: int) -> void:
 	if session_mode == "host":
+		if multiplayer.get_peers().size() > _max_clients:
+			status_changed.emit("تم رفض اللاعب %d لأن الجلسة بلغت الحد الأقصى." % peer_id)
+			multiplayer.multiplayer_peer.disconnect_peer(peer_id, true)
+			return
 		status_changed.emit("اتصل لاعب جديد: %d." % peer_id)
 	peer_joined.emit(peer_id)
 
