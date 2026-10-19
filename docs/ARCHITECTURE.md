@@ -41,3 +41,16 @@ This network functionality is **experimental, not production-ready**. It does no
 - Test a host and a second physical client over the intended LAN/network, including disconnect/reconnect and failure cases.
 - Confirm content-signing keys are handled outside the repository and test real content downloads only after configuring the catalog and HTTPS hosting.
 - Keep all experimental systems explicitly labelled until their missing requirements and acceptance tests are complete.
+
+
+## Approved target vs current platform support
+
+The approved release target is solo and multiplayer gameplay on Android and Web. This is a product target, not current platform parity:
+
+| Platform | Current known support | Release limitation |
+|---|---|---|
+| Desktop | Solo prototype and experimental ENet arena | No production authentication, persistent network saves or managed public service |
+| Android | Solo prototype, touch UI, experimental ENet arena; CI creates a debug APK | Physical-device acceptance and production signing remain separate gates |
+| Web | HTML5 export for solo play | ENet multiplayer is disabled; browser-compatible transport and its server path remain work items |
+
+See [approved release scope](RELEASE_SCOPE_AR.md), [current project status](PROJECT_STATUS_AR.md), and [documentation maintenance rules](DOCUMENTATION_GUIDE_AR.md). Update this matrix when implementation or verified platform support changes.
