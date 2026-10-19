@@ -40,7 +40,11 @@ func _ready() -> void:
 		NetworkManager.notify_arena_ready()
 		_spawn_initial_enemies()
 	else:
-		NetworkManager.notify_arena_ready()
+		NetworkManager.connection_failed.connect(_on_client_connection_failed, CONNECT_ONE_SHOT)
+		if NetworkManager.is_connected_to_server():
+			NetworkManager.notify_arena_ready()
+		else:
+			NetworkManager.session_connected.connect(_on_client_session_connected, CONNECT_ONE_SHOT)
 	_refresh_session_status()
 
 
@@ -340,6 +344,16 @@ func _on_enemy_respawn_timer_timeout(slot: int, timer: Timer) -> void:
 	if not is_inside_tree() or not multiplayer.is_server():
 		return
 	_spawn_enemy(slot)
+
+
+func _on_client_session_connected() -> void:
+	if is_inside_tree() and not multiplayer.is_server() and NetworkManager.is_connected_to_server():
+		NetworkManager.notify_arena_ready()
+
+
+func _on_client_connection_failed(reason: String) -> void:
+	if is_instance_valid(_status_label):
+		_status_label.text = "%s\nتحقق من عنوان الخادم والمنفذ، ثم غادر الجلسة وحاول مجددًا." % reason
 
 
 func _on_peer_arena_ready(peer_id: int) -> void:
