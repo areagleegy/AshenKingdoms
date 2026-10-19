@@ -54,7 +54,7 @@ func _run() -> void:
 	var signed_result: Dictionary = _catalog.call("parse_signed_envelope", signed_envelope, private_key.save_to_string(true))
 	_check(bool(signed_result.get("ok", false)), "catalog with a valid RSA-SHA256 signature is accepted")
 	var tampered_value: Dictionary = JSON.parse_string(signed_envelope)
-	tampered_value["signature_base64"] = Marshalls.raw_to_base64(payload_bytes.sha256_buffer())
+	tampered_value["signature_base64"] = Marshalls.raw_to_base64(_sha256_bytes(payload_bytes))
 	var tampered_envelope := JSON.stringify(tampered_value)
 	_check(not bool(_catalog.call("parse_signed_envelope", tampered_envelope, private_key.save_to_string(true)).get("ok", true)), "tampered signed catalog is rejected")
 
