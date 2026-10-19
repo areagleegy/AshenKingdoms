@@ -16,8 +16,9 @@
 
 ## كيف يعمل Actions؟
 
-- validate.yml: يعمل عند الدفع إلى main وعند Pull Request، ويتحقق من الملفات ويستورد المشروع في وضع headless.
-- build.yml: يعمل تلقائيًا عند الدفع إلى main أو يدويًا من تبويب Actions.
+- validate.yml: يعمل عند الدفع إلى main وعند فتح أو تحديث Pull Request، ويشغّل التحقق والاختبارات الآلية في وضع headless.
+- build.yml: يعمل عند الدفع إلى main، وعند فتح أو تحديث Pull Request، ويمكن تشغيله يدويًا من تبويب Actions.
+- يرفع build.yml مخرجاته كـ Artifacts مؤقتة لمدة 7 أيام؛ نجاح التصدير لا يثبت سلامة التشغيل على جهاز حقيقي.
 - Web: يثبت Godot والقوالب ثم ينتج build/web/index.html والملفات التابعة.
 - Android: يثبت JDK وAndroid SDK ثم ينتج APK تجريبيًا لمعمارية arm64-v8a.
 - ترفع الملفات باستخدام actions/upload-artifact مع احتفاظ 7 أيام لتقليل التخزين.
