@@ -41,7 +41,10 @@ func load_audio_stream(pack_id: String, relative_path: String) -> Dictionary:
 
 
 func _resolve_verified_path(pack_id: String, relative_path: String, allowed_extensions: Array) -> Dictionary:
-	var manager := Engine.get_main_loop().root.get_node_or_null("ContentManager") if Engine.get_main_loop() is SceneTree else null
+	var manager: Node = null
+	var main_loop := Engine.get_main_loop()
+	if main_loop is SceneTree:
+		manager = (main_loop as SceneTree).root.get_node_or_null("ContentManager")
 	if manager == null or not manager.has_method("get_installed_pack_path"):
 		return _error("Content manager is unavailable.")
 	if not manager.call("is_pack_installed", pack_id):
