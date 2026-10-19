@@ -12,16 +12,17 @@
 
 - Single-player movement, camera, combat, health, enemies, inventory/potions, progression, a sample quest, dialogue/NPC interaction and local JSON save/load.
 - Touch controls for movement, camera look, combat, jump, interaction and inventory; physical-device usability still needs manual validation.
-- An ENet host/client prototype on Desktop and Android using `scripts/core/network_manager.gd`, `scripts/ui/main_menu.gd`, and `scripts/networking/`.
+- An experimental ENet/WebSocket host-client prototype using `scripts/core/network_manager.gd`, `scripts/ui/main_menu.gd`, and `scripts/networking/`; Web builds can join through WebSocket but cannot host the server.
 - A separate network arena with network avatars/enemies, authoritative handling for the prototype's movement/combat/health and a sample kill-quest.
-- CI coverage includes resource/script loading, gameplay smoke and regression tests, player-character checks, network combat smoke checks, a local ENet host/client loopback test, content package tests, and Android/Web exports.
+- CI coverage includes resource/script loading, gameplay smoke and regression tests, player-character checks, network combat checks, Battle Royale rules, separate local ENet and WebSocket host/client loopback tests, content package tests, documentation/link checks, and Android/Web exports.
 
 ## Network startup and limitations
 
-The configured project starts in `MainMenu.tscn`. In headless mode, `scripts/ui/main_menu.gd` detects server mode and starts an ENet host through `NetworkManager.start_host()`; the tested command is:
+The configured project starts in `MainMenu.tscn`. In headless mode, `scripts/ui/main_menu.gd` detects server mode and starts a host through `NetworkManager.start_host()`. The default transport is ENet; WebSocket can be selected with `--server-transport=websocket`:
 
 ```bash
 godot --headless --path . -- --server --server-port=7777
+godot --headless --path . -- --server --server-transport=websocket --server-port=7778
 ```
 
 Do not treat `scripts/core/server.gd` as the implementation of that path: it still contains a placeholder scaffold and is not the active startup route for the configured main scene.
@@ -51,6 +52,8 @@ The approved release target is solo and multiplayer gameplay on Android and Web.
 |---|---|---|
 | Desktop | Solo prototype and experimental ENet arena | No production authentication, persistent network saves or managed public service |
 | Android | Solo prototype, touch UI, experimental ENet arena; CI creates a debug APK | Physical-device acceptance and production signing remain separate gates |
-| Web | HTML5 export for solo play | ENet multiplayer is disabled; browser-compatible transport and its server path remain work items |
+| Web | HTML5 export; experimental WebSocket client can join a server on the development branch | Real browser-to-public-WSS acceptance test remains outstanding; browser hosting is unsupported, and the change is still proposed in PR #24 |
+
+The experimental Battle Royale slice adds match states, a shrinking safe zone, storm damage, basic server-validated PvP, and elimination without in-match respawn; loot, squads, matchmaking, a large map, and 100-player load validation remain unimplemented. The documented server-session limit is 32 clients; 100 players is only a long-term target.
 
 See [approved release scope](RELEASE_SCOPE_AR.md), [current project status](PROJECT_STATUS_AR.md), and [documentation maintenance rules](DOCUMENTATION_GUIDE_AR.md). Update this matrix when implementation or verified platform support changes.
