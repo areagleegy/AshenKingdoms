@@ -1,7 +1,5 @@
 # خطة الاختبار
 
-# خطة الاختبار
-
 > فهرس التنقل: [توثيق المشروع](README.md) · [البنية التقنية](TECHNICAL_ARCHITECTURE.md) · [دليل البناء](BUILD_ANDROID_WEB_AR.md)
 
 ## ما الذي يغطيه CI؟
