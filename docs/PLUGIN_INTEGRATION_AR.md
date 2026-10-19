@@ -37,6 +37,8 @@
 
 ### أوامر Termux
 
+الأوامر التالية لتجهيز بيئة محلية فقط، وليست شرطًا لتشغيل اللعبة أو اختبارات CI. استخدم فرع `main` للحصول على الحالة المدمجة الحالية؛ لا تستخدم اسم فرع ميزة قديمًا قد يكون حُذف بعد الدمج.
+
 ثبّت Python وامنح Termux الوصول إلى ملفات الهاتف:
 
 ```bash
@@ -44,8 +46,8 @@ pkg update
 pkg install python
 termux-setup-storage
 cd ~/AshenKingdoms
-git switch feat/ai-player-character-pipeline
-git pull --ff-only origin feat/ai-player-character-pipeline
+git switch main
+git pull --ff-only origin main
 ```
 
 ضع صورة بطل واضحة في مجلد صور الهاتف، ثم أدخل مفتاحك دون إظهاره في سجل أوامر shell:
