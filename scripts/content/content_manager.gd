@@ -57,7 +57,7 @@ func get_installed_packs() -> Dictionary:
 
 func refresh_catalog() -> void:
 	var catalog_url := str(ProjectSettings.get_setting("ashen/content/catalog_url", "")).strip_edges()
-	var public_key := str(ProjectSettings.get_setting("ashen/content/catalog_public_key", "")).strip_edges()
+	var public_key := str(ProjectSettings.get_setting("ashen/content/catalog_public_key", "")).replace("\\n", "\n").strip_edges()
 	if not catalog_url.begins_with("https://") or catalog_url.length() > 2048:
 		_fail_catalog("A valid HTTPS content catalog URL is not configured.")
 		return
@@ -200,7 +200,7 @@ func _on_catalog_request_completed(result: int, response_code: int, _headers: Pa
 	if result != HTTPRequest.RESULT_SUCCESS or response_code < 200 or response_code >= 300 or body.is_empty() or body.size() > MAX_CATALOG_BYTES:
 		_fail_catalog("Catalog download failed (result %d, HTTP %d)." % [result, response_code])
 		return
-	var public_key := str(ProjectSettings.get_setting("ashen/content/catalog_public_key", "")).strip_edges()
+	var public_key := str(ProjectSettings.get_setting("ashen/content/catalog_public_key", "")).replace("\\n", "\n").strip_edges()
 	var catalog_parser := CatalogScript.new()
 	var parsed: Dictionary = catalog_parser.parse_signed_envelope(body.get_string_from_utf8(), public_key)
 	if not bool(parsed.get("ok", false)):
