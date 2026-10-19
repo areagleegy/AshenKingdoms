@@ -3,6 +3,7 @@ name: Build Android and Web
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -130,6 +131,14 @@ jobs:
           mkdir -p build/android
           godot --headless --path . --export-debug "Android" build/android/AshenKingdoms.apk
           test -s build/android/AshenKingdoms.apk
+
+      - name: Report APK size and checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          stat -c "APK_BYTES=%s" build/android/AshenKingdoms.apk
+          du -h build/android/AshenKingdoms.apk
+          sha256sum build/android/AshenKingdoms.apk
 
       - name: Upload Android artifact
         uses: actions/upload-artifact@v4

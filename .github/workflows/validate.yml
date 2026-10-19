@@ -35,6 +35,17 @@ jobs:
           test -f docs/TECHNICAL_ARCHITECTURE.md
           test -f docs/TEST_PLAN.md
           test -f tests/gameplay_smoke_test.gd
+          test -f tests/content_catalog_smoke_test.gd
+          test -f scripts/content/content_catalog.gd
+          test -f scripts/content/content_package_installer.gd
+          test -f scripts/content/content_manager.gd
+          test -f scripts/content/content_asset_loader.gd
+          test -f scripts/ui/content_library.gd
+          test -f scenes/ui/ContentLibrary.tscn
+          test -f tools/package_content.py
+          test -f tools/test_package_content.py
+          test -f tools/sign_content_catalog.py
+          test -f tools/test_sign_content_catalog.py
 
       - name: Import and parse project
         env:
@@ -45,3 +56,11 @@ jobs:
         env:
           GODOT_SILENCE_ROOT_WARNING: "1"
         run: godot --headless --path . --script res://tests/gameplay_smoke_test.gd
+
+      - name: Run content catalog and installer smoke tests
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: godot --headless --path . --script res://tests/content_catalog_smoke_test.gd
+
+      - name: Run content package builder tests
+        run: python -m unittest tools.test_package_content tools.test_sign_content_catalog -v
