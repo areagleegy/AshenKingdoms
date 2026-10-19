@@ -1,0 +1,16 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/virtual_joystick.gd" id="1_joystick"]
+
+[node name="VirtualJoystick" type="Control"]
+custom_minimum_size = Vector2(196, 196)
+anchor_left = 0.0
+anchor_top = 1.0
+anchor_right = 0.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = -220.0
+offset_right = 220.0
+offset_bottom = -24.0
+mouse_filter = 0
+script = ExtResource("1_joystick")

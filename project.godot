@@ -5,12 +5,14 @@ config_version=5
 [application]
 
 config/name="ممالك الرماد - AshenKingdoms"
-run/main_scene="res://scenes/boot/Main.tscn"
+run/main_scene="res://scenes/ui/MainMenu.tscn"
 config/features=PackedStringArray("4.6", "GL Compatibility")
+config/icon="res://assets/ashenkingdoms_icon.svg"
 
 [autoload]
 DialogueManager="*res://scripts/dialogue/dialogue_manager.gd"
 ContentManager="*res://scripts/content/content_manager.gd"
+NetworkManager="*res://scripts/core/network_manager.gd"
 
 [display]
 
