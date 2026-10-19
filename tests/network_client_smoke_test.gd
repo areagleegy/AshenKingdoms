@@ -39,6 +39,15 @@ func _run() -> void:
 		return
 	print("[network-loopback] %s client transport initialized" % transport)
 
+	# Load the arena and MultiplayerSpawner before the transport can finish
+	# connecting, so a fast WebSocket handshake cannot race initial spawn RPCs.
+	var scene_result := change_scene_to_file(NETWORK_ARENA_PATH)
+	if scene_result != OK:
+		_fail("Could not open network arena: %s" % error_string(scene_result))
+		manager.call("leave_session", false)
+		quit(1)
+		return
+
 	var connection_deadline := Time.get_ticks_msec() + CONNECTION_TIMEOUT_MSEC
 	while Time.get_ticks_msec() < connection_deadline:
 		if bool(manager.call("is_connected_to_server")):
@@ -51,13 +60,6 @@ func _run() -> void:
 		quit(1)
 		return
 	print("[PASS] independent client connects to the local %s host" % transport)
-
-	var scene_result := change_scene_to_file(NETWORK_ARENA_PATH)
-	if scene_result != OK:
-		_fail("Could not open network arena: %s" % error_string(scene_result))
-		manager.call("leave_session", false)
-		quit(1)
-		return
 
 	var multiplayer_api: MultiplayerAPI = manager.get_multiplayer()
 	var local_peer_id: int = multiplayer_api.get_unique_id()
