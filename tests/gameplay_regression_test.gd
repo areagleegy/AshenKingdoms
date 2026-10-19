@@ -11,6 +11,7 @@ const DialogueManagerScript: Script = preload("res://scripts/dialogue/dialogue_m
 const DialogueGraphScript: Script = preload("res://scripts/dialogue/dialogue_graph.gd")
 const DialogueNodeScript: Script = preload("res://scripts/dialogue/dialogue_node.gd")
 const DialogueChoiceScript: Script = preload("res://scripts/dialogue/dialogue_choice.gd")
+const MainScript: Script = preload("res://scripts/core/main.gd")
 
 const SAVE_PATH := "user://savegame.json"
 const POTION_PATH := "res://resources/items/health_potion.tres"
@@ -40,6 +41,7 @@ func _run() -> void:
 	_test_save_and_load(had_original_save, original_save)
 	_test_dialogue_and_quests()
 	_test_android_configuration()
+	_test_runtime_input_registration()
 
 	print("[regression] checks: %d, failures: %d" % [_checks, _failures])
 	quit(1 if _failures > 0 else 0)
@@ -248,6 +250,29 @@ func _test_android_configuration() -> void:
 		_check(main_source.contains("func _register_input_actions()"), "main defines the runtime input registration routine")
 		for action in [&"move_forward", &"move_back", &"move_left", &"move_right", &"jump", &"sprint", &"inventory", &"pause", &"save", &"load", &"interact", &"attack"]:
 			_check(main_source.contains(String(action)), "main input registration references action: %s" % String(action))
+
+
+func _test_runtime_input_registration() -> void:
+	var main_node := Node3D.new()
+	main_node.set_script(MainScript)
+	main_node.call("_register_input_actions")
+
+	var actions: Array[StringName] = [
+		&"move_forward", &"move_back", &"move_left", &"move_right",
+		&"jump", &"sprint", &"inventory", &"pause", &"save", &"load",
+		&"interact", &"attack"
+	]
+	var initial_event_counts: Dictionary = {}
+	for action in actions:
+		initial_event_counts[action] = InputMap.action_get_events(action).size()
+
+	main_node.call("_register_input_actions")
+	for action in actions:
+		_check(
+			InputMap.action_get_events(action).size() == int(initial_event_counts[action]),
+			"runtime input registration is idempotent for %s" % String(action)
+		)
+	main_node.free()
 
 
 func _check(condition: bool, description: String) -> void:

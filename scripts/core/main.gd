@@ -82,7 +82,8 @@ func _register_input_actions() -> void:
 		InputMap.add_action("attack")
 	var attack_event := InputEventMouseButton.new()
 	attack_event.button_index = MOUSE_BUTTON_LEFT
-	InputMap.action_add_event("attack", attack_event)
+	if not InputMap.action_has_event("attack", attack_event):
+		InputMap.action_add_event("attack", attack_event)
 
 
 func _add_key_action(action: StringName, key_codes: Array) -> void:
@@ -91,7 +92,8 @@ func _add_key_action(action: StringName, key_codes: Array) -> void:
 	for key_code in key_codes:
 		var key_event := InputEventKey.new()
 		key_event.physical_keycode = int(key_code)
-		InputMap.action_add_event(action, key_event)
+		if not InputMap.action_has_event(action, key_event):
+			InputMap.action_add_event(action, key_event)
 
 
 func _create_world() -> void:
