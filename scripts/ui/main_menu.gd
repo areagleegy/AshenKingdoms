@@ -11,6 +11,7 @@ var _status_label: Label
 var _join_button: Button
 var _host_button: Button
 var _transport_option: OptionButton
+var _network_scene_requested: bool = false
 
 
 func _ready() -> void:
@@ -184,6 +185,7 @@ func _start_client() -> void:
 		_set_status("تعذر بدء الاتصال: %s" % error_string(result))
 		return
 	_join_button.disabled = true
+	_enter_network_scene()
 
 
 func _selected_transport() -> String:
@@ -221,8 +223,12 @@ func _on_transport_selected(_index: int) -> void:
 
 
 func _enter_network_scene() -> void:
+	if _network_scene_requested:
+		return
+	_network_scene_requested = true
 	var result := get_tree().change_scene_to_file(NETWORK_SCENE)
 	if result != OK:
+		_network_scene_requested = false
 		_set_status("تعذر فتح ساحة الشبكة: %s" % error_string(result))
 		NetworkManager.leave_session()
 
