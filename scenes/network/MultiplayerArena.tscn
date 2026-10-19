@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/networking/multiplayer_arena.gd" id="1_arena"]
+
+[node name="MultiplayerArena" type="Node3D"]
+script = ExtResource("1_arena")
+
+[node name="Entities" type="Node3D" parent="."]
+
+[node name="EntitySpawner" type="MultiplayerSpawner" parent="."]
+spawn_path = NodePath("../Entities")

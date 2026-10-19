@@ -60,6 +60,25 @@ jobs:
           test -f tools/sign_content_catalog.py
           test -f tools/test_sign_content_catalog.py
           test -f tools/validate_free_assets.py
+          test -f assets/ashenkingdoms_icon.svg
+          test -f scenes/ui/MainMenu.tscn
+          test -f scenes/network/MultiplayerArena.tscn
+          test -f scenes/network/NetworkAvatar.tscn
+          test -f scenes/network/NetworkEnemy.tscn
+          test -f scenes/ui/VirtualJoystick.tscn
+          test -f scenes/ui/TouchControls.tscn
+          test -f scripts/core/network_manager.gd
+          test -f scripts/networking/multiplayer_arena.gd
+          test -f scripts/networking/network_avatar.gd
+          test -f scripts/networking/network_enemy.gd
+          test -f scripts/ui/main_menu.gd
+          test -f scripts/ui/virtual_joystick.gd
+          test -f docs/NETWORKING.md
+          test -f tests/script_load_smoke_test.gd
+          test -f tests/network_client_smoke_test.gd
+          test -f tests/network_combat_smoke_test.gd
+          test -f tests/network_combat_smoke_test.tscn
+          test -f tools/test-network-loopback.sh
           test -f tools/generate_player_glb.py
           test -f tests/player_character_smoke_test.gd
           test -f docs/PLUGIN_INTEGRATION_AR.md
@@ -96,6 +115,13 @@ jobs:
           python3 tools/generate_player_glb.py --help > /dev/null
           python3 tools/validate_free_assets.py
 
+      - name: Load every GDScript and scene
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -o pipefail
+          godot --headless --path . --script res://tests/script_load_smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/resource-smoke.log"
+
       - name: Run gameplay smoke tests
         env:
           GODOT_SILENCE_ROOT_WARNING: "1"
@@ -117,6 +143,20 @@ jobs:
           set -o pipefail
           godot --headless --path . --script res://tests/player_character_smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/player-character-tests.log"
 
+      - name: Run network combat smoke tests
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -o pipefail
+          timeout 45s godot --headless --path . res://tests/network_combat_smoke_test.tscn 2>&1 | tee "$RUNNER_TEMP/network-combat.log"
+
+      - name: Run local ENet host/client integration test
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -o pipefail
+          bash tools/test-network-loopback.sh 2>&1 | tee "$RUNNER_TEMP/network-loopback.log"
+
       - name: Run content catalog and installer smoke tests
         env:
           GODOT_SILENCE_ROOT_WARNING: "1"
@@ -136,7 +176,7 @@ jobs:
           ASHEN_AI_ENDPOINT: ${{ secrets.ASHEN_AI_ENDPOINT }}
           ASHEN_AI_API_KEY: ${{ secrets.ASHEN_AI_API_KEY }}
           ASHEN_AI_MODEL: ${{ vars.ASHEN_AI_MODEL }}
-        run: python3 tools/ai_test_diagnostics.py --log "$RUNNER_TEMP/diagnostics-unit-tests.log" --log "$RUNNER_TEMP/diagnostic-benchmark.log" --log "$RUNNER_TEMP/godot-setup.log" --log "$RUNNER_TEMP/godot-import.log" --log "$RUNNER_TEMP/gameplay-tests.log" --log "$RUNNER_TEMP/gameplay-regression.log" --log "$RUNNER_TEMP/content-tests.log" --log "$RUNNER_TEMP/python-tests.log" --log "$RUNNER_TEMP/player-character-tests.log" --output "$RUNNER_TEMP/ashen-test-diagnostics.json"
+        run: python3 tools/ai_test_diagnostics.py --log "$RUNNER_TEMP/diagnostics-unit-tests.log" --log "$RUNNER_TEMP/diagnostic-benchmark.log" --log "$RUNNER_TEMP/godot-setup.log" --log "$RUNNER_TEMP/godot-import.log" --log "$RUNNER_TEMP/gameplay-tests.log" --log "$RUNNER_TEMP/gameplay-regression.log" --log "$RUNNER_TEMP/content-tests.log" --log "$RUNNER_TEMP/python-tests.log" --log "$RUNNER_TEMP/player-character-tests.log" --log "$RUNNER_TEMP/resource-smoke.log" --log "$RUNNER_TEMP/network-combat.log" --log "$RUNNER_TEMP/network-loopback.log" --output "$RUNNER_TEMP/ashen-test-diagnostics.json"
 
       - name: Upload diagnostic report
         if: always()

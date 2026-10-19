@@ -20,8 +20,13 @@ func load_game() -> Dictionary:
 	if file == null:
 		push_error("Could not open save file for reading: %s" % FileAccess.get_open_error())
 		return {}
-	var parsed = JSON.parse_string(file.get_as_text())
+
+	var parser := JSON.new()
+	var parse_result: Error = parser.parse(file.get_as_text())
 	file.close()
+	if parse_result != OK:
+		return {}
+	var parsed: Variant = parser.data
 	return parsed if parsed is Dictionary else {}
 
 
