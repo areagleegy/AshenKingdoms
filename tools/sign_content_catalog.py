@@ -12,20 +12,36 @@ import subprocess
 import tempfile
 from typing import Any
 
-from tools.package_content import (
-    ALLOWED_EXTENSIONS,
-    MAX_ARCHIVE_BYTES,
-    MAX_FILE_BYTES,
-    MAX_FILES,
-    MAX_TOTAL_BYTES,
-    PACK_TYPES,
-    PackageError,
-    is_safe_relative_path,
-    sign_payload,
-    validate_pack_id,
-    validate_package_url,
-    validate_version,
-)
+try:
+    from tools.package_content import (
+        ALLOWED_EXTENSIONS,
+        MAX_ARCHIVE_BYTES,
+        MAX_FILE_BYTES,
+        MAX_FILES,
+        MAX_TOTAL_BYTES,
+        PACK_TYPES,
+        PackageError,
+        is_safe_relative_path,
+        sign_payload,
+        validate_pack_id,
+        validate_package_url,
+        validate_version,
+    )
+except ModuleNotFoundError:
+    from package_content import (
+        ALLOWED_EXTENSIONS,
+        MAX_ARCHIVE_BYTES,
+        MAX_FILE_BYTES,
+        MAX_FILES,
+        MAX_TOTAL_BYTES,
+        PACK_TYPES,
+        PackageError,
+        is_safe_relative_path,
+        sign_payload,
+        validate_pack_id,
+        validate_package_url,
+        validate_version,
+    )
 
 SHA256_RE = re.compile(r"^[0-9a-fA-F]{64}$")
 MAX_PACKS = 500
