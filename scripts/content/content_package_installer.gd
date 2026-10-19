@@ -40,7 +40,7 @@ func verify_archive(archive_path: String, pack_record: Dictionary) -> Dictionary
 		var path := str(record.get("path", ""))
 		var size := int(record.get("size", -1))
 		var digest := str(record.get("sha256", "")).to_lower()
-		if not catalog.is_safe_relative_path(path) or not _is_allowed_extension(path):
+		if not catalog.is_safe_relative_path(path) or path.to_lower() == "installed_manifest.json" or not _is_allowed_extension(path):
 			return _error("Package file path or extension is not allowed.")
 		if expected_files.has(path) or size < 0 or size > MAX_FILE_BYTES or not _is_sha256(digest):
 			return _error("Package file record is invalid or duplicated.")
