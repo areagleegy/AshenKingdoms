@@ -109,12 +109,17 @@ func _render_packs() -> void:
 		row.add_child(description)
 		var action := Button.new()
 		action.custom_minimum_size = Vector2(108, 42)
-		if installed.has(str(pack_id)):
-			action.text = "حذف"
-			action.pressed.connect(_delete_pack.bind(str(pack_id)))
-		elif _is_downloading(str(pack_id)):
+		if _is_downloading(str(pack_id)):
 			action.text = "إلغاء"
 			action.pressed.connect(_cancel_pack.bind(str(pack_id)))
+		elif installed.has(str(pack_id)):
+			var installed_record: Dictionary = installed[str(pack_id)]
+			if str(installed_record.get("version", "")) != str(record.get("version", "")):
+				action.text = "تحديث"
+				action.pressed.connect(_download_pack.bind(str(pack_id)))
+			else:
+				action.text = "حذف"
+				action.pressed.connect(_delete_pack.bind(str(pack_id)))
 		else:
 			action.text = "تنزيل"
 			action.pressed.connect(_download_pack.bind(str(pack_id)))
