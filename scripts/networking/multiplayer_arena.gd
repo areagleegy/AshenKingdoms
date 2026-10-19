@@ -6,6 +6,10 @@ const NETWORK_ENEMY_SCENE: PackedScene = preload("res://scenes/network/NetworkEn
 const TOUCH_CONTROLS_SCENE: PackedScene = preload("res://scenes/ui/VirtualJoystick.tscn")
 const INITIAL_ENEMY_COUNT: int = 4
 const ENEMY_RESPAWN_SECONDS: float = 5.0
+const BATTLE_ROYALE_RULES_SCRIPT: Script = preload("res://scripts/networking/battle_royale_rules.gd")
+const BATTLE_ROYALE_TARGET_PLAYERS: int = 100
+const STORM_TICK_SECONDS: float = 1.0
+const STATE_SYNC_SECONDS: float = 0.5
 
 @onready var _entities: Node3D = $Entities
 @onready var _spawner: MultiplayerSpawner = $EntitySpawner
@@ -13,7 +17,16 @@ const ENEMY_RESPAWN_SECONDS: float = 5.0
 var _status_label: Label
 var _player_count_label: Label
 var _combat_label: Label
+var _battle_royale_label: Label
+var _safe_zone_visual: MeshInstance3D
 var _local_avatar: Node3D
+var _battle_rules = BATTLE_ROYALE_RULES_SCRIPT.new()
+var _storm_tick_accumulator: float = 0.0
+var _state_sync_accumulator: float = 0.0
+var _client_battle_phase: int = 0
+var _client_safe_radius: float = 32.0
+var _client_alive_count: int = 0
+var _client_winner_peer_id: int = 0
 
 
 func _ready() -> void:
@@ -23,6 +36,7 @@ func _ready() -> void:
 
 	_register_input_actions()
 	_build_world()
+	_build_safe_zone_visual()
 	_build_hud()
 
 	_spawner.add_spawnable_scene("res://scenes/network/NetworkAvatar.tscn")
@@ -48,7 +62,8 @@ func _ready() -> void:
 	_refresh_session_status()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	_update_battle_royale(delta)
 	_refresh_combat_hud()
 
 
@@ -178,6 +193,10 @@ func _build_hud() -> void:
 	_player_count_label = Label.new()
 	layout.add_child(_player_count_label)
 
+	_battle_royale_label = Label.new()
+	_battle_royale_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	layout.add_child(_battle_royale_label)
+
 	_combat_label = Label.new()
 	_combat_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	layout.add_child(_combat_label)
@@ -193,6 +212,104 @@ func _build_hud() -> void:
 	layout.add_child(leave_button)
 
 	_build_touch_controls(layer)
+
+
+func _build_safe_zone_visual() -> void:
+	var cylinder := CylinderMesh.new()
+	cylinder.top_radius = 1.0
+	cylinder.bottom_radius = 1.0
+	cylinder.height = 0.025
+	cylinder.radial_segments = 96
+	_safe_zone_visual = MeshInstance3D.new()
+	_safe_zone_visual.name = "SafeZoneVisual"
+	_safe_zone_visual.mesh = cylinder
+	_safe_zone_visual.position.y = 0.015
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color(0.18, 0.72, 0.92, 0.18)
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_safe_zone_visual.material_override = material
+	add_child(_safe_zone_visual)
+	_apply_safe_zone_radius(_battle_rules.initial_safe_radius)
+
+
+func _apply_safe_zone_radius(radius: float) -> void:
+	if is_instance_valid(_safe_zone_visual):
+		_safe_zone_visual.scale = Vector3(maxf(radius, 0.1), 1.0, maxf(radius, 0.1))
+
+
+func _update_battle_royale(delta: float) -> void:
+	if not is_inside_tree() or not is_instance_valid(_entities):
+		return
+	if not multiplayer.is_server():
+		_apply_safe_zone_radius(_client_safe_radius)
+		_refresh_battle_royale_hud(_client_battle_phase, _client_safe_radius, _client_alive_count, _client_winner_peer_id)
+		return
+
+	var alive_count := 0
+	var sole_survivor_peer_id := 0
+	for entity in _entities.get_children():
+		if not entity.has_method("configure_owner") or bool(entity.get("is_dead")):
+			continue
+		alive_count += 1
+		sole_survivor_peer_id = int(entity.get("owner_peer_id"))
+
+	if _battle_rules.phase == BATTLE_ROYALE_RULES_SCRIPT.Phase.WAITING:
+		_battle_rules.try_start(alive_count)
+	else:
+		_battle_rules.advance(delta, alive_count, sole_survivor_peer_id)
+
+	if _battle_rules.phase == BATTLE_ROYALE_RULES_SCRIPT.Phase.ACTIVE or _battle_rules.phase == BATTLE_ROYALE_RULES_SCRIPT.Phase.FINAL_CIRCLE:
+		_storm_tick_accumulator += delta
+		if _storm_tick_accumulator >= STORM_TICK_SECONDS:
+			_storm_tick_accumulator = fmod(_storm_tick_accumulator, STORM_TICK_SECONDS)
+			for entity in _entities.get_children():
+				if not entity.has_method("configure_owner") or bool(entity.get("is_dead")):
+					continue
+				if not _battle_rules.is_inside_safe_zone(entity.global_position):
+					entity.call("apply_damage_from_server", _battle_rules.storm_damage_per_second, 0)
+
+	_apply_safe_zone_radius(_battle_rules.get_safe_radius())
+	_refresh_battle_royale_hud(int(_battle_rules.phase), _battle_rules.get_safe_radius(), alive_count, _battle_rules.winner_peer_id)
+	_state_sync_accumulator += delta
+	if _state_sync_accumulator >= STATE_SYNC_SECONDS:
+		_state_sync_accumulator = fmod(_state_sync_accumulator, STATE_SYNC_SECONDS)
+		rpc("_rpc_sync_battle_royale_state", int(_battle_rules.phase), _battle_rules.get_safe_radius(), alive_count, _battle_rules.winner_peer_id)
+
+
+@rpc("authority", "call_remote", "unreliable")
+func _rpc_sync_battle_royale_state(phase: int, safe_radius: float, alive_count: int, winner_peer_id: int) -> void:
+	if multiplayer.is_server():
+		return
+	_client_battle_phase = clampi(phase, BATTLE_ROYALE_RULES_SCRIPT.Phase.WAITING, BATTLE_ROYALE_RULES_SCRIPT.Phase.FINISHED)
+	_client_safe_radius = clampf(safe_radius, 0.1, _battle_rules.initial_safe_radius)
+	_client_alive_count = maxi(alive_count, 0)
+	_client_winner_peer_id = maxi(winner_peer_id, 0)
+
+
+func _refresh_battle_royale_hud(phase: int, safe_radius: float, alive_count: int, winner_peer_id: int) -> void:
+	if not is_instance_valid(_battle_royale_label):
+		return
+	var phase_label := str(_battle_rules.get_phase_label()) if multiplayer.is_server() else _phase_label_for(phase)
+	var winner_text := ""
+	if phase == BATTLE_ROYALE_RULES_SCRIPT.Phase.FINISHED:
+		winner_text = " — الفائز: اللاعب %d" % winner_peer_id if winner_peer_id > 0 else " — لا ناجين"
+	_battle_royale_label.text = "باتل رويال فانتازي: %s\nالأحياء: %d — نصف قطر المنطقة الآمنة: %d م%s\nهدف التوسع طويل الأمد: %d لاعبًا (غير مختبر)" % [
+		phase_label, alive_count, roundi(safe_radius), winner_text, BATTLE_ROYALE_TARGET_PLAYERS
+	]
+
+
+func _phase_label_for(phase: int) -> String:
+	match phase:
+		BATTLE_ROYALE_RULES_SCRIPT.Phase.WAITING:
+			return "بانتظار لاعبين"
+		BATTLE_ROYALE_RULES_SCRIPT.Phase.ACTIVE:
+			return "المعركة بدأت — المنطقة الآمنة تنكمش"
+		BATTLE_ROYALE_RULES_SCRIPT.Phase.FINAL_CIRCLE:
+			return "الدائرة الأخيرة"
+		BATTLE_ROYALE_RULES_SCRIPT.Phase.FINISHED:
+			return "انتهت المباراة"
+	return "حالة غير معروفة"
 
 
 func _build_touch_controls(layer: CanvasLayer) -> void:
@@ -269,6 +386,7 @@ func _spawn_network_entity(data: Variant) -> Node:
 		var avatar := NETWORK_AVATAR_SCENE.instantiate() as CharacterBody3D
 		avatar.name = "Peer_%d" % peer_id
 		avatar.call("configure_owner", peer_id)
+		avatar.call("configure_battle_royale", true)
 		if peer_id == multiplayer.get_unique_id():
 			_local_avatar = avatar
 		return avatar
