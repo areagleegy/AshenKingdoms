@@ -175,25 +175,28 @@ func _server_try_attack() -> void:
 	var forward := -global_transform.basis.z
 	forward.y = 0.0
 	forward = forward.normalized()
-	var closest_enemy: Node3D
+	var closest_target: Node3D
 	var closest_distance := attack_range
-	for candidate in get_tree().get_nodes_in_group("network_enemies"):
-		if not is_instance_valid(candidate) or not candidate.has_method("apply_damage_from_server"):
-			continue
-		if bool(candidate.get("is_dead")):
-			continue
-		var offset: Vector3 = candidate.global_position - global_position
-		offset.y = 0.0
-		var distance: float = offset.length()
-		if distance > closest_distance or distance <= 0.001:
-			continue
-		if forward.dot(offset.normalized()) < 0.1:
-			continue
-		closest_enemy = candidate as Node3D
-		closest_distance = distance
+	for group_name in ["network_enemies", "network_players"]:
+		for candidate in get_tree().get_nodes_in_group(group_name):
+			if not is_instance_valid(candidate) or candidate == self or not candidate.has_method("apply_damage_from_server"):
+				continue
+			if group_name == "network_players" and int(candidate.get("owner_peer_id")) == owner_peer_id:
+				continue
+			if bool(candidate.get("is_dead")):
+				continue
+			var offset: Vector3 = candidate.global_position - global_position
+			offset.y = 0.0
+			var distance: float = offset.length()
+			if distance > closest_distance or distance <= 0.001:
+				continue
+			if forward.dot(offset.normalized()) < 0.1:
+				continue
+			closest_target = candidate as Node3D
+			closest_distance = distance
 
-	if is_instance_valid(closest_enemy):
-		closest_enemy.call("apply_damage_from_server", attack_damage, owner_peer_id)
+	if is_instance_valid(closest_target):
+		closest_target.call("apply_damage_from_server", attack_damage, owner_peer_id)
 
 
 func apply_damage_from_server(amount: float, attacker_peer_id: int = 0) -> void:
