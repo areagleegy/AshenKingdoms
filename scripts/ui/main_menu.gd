@@ -127,6 +127,7 @@ func _build_ui() -> void:
 	_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_status_label.custom_minimum_size = Vector2(0.0, 44.0)
 	layout.add_child(_status_label)
+	_on_transport_selected(_transport_option.get_selected_id())
 
 
 func _start_solo() -> void:
