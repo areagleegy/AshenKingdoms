@@ -1,13 +1,48 @@
 # خطة الاختبار
 
-## فحوصات CI
+# خطة الاختبار
 
-- وجود ملفات المشروع الأساسية ومشهد البداية والسكربتات اللازمة.
-- استيراد المشروع بوضع Godot 4.6 headless للتحقق من تحليل GDScript والموارد.
-- تشغيل اختبارات لعب آلية للخبرة والمهمة ومكافأتها وحفظ البيانات وتحميلها والتعامل مع JSON تالف.
-- بناء Android وWeb وحفظ المخرجات كـ Artifacts.
+> فهرس التنقل: [توثيق المشروع](README.md) · [البنية التقنية](TECHNICAL_ARCHITECTURE.md) · [دليل البناء](BUILD_ANDROID_WEB_AR.md)
+
+## ما الذي يغطيه CI؟
+
+يُعرّف `.github/workflows/validate.yml` فحوصًا على كل دفع إلى `main` وعلى فتح أو تحديث Pull Request، ويمكن تشغيله يدويًا. تشمل الخطوات الحالية:
+
+- اختبارات الوحدة لمصنّف تشخيص سجلات الاختبار وقياس مجموعة التشخيص الاصطناعية.
+- التحقق من الملفات الأساسية، واستيراد مشروع Godot 4.6 وتحليل السكربتات والموارد.
+- تحميل السكربتات والمشاهد، واختبارات اللعب الأساسية والانحدار وبطل اللاعب.
+- اختبارات قتال الشبكة، واتصال ENet loopback بين عمليتين محليتين.
+- اختبارات فهرس حزم المحتوى ومثبتها، واختبارات Python لبناء الحزم وتوقيع الفهرس.
+- فحص سجل الأصول والرخص، والتحقق من الروابط المحلية في ملفات Markdown.
+- تشغّل `.github/workflows/build.yml` تصدير Android وWeb بصورة مستقلة وترفع المخرجات كـ Artifacts.
+
+راجع [تعريف التحقق](../.github/workflows/validate.yml) و[تعريف البناء](../.github/workflows/build.yml) إذا تغيرت قائمة الخطوات؛ هذان الملفان هما المصدر التنفيذي النهائي، وليس هذه القائمة المختصرة.
+
+## تشغيل مجموعة التحقق محليًا
+
+بعد تثبيت Godot CLI 4.6 وPython 3 في بيئة شبيهة بـ Linux/macOS، يمكن تشغيل الأوامر التالية. يتطلب أمر `timeout` و`tools/test-network-loopback.sh` بيئة Unix مناسبة:
+
+~~~bash
+python3 tools/validate_docs.py
+godot --headless --path . --editor --quit
+godot --headless --path . --script res://tests/script_load_smoke_test.gd
+godot --headless --path . --script res://tests/gameplay_smoke_test.gd
+godot --headless --path . --script res://tests/gameplay_regression_test.gd
+godot --headless --path . --script res://tests/player_character_smoke_test.gd
+timeout 45s godot --headless --path . res://tests/network_combat_smoke_test.tscn
+bash tools/test-network-loopback.sh
+godot --headless --path . --script res://tests/content_catalog_smoke_test.gd
+python -m unittest tools.test_package_content tools.test_sign_content_catalog -v
+python -m unittest discover -s tools -p 'test_ai_test_diagnostics.py' -v
+python3 -m py_compile tools/generate_player_glb.py tools/validate_free_assets.py
+python3 tools/generate_player_glb.py --help
+python3 tools/validate_free_assets.py
+~~~
+
+يجب قراءة نتيجة كل أمر؛ عدم طباعة رسالة خطأ أو انتهاء العملية لا يكفي إذا كان الأمر لا يختبر السلوك المقصود. لا تنفذ الاختبارات الآلية على جهاز يحتوي ملف حفظ مهمًا دون التأكد من أن الاختبار يعيد البيانات الأصلية.
 
 ## تشغيل اختبارات اللعب الآلية محليًا
+
 
 بعد استيراد المشروع في Godot 4.6، شغّل:
 
@@ -59,7 +94,7 @@ godot --headless --path . --script res://tests/gameplay_smoke_test.gd
 تشغيل اختبارات الحزم محليًا بعد تثبيت Godot 4.6 وPython 3:
 
     godot --headless --path . --script res://tests/content_catalog_smoke_test.gd
-    python -m unittest tools.test_package_content -v
+    python -m unittest tools.test_package_content tools.test_sign_content_catalog -v
 
 تشمل اختبارات Godot توقيع الفهرس الصحيح، والتوقيع غير الصالح، والفهرس المشوه، ومعرّفات الحزم المكررة، وروابط غير HTTPS، ومسارات traversal، وأنواع الملفات التنفيذية، والأحجام غير المقبولة، وبصمات SHA-256، والاعتماديات المفقودة والدائرية، ورفض الأرشيف المفقود ومعرّف الحذف غير الآمن. اختبارات Python تغطي المسارات، وأنواع الملفات، والروابط الرمزية، ورفض إنشاء فهرس بلا مفتاح توقيع.
 
@@ -115,3 +150,12 @@ bash tools/test-network-loopback.sh
 ```
 
 يفحص اختبار الموارد تحميل السكربتات والمشاهد وعصا التحكم التناظرية الافتراضية دون استبدال مشهد عناصر اللمس الخاص باللعب الفردي. ويختبر اختبار loopback اتصال خادم وعميل كعمليتين منفصلتين، وتحقق الساحة وظهور اللاعبين والأعداء. هذا لا يغني عن اختبار Android فعلي، أو اختبار جهازين عبر شبكة محلية/إنترنت، أو مراجعة الأمان قبل النشر.
+
+
+## توضيح قبول الشبكة والخادم
+
+اختبار `tools/test-network-loopback.sh` يثبت أن مضيف ENet وعميلًا منفصلًا يتصلان داخل بيئة CI وأن الساحة التجريبية تنشئ اللاعبين والأعداء المتوقّعين. لا يثبت هذا اتصالًا عبر الإنترنت أو سلامة تكوينات جدار الحماية أو أمان الخادم أو تجربة Android.
+
+مسار تشغيل المضيف المخصص الحالي يبدأ من `scenes/ui/MainMenu.tscn` و`scripts/ui/main_menu.gd` في وضع headless ويستخدم `NetworkManager.start_host()`. الملف `scripts/core/server.gd` ما زال يحتوي على هيكل تمهيدي؛ لا تصفه بأنه خادم ENet المنفذ في مسار CI.
+
+قبل أي إصدار يتضمن الشبكة، نفّذ اختبارًا يدويًا من جهاز مضيف وعميل فعليين على الشبكة المستهدفة، واختبر انقطاع العميل، وإعادة الاتصال، والمنفذ المحجوب، والتحقق من الهجمات والمكافآت، وأعد مراجعة نموذج الأمان. لا تضع بيانات اعتماد أو أسرارًا حقيقية في سجلات الاختبار.
