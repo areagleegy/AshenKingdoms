@@ -9,17 +9,16 @@ var _pitch: float = -0.18
 
 
 func _ready() -> void:
+	add_to_group("player_camera")
 	rotation.x = _pitch
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-		_apply_rotation(event.relative.x * mouse_sensitivity, event.relative.y * mouse_sensitivity)
-	elif event is InputEventScreenDrag:
-		_apply_rotation(event.relative.x * touch_sensitivity, event.relative.y * touch_sensitivity)
+		apply_look_delta((event as InputEventMouseMotion).relative * mouse_sensitivity)
 
 
-func _apply_rotation(dx: float, dy: float) -> void:
-	rotate_y(-dx)
-	_pitch = clampf(_pitch - dy, min_pitch, max_pitch)
+func apply_look_delta(delta: Vector2) -> void:
+	rotate_y(-delta.x)
+	_pitch = clampf(_pitch - delta.y, min_pitch, max_pitch)
 	rotation.x = _pitch
