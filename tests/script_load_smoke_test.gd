@@ -59,7 +59,7 @@ func _collect_project_resources(directory_path: String) -> void:
 
 func _test_touch_controls() -> void:
 	var packed_scene: PackedScene = ResourceLoader.load("res://scenes/ui/VirtualJoystick.tscn") as PackedScene
-	_check(packed_scene != null, "touch controls scene is a PackedScene")
+	_check(packed_scene != null, "virtual joystick scene loads as a PackedScene")
 	if packed_scene == null:
 		return
 
