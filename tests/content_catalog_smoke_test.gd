@@ -105,7 +105,10 @@ func _run() -> void:
 		_check(not bool(installer.call("verify_archive", "user://missing-content-pack.zip", valid_catalog["packs"][0]).get("ok", true)), "missing package archives are rejected")
 		_check(not bool(installer.call("remove_installed_pack", "../outside", "1.0.0").get("ok", true)), "unsafe package IDs cannot delete files")
 
-	_check(ContentManager.get_catalog_state() == "not_configured", "base game starts with content downloads disabled when no service is configured")
+	var content_manager: Node = root.get_node_or_null("ContentManager")
+	_check(content_manager != null, "content manager autoload exists")
+	if content_manager != null:
+		_check(str(content_manager.call("get_catalog_state")) == "not_configured", "base game starts with content downloads disabled when no service is configured")
 	_finish()
 
 
