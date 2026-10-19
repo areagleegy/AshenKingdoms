@@ -70,11 +70,29 @@ func _render_packs() -> void:
 		child.queue_free()
 	var catalog: Dictionary = ContentManager.get_catalog()
 	var installed: Dictionary = ContentManager.get_installed_packs()
-	if catalog.is_empty():
+	if catalog.is_empty() and installed.is_empty():
 		var empty_label := Label.new()
 		empty_label.text = "لا توجد حزم متاحة حاليًا."
 		empty_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		packs_list.add_child(empty_label)
+		return
+	if catalog.is_empty():
+		var offline_label := Label.new()
+		offline_label.text = "الفهرس غير متاح؛ يمكنك إدارة الحزم المثبتة محليًا."
+		offline_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		packs_list.add_child(offline_label)
+		for installed_id in installed:
+			var installed_row := HBoxContainer.new()
+			var installed_label := Label.new()
+			installed_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			installed_label.text = "%s · %s" % [str(installed_id), str(installed[installed_id].get("version", ""))]
+			installed_row.add_child(installed_label)
+			var installed_delete := Button.new()
+			installed_delete.text = "حذف"
+			installed_delete.custom_minimum_size = Vector2(108, 42)
+			installed_delete.pressed.connect(_delete_pack.bind(str(installed_id)))
+			installed_row.add_child(installed_delete)
+			packs_list.add_child(installed_row)
 		return
 	for pack_id in catalog:
 		var record: Dictionary = catalog[pack_id]
@@ -102,6 +120,20 @@ func _render_packs() -> void:
 			action.pressed.connect(_download_pack.bind(str(pack_id)))
 		row.add_child(action)
 		packs_list.add_child(row)
+	for installed_id in installed:
+		if catalog.has(str(installed_id)):
+			continue
+		var installed_row := HBoxContainer.new()
+		var installed_label := Label.new()
+		installed_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		installed_label.text = "%s · %s (مثبتة محليًا)" % [str(installed_id), str(installed[installed_id].get("version", ""))]
+		installed_row.add_child(installed_label)
+		var installed_delete := Button.new()
+		installed_delete.text = "حذف"
+		installed_delete.custom_minimum_size = Vector2(108, 42)
+		installed_delete.pressed.connect(_delete_pack.bind(str(installed_id)))
+		installed_row.add_child(installed_delete)
+		packs_list.add_child(installed_row)
 
 
 func _is_downloading(pack_id: String) -> bool:
