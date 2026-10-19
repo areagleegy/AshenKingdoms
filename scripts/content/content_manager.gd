@@ -90,6 +90,10 @@ func download_pack(pack_id: String) -> Error:
 		_emit_pack_state(pack_id, "failed", {"error": "Pack is not present in the verified catalog."})
 		return ERR_DOES_NOT_EXIST
 	var pack_record: Dictionary = _catalog[pack_id]
+	for dependency in pack_record.get("dependencies", []):
+		if not is_pack_installed(str(dependency)):
+			_emit_pack_state(pack_id, "failed", {"error": "Install required package first: %s" % dependency})
+			return ERR_UNAVAILABLE
 	var download_root_absolute := ProjectSettings.globalize_path(DOWNLOAD_ROOT)
 	if DirAccess.make_dir_recursive_absolute(download_root_absolute) != OK:
 		_emit_pack_state(pack_id, "failed", {"error": "Could not prepare private download storage."})
@@ -315,6 +319,7 @@ func _remove_file(path: String) -> void:
 func _fail_catalog(message: String) -> void:
 	_catalog_state = "error"
 	_last_error = message
+	_catalog.clear()
 	push_warning(message)
 	catalog_updated.emit({})
 	for pack_id in _catalog:
