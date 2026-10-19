@@ -376,6 +376,7 @@ func _add_capsule_parts(body: CharacterBody3D, radius: float, height: float, tin
 
 func _add_capsule_collision(body: CharacterBody3D, radius: float, height: float) -> void:
 	var collision_node := CollisionShape3D.new()
+	collision_node.name = "CollisionShape3D"
 	var collision := CapsuleShape3D.new()
 	collision.radius = radius
 	collision.height = height
