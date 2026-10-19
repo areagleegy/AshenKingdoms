@@ -102,6 +102,7 @@ func download_pack(pack_id: String) -> Error:
 	var request := HTTPRequest.new()
 	request.timeout = 60.0
 	request.max_redirects = 2
+	request.body_size_limit = int(pack_record.get("download_size", 0))
 	request.download_file = temporary_path
 	add_child(request)
 	var state := {"request": request, "path": temporary_path, "record": pack_record.duplicate(true)}
