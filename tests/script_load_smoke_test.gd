@@ -23,6 +23,7 @@ func _run() -> void:
 		_check(scene_resource is PackedScene, "scene loads: %s" % scene_path)
 
 	await _test_touch_controls()
+	await _test_touch_controls_scene()
 
 	print("[resource-smoke] scripts: %d, scenes: %d, failures: %d" % [
 		_script_paths.size(), _scene_paths.size(), _failures
@@ -79,6 +80,46 @@ func _test_touch_controls() -> void:
 	var converted_center: Vector2 = control.make_canvas_position_local(viewport_center)
 	_check(converted_center.is_equal_approx(local_center), "viewport touch coordinates convert to local coordinates")
 	canvas.queue_free()
+
+
+func _test_touch_controls_scene() -> void:
+	const scene_path := "res://scenes/ui/TouchControls.tscn"
+	const script_path := "res://scripts/ui/touch_controls.gd"
+	var packed_scene := ResourceLoader.load(scene_path) as PackedScene
+	_check(packed_scene != null, "touch controls scene loads")
+	if packed_scene == null:
+		return
+
+	var instance := packed_scene.instantiate()
+	_check(instance is CanvasLayer, "touch controls scene instantiates as CanvasLayer")
+	root.add_child(instance)
+	await process_frame
+
+	for node_path in [
+		"Controls",
+		"Controls/MovePad",
+		"Controls/Hint",
+		"Controls/Jump",
+		"Controls/Attack",
+		"Controls/Interact",
+		"Controls/Inventory",
+	]:
+		_check(instance.has_node(node_path), "touch controls node exists: %s" % node_path)
+
+	var script_text := FileAccess.get_file_as_string(script_path)
+	var node_path_regex := RegEx.new()
+	var compile_result := node_path_regex.compile("\\$([A-Za-z0-9_./]+)")
+	_check(compile_result == OK, "touch controls node-path checker compiles")
+	if compile_result == OK:
+		for match_result in node_path_regex.search_all(script_text):
+			var node_path := match_result.get_string(1)
+			_check(
+				instance.has_node(node_path),
+				"touch controls script path resolves in scene: %s" % node_path
+			)
+
+	instance.queue_free()
+	await process_frame
 
 
 func _check(condition: bool, description: String) -> void:
