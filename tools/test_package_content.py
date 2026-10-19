@@ -1,4 +1,8 @@
+import base64
+import json
 import pathlib
+import shutil
+import subprocess
 import tempfile
 import unittest
 
@@ -62,6 +66,59 @@ class PackageContentTests(unittest.TestCase):
                 output_envelope=self.root / "catalog.json",
                 private_key=self.root / "missing-private-key.pem",
             )
+
+    def test_rejects_reserved_installer_manifest(self):
+        (self.source / "installed_manifest.json").write_text("{}", encoding="utf-8")
+        with self.assertRaises(package_content.PackageError):
+            package_content.collect_files(self.source)
+
+    def test_rejects_duplicate_case_insensitive_paths(self):
+        (self.source / "Hero.glb").write_bytes(b"one")
+        (self.source / "hero.glb").write_bytes(b"two")
+        with self.assertRaises(package_content.PackageError):
+            package_content.collect_files(self.source)
+
+    @unittest.skipUnless(shutil.which("openssl"), "OpenSSL is required for signature integration test")
+    def test_builds_deterministic_archive_and_valid_signed_catalog(self):
+        key_path = self.root / "private.pem"
+        generated = subprocess.run(
+            ["openssl", "genpkey", "-algorithm", "RSA", "-pkeyopt", "rsa_keygen_bits:2048", "-out", str(key_path)],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        self.assertEqual(generated.returncode, 0)
+        (self.source / "hero.glb").write_bytes(b"tiny-glb-fixture")
+        zip_one = self.root / "one.zip"
+        catalog_one = self.root / "one.json"
+        result = package_content.build_package(
+            source_dir=self.source,
+            pack_id="test_character",
+            version="1.0.0",
+            pack_type="character",
+            url="https://cdn.example.invalid/test_character.zip",
+            output_zip=zip_one,
+            output_envelope=catalog_one,
+            private_key=key_path,
+        )
+        self.assertTrue(zip_one.is_file())
+        envelope = json.loads(catalog_one.read_text(encoding="utf-8"))
+        payload = base64.b64decode(envelope["payload_base64"], validate=True)
+        signature = base64.b64decode(envelope["signature_base64"], validate=True)
+        payload_path = self.root / "payload.json"
+        signature_path = self.root / "signature.bin"
+        payload_path.write_bytes(payload)
+        signature_path.write_bytes(signature)
+        verification = subprocess.run(
+            ["openssl", "dgst", "-sha256", "-verify", result["public_key"], "-signature", str(signature_path), str(payload_path)],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        self.assertEqual(verification.returncode, 0, verification.stderr.decode("utf-8", errors="replace"))
+        zip_two = self.root / "two.zip"
+        package_content.create_archive(self.source, zip_two, package_content.collect_files(self.source))
+        self.assertEqual(zip_one.read_bytes(), zip_two.read_bytes())
 
     def test_rejects_non_https_package_url(self):
         with self.assertRaises(package_content.PackageError):
