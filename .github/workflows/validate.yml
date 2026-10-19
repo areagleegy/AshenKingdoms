@@ -35,6 +35,7 @@ jobs:
           test -f docs/TECHNICAL_ARCHITECTURE.md
           test -f docs/TEST_PLAN.md
           test -f tests/gameplay_smoke_test.gd
+          test -f tests/gameplay_regression_test.gd
           test -f tests/content_catalog_smoke_test.gd
           test -f scripts/content/content_catalog.gd
           test -f scripts/content/content_package_installer.gd
@@ -56,6 +57,11 @@ jobs:
         env:
           GODOT_SILENCE_ROOT_WARNING: "1"
         run: godot --headless --path . --script res://tests/gameplay_smoke_test.gd
+
+      - name: Run gameplay regression tests
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: godot --headless --path . --script res://tests/gameplay_regression_test.gd
 
       - name: Run content catalog and installer smoke tests
         env:
