@@ -70,6 +70,25 @@ func _run() -> void:
 	_check(float(enemy.get("current_health")) == 0.0, "enemy health is clamped at zero")
 	_check(int(death_event["count"]) == 1 and int(death_event["attacker"]) == 1, "enemy death emits one attacker event")
 
+	var rival := NetworkAvatarScene.instantiate() as CharacterBody3D
+	if rival == null or not rival.has_method("configure_owner"):
+		_check(false, "second network avatar scene loads for PvP testing")
+		get_tree().quit(1)
+		return
+	rival.name = "PvPRival"
+	rival.call("configure_owner", 2)
+	rival.call("configure_battle_royale", true)
+	rival.position = avatar.global_position + Vector3(0.0, 0.0, -2.0)
+	add_child(rival)
+	await get_tree().create_timer(0.7).timeout
+	avatar.call("_server_try_attack")
+	_check(is_equal_approx(float(rival.get("current_health")), 80.0), "server attack damages an enemy player in range and in front")
+	rival.call("apply_damage_from_server", 999.0, 1)
+	_check(bool(rival.get("is_dead")), "lethal PvP damage eliminates the rival")
+	await get_tree().create_timer(2.1).timeout
+	_check(bool(rival.get("is_dead")), "battle royale elimination does not respawn after the normal respawn delay")
+	rival.queue_free()
+
 	print("[network-smoke] failures: %d" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
 
