@@ -22,7 +22,7 @@ func _run() -> void:
 		var scene_resource: Resource = ResourceLoader.load(scene_path)
 		_check(scene_resource is PackedScene, "scene loads: %s" % scene_path)
 
-	_test_touch_controls()
+	await _test_touch_controls()
 
 	print("[resource-smoke] scripts: %d, scenes: %d, failures: %d" % [
 		_script_paths.size(), _scene_paths.size(), _failures
