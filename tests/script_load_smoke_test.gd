@@ -16,7 +16,10 @@ func _run() -> void:
 
 	for script_path in _script_paths:
 		var script_resource: Resource = ResourceLoader.load(script_path)
-		_check(script_resource is Script, "GDScript loads: %s" % script_path)
+		_check(script_resource is Script, "GDScript resource loads: %s" % script_path)
+		if script_resource is Script:
+			var script := script_resource as Script
+			_check(script.can_instantiate(), "GDScript compiles and can instantiate: %s" % script_path)
 
 	for scene_path in _scene_paths:
 		var scene_resource: Resource = ResourceLoader.load(scene_path)
