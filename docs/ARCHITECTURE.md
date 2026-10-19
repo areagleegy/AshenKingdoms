@@ -51,7 +51,7 @@ The approved release target is solo and multiplayer gameplay on Android and Web.
 | Platform | Current known support | Release limitation |
 |---|---|---|
 | Desktop | Solo prototype and experimental ENet arena | No production authentication, persistent network saves or managed public service |
-| Android | Solo prototype, touch UI, experimental ENet arena; CI creates a debug APK | Physical-device acceptance and production signing remain separate gates |
+| Android | Solo prototype, touch UI, experimental ENet/WebSocket host-client arena; CI creates a debug APK | Physical-device acceptance and production signing remain separate gates |
 | Web | HTML5 export; experimental WebSocket client can join a server on the development branch | Real browser-to-public-WSS acceptance test remains outstanding; browser hosting is unsupported, and the change is still proposed in PR #24 |
 
 The experimental Battle Royale slice adds match states, a shrinking safe zone, storm damage, basic server-validated PvP, and elimination without in-match respawn; loot, squads, matchmaking, a large map, and 100-player load validation remain unimplemented. The documented server-session limit is 32 clients; 100 players is only a long-term target.
