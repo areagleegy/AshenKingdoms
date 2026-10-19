@@ -104,6 +104,42 @@ func _run() -> void:
 		var installer: RefCounted = installer_script.new()
 		_check(not bool(installer.call("verify_archive", "user://missing-content-pack.zip", valid_catalog["packs"][0]).get("ok", true)), "missing package archives are rejected")
 		_check(not bool(installer.call("remove_installed_pack", "../outside", "1.0.0").get("ok", true)), "unsafe package IDs cannot delete files")
+		var archive_path := "user://content_catalog_smoke.zip"
+		var asset_bytes := "test-glb-data".to_utf8_buffer()
+		var writer := ZIPPacker.new()
+		var zip_error := writer.open(archive_path)
+		_check(zip_error == OK, "test ZIP archive can be created")
+		if zip_error == OK:
+			writer.start_file("world.glb")
+			writer.write_file(asset_bytes)
+			writer.close_file()
+			writer.close()
+			var archive_file := FileAccess.open(archive_path, FileAccess.READ)
+			var archive_size := archive_file.get_length() if archive_file != null else 0
+			if archive_file != null:
+				archive_file.close()
+			var test_pack := {
+				"id": "content_smoke_pack",
+				"version": "1.0.0",
+				"download_size": archive_size,
+				"sha256": FileAccess.get_sha256(archive_path),
+				"files": [{
+					"path": "world.glb",
+					"size": asset_bytes.size(),
+					"sha256": _sha256_bytes(asset_bytes).hex_encode()
+				}]
+			}
+			var verified: Dictionary = installer.call("verify_archive", archive_path, test_pack)
+			_check(bool(verified.get("ok", false)), "valid ZIP package and per-file digests are accepted")
+			var installed: Dictionary = installer.call("install_archive", archive_path, test_pack)
+			_check(bool(installed.get("ok", false)), "verified package installs into private content storage")
+			if bool(installed.get("ok", false)):
+				_check(FileAccess.file_exists(str(installed["installed_path"]).path_join("world.glb")), "installed package asset exists")
+				installer.call("remove_installed_pack", "content_smoke_pack", "1.0.0")
+			var tampered_pack: Dictionary = test_pack.duplicate(true)
+			tampered_pack["sha256"] = "f".repeat(64)
+			_check(not bool(installer.call("verify_archive", archive_path, tampered_pack).get("ok", true)), "package archive digest mismatch is rejected")
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(archive_path))
 
 	var content_manager: Node = root.get_node_or_null("ContentManager")
 	_check(content_manager != null, "content manager autoload exists")
