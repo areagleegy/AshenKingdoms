@@ -26,6 +26,7 @@ var experience: int = 0
 var quest_progress: int = 0
 var quest_completed: bool = false
 var is_dead: bool = false
+var battle_royale_mode: bool = false
 
 var _gravity: float = float(ProjectSettings.get_setting("physics/3d/default_gravity"))
 var _requested_direction: Vector3 = Vector3.ZERO
@@ -46,6 +47,10 @@ func configure_owner(peer_id: int) -> void:
 	set_multiplayer_authority(1, true)
 	position = _spawn_position(owner_peer_id)
 	current_health = max_health
+
+
+func configure_battle_royale(enabled: bool) -> void:
+	battle_royale_mode = enabled
 
 
 func _ready() -> void:
@@ -206,6 +211,9 @@ func _server_begin_respawn() -> void:
 	_jump_buffered = false
 	_attack_requested = false
 	_death_generation += 1
+	if battle_royale_mode:
+		# Battle royale deaths are eliminations; do not respawn into the same match.
+		return
 	var timer := get_tree().create_timer(2.0)
 	timer.timeout.connect(_server_respawn.bind(_death_generation))
 
