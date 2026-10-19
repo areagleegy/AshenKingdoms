@@ -90,6 +90,9 @@ func download_pack(pack_id: String) -> Error:
 		_emit_pack_state(pack_id, "failed", {"error": "Pack is not present in the verified catalog."})
 		return ERR_DOES_NOT_EXIST
 	var pack_record: Dictionary = _catalog[pack_id]
+	if is_pack_installed(pack_id) and int(_active_references.get(pack_id, 0)) > 0 and str(_installed[pack_id].get("version", "")) != str(pack_record.get("version", "")):
+		_emit_pack_state(pack_id, "failed", {"error": "Cannot update a package while an active scene is using it."})
+		return ERR_BUSY
 	for dependency in pack_record.get("dependencies", []):
 		if not is_pack_installed(str(dependency)):
 			_emit_pack_state(pack_id, "failed", {"error": "Install required package first: %s" % dependency})
@@ -247,6 +250,10 @@ func _on_download_completed(result: int, response_code: int, _headers: PackedStr
 		_save_registry()
 		_emit_pack_state(pack_id, "failed", {"error": "Installed package could not be registered; please retry."})
 		return
+	if previous_record is Dictionary and str(previous_record.get("version", "")) != str(pack_record.get("version", "")):
+		var cleanup: Dictionary = installer.remove_installed_pack(pack_id, str(previous_record.get("version", "")))
+		if not bool(cleanup.get("ok", false)):
+			push_warning("New content pack installed, but its old version could not be removed: %s" % pack_id)
 	_emit_pack_state(pack_id, "installed", {"path": _installed[pack_id]["path"]})
 
 
