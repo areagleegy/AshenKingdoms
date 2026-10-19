@@ -8,5 +8,16 @@
     "paid_generation_apis_allowed": false,
     "note_ar": "لا تضف أصلًا إلا بعد التحقق من ترخيصه ومصدره والسماح بالاستخدام التجاري وإعادة التوزيع. الأصول الفارغة هنا لا تعني أن أي أصل قد أضيف."
   },
-  "assets": []
+  "assets": [
+    {
+      "path": "assets/ashenkingdoms_icon.svg",
+      "author": "areagleegy (AshenKingdoms repository)",
+      "source_url": "https://github.com/areagleegy/AshenKingdoms/blob/main/assets/ashenkingdoms_icon.svg",
+      "license": "MIT (project repository license; icon authored in this repository)",
+      "license_url": "https://github.com/areagleegy/AshenKingdoms/blob/main/LICENSE",
+      "attribution": "AshenKingdoms project icon; authored for this repository",
+      "commercial_use": true,
+      "redistribution_allowed": true
+    }
+  ]
 }
