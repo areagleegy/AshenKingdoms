@@ -105,7 +105,7 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 	if not multiplayer.is_server():
 		return
 	var sender_id := multiplayer.get_remote_sender_id()
-	if sender_id != owner_peer_id or sender_id <= 1 or is_dead:
+	if not _is_authorized_input_sender(sender_id):
 		return
 
 	if not _is_valid_input_direction(direction):
@@ -121,6 +121,10 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 		safe_direction = safe_direction.normalized()
 	_set_requested_input(safe_direction, jump_down, sprint_down, attack_down)
 	_last_input_msec = now_msec
+
+
+func _is_authorized_input_sender(sender_id: int) -> bool:
+	return sender_id > 1 and sender_id == owner_peer_id and not is_dead
 
 
 func _is_valid_input_direction(direction: Vector3) -> bool:
