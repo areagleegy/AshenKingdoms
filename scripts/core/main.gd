@@ -59,11 +59,12 @@ func _process(_delta: float) -> void:
 
 
 func _is_server_mode() -> bool:
-	return (
-		DisplayServer.get_name() == "headless"
-		or OS.has_feature("dedicated_server")
-		or "--server" in OS.get_cmdline_user_args()
-	)
+	# Explicit server launch always wins; CI sets this override only for solo scene integration tests.
+	if "--server" in OS.get_cmdline_user_args() or OS.has_feature("dedicated_server"):
+		return true
+	if OS.get_environment("ASHENKINGDOMS_E2E_TEST_MODE") == "1":
+		return false
+	return DisplayServer.get_name() == "headless"
 
 
 func _register_input_actions() -> void:
