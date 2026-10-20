@@ -14,6 +14,10 @@ func _initialize() -> void:
 
 func _run() -> void:
 	var original_save_files := _snapshot_save_files()
+	if original_save_files.size() != 3:
+		push_error("Could not snapshot every save-related file; aborting to protect existing saves.")
+		quit(1)
+		return
 
 	var network_manager: Node = root.get_node_or_null("NetworkManager")
 	_check(network_manager != null, "network manager autoload is present for smoke tests")
@@ -108,17 +112,19 @@ func _snapshot_save_files() -> Dictionary:
 
 
 func _restore_save_files(snapshot: Dictionary, save_system: Node) -> void:
-	_check(bool(save_system.call("delete_save")), "test save, temporary file, and backup are cleared before restoration")
+	var restored_ok := bool(save_system.call("delete_save"))
+	_check(restored_ok, "test save, temporary file, and backup are cleared before restoration")
 	for path in snapshot:
 		if snapshot[path] == null:
 			continue
 		var file := FileAccess.open(path, FileAccess.WRITE)
 		if file == null:
+			restored_ok = false
 			_check(false, "original save-related file can be restored: %s" % path)
 			continue
 		file.store_string(String(snapshot[path]))
 		file.close()
-	_check(true, "original save-related files are restored")
+	_check(restored_ok, "original save-related files are restored")
 
 
 func _check(condition: bool, description: String) -> void:
