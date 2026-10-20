@@ -14,6 +14,12 @@ const DialogueChoiceScript: Script = preload("res://scripts/dialogue/dialogue_ch
 const MainScript: Script = preload("res://scripts/core/main.gd")
 
 const SAVE_PATH := "user://savegame.json"
+const MANAGED_SAVE_PATHS: Array[String] = [
+	SAVE_PATH,
+	"user://savegame.json.tmp",
+	"user://savegame.json.bak",
+	"user://savegame.json.bak.tmp",
+]
 const POTION_PATH := "res://resources/items/health_potion.tres"
 
 var _failures := 0
@@ -25,20 +31,19 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	var had_original_save := FileAccess.file_exists(SAVE_PATH)
-	var original_save := ""
-	if had_original_save:
-		var original_file := FileAccess.open(SAVE_PATH, FileAccess.READ)
-		if original_file == null:
-			_check(false, "existing save can be backed up before regression tests")
-			quit(1)
-			return
-		original_save = original_file.get_as_text()
-		original_file.close()
+	if not _managed_save_paths_are_safe():
+		_check(false, "managed save paths are not directories before regression tests")
+		quit(1)
+		return
+	var original_files := _snapshot_managed_saves()
+	if original_files.size() != MANAGED_SAVE_PATHS.size():
+		_check(false, "all managed save files can be snapshotted before regression tests")
+		quit(1)
+		return
 
 	_test_player_and_health()
 	_test_inventory_and_potions()
-	_test_save_and_load(had_original_save, original_save)
+	_test_save_and_load(original_files)
 	_test_dialogue_and_quests()
 	_test_android_configuration()
 	_test_runtime_input_registration()
@@ -128,9 +133,10 @@ func _test_inventory_and_potions() -> void:
 	player.queue_free()
 
 
-func _test_save_and_load(had_original_save: bool, original_save: String) -> void:
+func _test_save_and_load(original_files: Dictionary) -> void:
 	var save_system: Node = SaveSystemScript.new()
 	root.add_child(save_system)
+	_check(bool(save_system.call("delete_save")), "save test starts with clean primary and backup fixtures")
 
 	_check(bool(save_system.call("save_game", {"level": 4, "health": 61.5, "flags": {"intro_seen": true}})), "save system writes structured data")
 	var loaded = save_system.call("load_game")
@@ -141,6 +147,7 @@ func _test_save_and_load(had_original_save: bool, original_save: String) -> void
 		var flags = loaded.get("flags", {})
 		_check(flags is Dictionary and bool(flags.get("intro_seen", false)), "nested dialogue flags survive save/load")
 
+	_check(bool(save_system.call("delete_save")), "test clears backup and temp files before malformed JSON case")
 	var malformed := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if malformed == null:
 		_check(false, "test can create malformed JSON fixture")
@@ -150,21 +157,75 @@ func _test_save_and_load(had_original_save: bool, original_save: String) -> void
 		var corrupt = save_system.call("load_game")
 		_check(corrupt is Dictionary and corrupt.is_empty(), "malformed JSON safely returns an empty dictionary")
 
-	_restore_original_save(had_original_save, original_save, save_system)
-	_check(not bool(save_system.call("has_save")) if not had_original_save else bool(save_system.call("has_save")), "save fixture is cleaned up or original save is restored")
+	_restore_original_save(original_files)
+	_check(_managed_save_files_match(original_files), "all original save and backup files are restored")
 	save_system.queue_free()
 
 
-func _restore_original_save(had_original_save: bool, original_save: String, save_system: Node) -> void:
-	if had_original_save:
-		var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-		if file == null:
-			_check(false, "original save can be restored after test")
-			return
-		file.store_string(original_save)
-		file.close()
-	else:
-		_check(bool(save_system.call("delete_save")), "temporary save file is removed after test")
+func _snapshot_managed_saves() -> Dictionary:
+	var snapshot: Dictionary = {}
+	for path in MANAGED_SAVE_PATHS:
+		if FileAccess.file_exists(path):
+			var file := FileAccess.open(path, FileAccess.READ)
+			if file == null:
+				return {}
+			snapshot[path] = {"exists": true, "text": file.get_as_text()}
+			file.close()
+		else:
+			snapshot[path] = {"exists": false, "text": ""}
+	return snapshot
+
+
+func _restore_original_save(snapshot: Dictionary) -> void:
+	for path in MANAGED_SAVE_PATHS:
+		if _is_directory(path):
+			var dir_error: Error = DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+			_check(dir_error == OK, "test-created managed directory is removed: %s" % path)
+		var state: Dictionary = snapshot.get(path, {"exists": false, "text": ""})
+		if bool(state.get("exists", false)):
+			var file := FileAccess.open(path, FileAccess.WRITE)
+			if file == null:
+				_check(false, "original managed save is reopened for restoration: %s" % path)
+				continue
+			file.store_string(String(state.get("text", "")))
+			file.flush()
+			var write_error: Error = file.get_error()
+			file.close()
+			_check(write_error == OK and _read_saved_text(path) == String(state.get("text", "")), "original managed save is restored: %s" % path)
+		elif FileAccess.file_exists(path):
+			var remove_error: Error = DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+			_check(remove_error == OK, "test-created save file is removed: %s" % path)
+
+
+func _managed_save_paths_are_safe() -> bool:
+	for path in MANAGED_SAVE_PATHS:
+		if _is_directory(path):
+			return false
+	return true
+
+
+func _managed_save_files_match(snapshot: Dictionary) -> bool:
+	for path in MANAGED_SAVE_PATHS:
+		var state: Dictionary = snapshot.get(path, {"exists": false, "text": ""})
+		if bool(state.get("exists", false)):
+			if not FileAccess.file_exists(path) or _read_saved_text(path) != String(state.get("text", "")):
+				return false
+		elif FileAccess.file_exists(path):
+			return false
+	return true
+
+
+func _is_directory(path: String) -> bool:
+	return DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(path))
+
+
+func _read_saved_text(path: String) -> String:
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return ""
+	var text := file.get_as_text()
+	file.close()
+	return text
 
 
 func _test_dialogue_and_quests() -> void:
