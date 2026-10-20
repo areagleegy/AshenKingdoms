@@ -104,12 +104,23 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 	var sender_id := multiplayer.get_remote_sender_id()
 	if sender_id != owner_peer_id or sender_id <= 1 or is_dead:
 		return
+	if not _is_valid_network_direction(direction):
+		return
 
 	var safe_direction := Vector3(direction.x, 0.0, direction.z)
 	if safe_direction.length_squared() > 1.0:
 		safe_direction = safe_direction.normalized()
 	_set_requested_input(safe_direction, jump_down, sprint_down, attack_down)
 	_last_input_msec = Time.get_ticks_msec()
+
+
+func _is_valid_network_direction(direction: Vector3) -> bool:
+	# Clients should send finite, horizontal, normalized-or-near-normalized intent only.
+	return (
+		direction.is_finite()
+		and absf(direction.y) <= 0.001
+		and direction.length_squared() <= 1.05
+	)
 
 
 func _set_requested_input(direction: Vector3, jump_down: bool, sprint_down: bool, attack_down: bool) -> void:
@@ -192,7 +203,7 @@ func _server_try_attack() -> void:
 
 
 func apply_damage_from_server(amount: float, attacker_peer_id: int = 0) -> void:
-	if not multiplayer.is_server() or amount <= 0.0 or is_dead or current_health <= 0.0:
+	if not multiplayer.is_server() or not is_finite(amount) or amount <= 0.0 or is_dead or current_health <= 0.0:
 		return
 	current_health = clampf(current_health - amount, 0.0, max_health)
 	if current_health <= 0.0:
