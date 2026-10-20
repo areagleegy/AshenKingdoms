@@ -11,6 +11,7 @@ signal peer_arena_ready(peer_id: int)
 const DEFAULT_PORT: int = 7777
 const DEFAULT_MAX_CLIENTS: int = 8
 const CONNECTION_TIMEOUT_SECONDS: float = 12.0
+const INPUT_RPC_MIN_INTERVAL_MSEC: int = 10
 
 var session_mode: String = "offline"
 var session_port: int = DEFAULT_PORT
@@ -18,6 +19,7 @@ var session_port: int = DEFAULT_PORT
 var _client_connected: bool = false
 var _connection_generation: int = 0
 var _ready_peers: Dictionary = {}
+var _last_input_rpc_attempt_msec_by_peer: Dictionary = {}
 
 
 func _ready() -> void:
@@ -80,6 +82,7 @@ func leave_session(notify: bool = true) -> void:
 	_connection_generation += 1
 	_client_connected = false
 	_ready_peers.clear()
+	_last_input_rpc_attempt_msec_by_peer.clear()
 	var old_mode := session_mode
 	session_mode = "offline"
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
@@ -93,6 +96,19 @@ func is_session_active() -> bool:
 
 func is_connected_to_server() -> bool:
 	return session_mode == "host" or (session_mode == "client" and _client_connected)
+
+
+# Centralize the input RPC budget by sender, not by avatar node. A remote peer
+# can target another avatar's RPC path, so per-avatar limits alone are bypassable.
+# Call this on the server before checking avatar ownership or validating payloads.
+func allow_peer_input_rpc_attempt(peer_id: int, now_msec: int) -> bool:
+	if not multiplayer.is_server() or peer_id <= 1:
+		return false
+	var last_msec := int(_last_input_rpc_attempt_msec_by_peer.get(peer_id, -1))
+	if last_msec >= 0 and now_msec - last_msec < INPUT_RPC_MIN_INTERVAL_MSEC:
+		return false
+	_last_input_rpc_attempt_msec_by_peer[peer_id] = now_msec
+	return true
 
 
 func get_ready_peer_ids() -> Array[int]:
@@ -164,6 +180,7 @@ func _on_peer_connected(peer_id: int) -> void:
 
 func _on_peer_disconnected(peer_id: int) -> void:
 	_ready_peers.erase(peer_id)
+	_last_input_rpc_attempt_msec_by_peer.erase(peer_id)
 	status_changed.emit("غادر اللاعب %d الجلسة." % peer_id)
 	peer_left.emit(peer_id)
 
