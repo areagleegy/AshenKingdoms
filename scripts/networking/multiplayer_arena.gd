@@ -14,6 +14,7 @@ var _status_label: Label
 var _player_count_label: Label
 var _combat_label: Label
 var _local_avatar: Node3D
+var _spawning_peers: Dictionary = {}
 
 
 func _ready() -> void:
@@ -289,21 +290,25 @@ func _spawn_avatar(peer_id: int) -> void:
 		return
 	if peer_id > 1 and not multiplayer.get_peers().has(peer_id):
 		return
+	# Prevent concurrent ready notifications from spawning the same peer twice
+	# while a reconnect waits for the previous queued avatar to be freed.
+	if _spawning_peers.has(peer_id):
+		return
+	_spawning_peers[peer_id] = true
 
 	var existing := _entities.get_node_or_null("Peer_%d" % peer_id)
 	if existing != null and existing.is_queued_for_deletion():
-		# A fast reconnect can arrive before the previous avatar is freed.
-		# Wait one frame, then revalidate the peer and scene before spawning.
 		await get_tree().process_frame
 		if not is_inside_tree() or not multiplayer.is_server():
+			_spawning_peers.erase(peer_id)
 			return
 		if peer_id > 1 and not multiplayer.get_peers().has(peer_id):
+			_spawning_peers.erase(peer_id)
 			return
 		existing = _entities.get_node_or_null("Peer_%d" % peer_id)
-	if existing != null:
-		return
-
-	_spawner.spawn({"kind": "player", "peer_id": peer_id})
+	if existing == null:
+		_spawner.spawn({"kind": "player", "peer_id": peer_id})
+	_spawning_peers.erase(peer_id)
 	_refresh_session_status()
 
 
