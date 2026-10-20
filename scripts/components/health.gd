@@ -15,7 +15,7 @@ func _ready() -> void:
 
 
 func take_damage(amount: float) -> void:
-	if amount <= 0.0 or current <= 0.0:
+	if not is_finite(amount) or amount <= 0.0 or current <= 0.0:
 		return
 	var was_alive := current > 0.0
 	current = clampf(current - amount, 0.0, max_health)
@@ -25,13 +25,15 @@ func take_damage(amount: float) -> void:
 
 
 func heal(amount: float) -> void:
-	if amount <= 0.0 or current <= 0.0:
+	if not is_finite(amount) or amount <= 0.0 or current <= 0.0:
 		return
 	current = clampf(current + amount, 0.0, max_health)
 	health_changed.emit(current, max_health)
 
 
 func set_current_health(value: float) -> void:
+	if not is_finite(value):
+		return
 	var was_alive := current > 0.0
 	current = clampf(value, 0.0, max_health)
 	health_changed.emit(current, max_health)
@@ -40,7 +42,7 @@ func set_current_health(value: float) -> void:
 
 
 func increase_max_health(amount: float, heal_by_amount: bool = true) -> void:
-	if amount <= 0.0:
+	if not is_finite(amount) or amount <= 0.0:
 		return
 	max_health += amount
 	if heal_by_amount:
