@@ -17,7 +17,9 @@
       "license_url": "https://github.com/areagleegy/AshenKingdoms/blob/main/LICENSE",
       "attribution": "AshenKingdoms project icon; authored for this repository",
       "commercial_use": true,
-      "redistribution_allowed": true
+      "redistribution_allowed": true,
+      "sha256": "627cd29c0f1d857bc9a1935c809f49f97177ce39a4aa1b81266570baddd48ed3",
+      "file_size_bytes": 876
     },
     {
       "path": "assets/ui/icons/backpack.svg",
@@ -27,7 +29,9 @@
       "license_url": "https://github.com/areagleegy/AshenKingdoms/blob/main/LICENSE",
       "attribution": "Original AshenKingdoms backpack UI icon; include the repository MIT license notice",
       "commercial_use": true,
-      "redistribution_allowed": true
+      "redistribution_allowed": true,
+      "sha256": "e0c27df702719c9c1aaea42676eea90eb97539c7024a7eb32ce150a1ebce6a44",
+      "file_size_bytes": 572
     },
     {
       "path": "assets/ui/icons/pause.svg",
@@ -37,7 +41,9 @@
       "license_url": "https://github.com/areagleegy/AshenKingdoms/blob/main/LICENSE",
       "attribution": "Original AshenKingdoms pause UI icon; include the repository MIT license notice",
       "commercial_use": true,
-      "redistribution_allowed": true
+      "redistribution_allowed": true,
+      "sha256": "855e00f67325a30b6cc14c7a0a79b6020b83bde7bfe6e330c31bb765ad824abf",
+      "file_size_bytes": 383
     },
     {
       "path": "assets/ui/icons/sword.svg",
@@ -47,7 +53,9 @@
       "license_url": "https://github.com/areagleegy/AshenKingdoms/blob/main/LICENSE",
       "attribution": "Original AshenKingdoms sword UI icon; include the repository MIT license notice",
       "commercial_use": true,
-      "redistribution_allowed": true
+      "redistribution_allowed": true,
+      "sha256": "67f120b83624ddc67a4f4d3ac31e9efc4eef6e7ab4384f7be31fa9d5aa7b0681",
+      "file_size_bytes": 607
     },
     {
       "path": "assets/ui/icons/jump.svg",
@@ -57,7 +65,9 @@
       "license_url": "https://github.com/areagleegy/AshenKingdoms/blob/main/LICENSE",
       "attribution": "Original AshenKingdoms jump UI icon; include the repository MIT license notice",
       "commercial_use": true,
-      "redistribution_allowed": true
+      "redistribution_allowed": true,
+      "sha256": "86e3b7c9c17284f06b1e162660d4a37016e836120a36e64ba430ccda478e3bdc",
+      "file_size_bytes": 485
     },
     {
       "path": "assets/ui/icons/sprint.svg",
@@ -67,7 +77,9 @@
       "license_url": "https://github.com/areagleegy/AshenKingdoms/blob/main/LICENSE",
       "attribution": "Original AshenKingdoms sprint UI icon; include the repository MIT license notice",
       "commercial_use": true,
-      "redistribution_allowed": true
+      "redistribution_allowed": true,
+      "sha256": "ca323a5ad03b1a75cd65faf5bb0f606050e9a2498789636c8915bdb240107d34",
+      "file_size_bytes": 504
     },
     {
       "path": "assets/ui/icons/potion.svg",
@@ -77,7 +89,9 @@
       "license_url": "https://github.com/areagleegy/AshenKingdoms/blob/main/LICENSE",
       "attribution": "Original AshenKingdoms potion UI icon; include the repository MIT license notice",
       "commercial_use": true,
-      "redistribution_allowed": true
+      "redistribution_allowed": true,
+      "sha256": "86c9733192434ed4e862c3e2c56606b3c5b4256744260e3e5fe6f86c373cf51f",
+      "file_size_bytes": 604
     },
     {
       "path": "assets/ui/icons/quest.svg",
@@ -87,7 +101,9 @@
       "license_url": "https://github.com/areagleegy/AshenKingdoms/blob/main/LICENSE",
       "attribution": "Original AshenKingdoms quest UI icon; include the repository MIT license notice",
       "commercial_use": true,
-      "redistribution_allowed": true
+      "redistribution_allowed": true,
+      "sha256": "2c2c6dd33c92135a9bce55e3b829db8e8d83846b653b17fca7142aa198817c33",
+      "file_size_bytes": 483
     },
     {
       "path": "assets/audio/sfx/ui_select.wav",
@@ -105,7 +121,8 @@
       "channel_count": 1,
       "bit_depth": 16,
       "format": "WAV PCM",
-      "file_size_bytes": 4896
+      "file_size_bytes": 4896,
+      "sha256": "8780b1fb0226ed03297682bbc015e1116482c5f7aa8887e5cf51ffe156907681"
     },
     {
       "path": "assets/audio/sfx/footstep_stone.wav",
@@ -123,7 +140,8 @@
       "channel_count": 1,
       "bit_depth": 16,
       "format": "WAV PCM",
-      "file_size_bytes": 8864
+      "file_size_bytes": 8864,
+      "sha256": "0027ff861c6ac32e88dd9f7b9246ef8e07d372909ea16a69d27feb0ba7ed0e09"
     },
     {
       "path": "assets/audio/sfx/sword_swing.wav",
@@ -141,7 +159,8 @@
       "channel_count": 1,
       "bit_depth": 16,
       "format": "WAV PCM",
-      "file_size_bytes": 18566
+      "file_size_bytes": 18566,
+      "sha256": "6d9728a3d04ea0102edd8e6f5a8df56b54fec018da382b7c29e917a0f9024cee"
     },
     {
       "path": "assets/audio/sfx/sword_hit.wav",
@@ -159,7 +178,8 @@
       "channel_count": 1,
       "bit_depth": 16,
       "format": "WAV PCM",
-      "file_size_bytes": 12834
+      "file_size_bytes": 12834,
+      "sha256": "9ee35e763e4a03fca65e72bb8dde5d5011f95f76df3fcdeed0737a5d2def0774"
     },
     {
       "path": "assets/audio/sfx/ash_wraith_attack.wav",
@@ -177,7 +197,8 @@
       "channel_count": 1,
       "bit_depth": 16,
       "format": "WAV PCM",
-      "file_size_bytes": 16362
+      "file_size_bytes": 16362,
+      "sha256": "0d39695d918b67c5dc48501df503a5c633e98777551106ed2b80959ff860246f"
     },
     {
       "path": "assets/audio/sfx/potion_use.wav",
@@ -195,7 +216,8 @@
       "channel_count": 1,
       "bit_depth": 16,
       "format": "WAV PCM",
-      "file_size_bytes": 24740
+      "file_size_bytes": 24740,
+      "sha256": "2a0cbd5069050935f40c11ec5c66da1b1cfb854f462f2ca2e763ee50e181580f"
     },
     {
       "path": "assets/audio/sfx/quest_complete.wav",
@@ -213,7 +235,8 @@
       "channel_count": 1,
       "bit_depth": 16,
       "format": "WAV PCM",
-      "file_size_bytes": 34442
+      "file_size_bytes": 34442,
+      "sha256": "4e4694db364aa39ebf78fda0df6d5f1c3bc22011e22c872d61928997c8abfaf1"
     },
     {
       "path": "assets/audio/sfx/ash_wraith_death.wav",
@@ -231,7 +254,8 @@
       "channel_count": 1,
       "bit_depth": 16,
       "format": "WAV PCM",
-      "file_size_bytes": 37088
+      "file_size_bytes": 37088,
+      "sha256": "65bd6469987517d9ee6c122001ab1834a17471eb0833f1cd4e7e3a76c46fd6ed"
     },
     {
       "path": "assets/audio/sfx/player_hit.wav",
@@ -249,7 +273,8 @@
       "channel_count": 1,
       "bit_depth": 16,
       "format": "WAV PCM",
-      "file_size_bytes": 11952
+      "file_size_bytes": 11952,
+      "sha256": "ab049bb967fd914fe14fb9e36661a93190c35e1b04146f8c66107ec30542a8c8"
     },
     {
       "path": "assets/audio/sfx/ash_wind_loop.wav",
@@ -267,7 +292,8 @@
       "channel_count": 1,
       "bit_depth": 16,
       "format": "WAV PCM",
-      "file_size_bytes": 132344
+      "file_size_bytes": 132344,
+      "sha256": "962ce4277a37939f354ed035f02d6589e61d3851f461f3e2607f08ad67d9fc82"
     }
   ]
 }
