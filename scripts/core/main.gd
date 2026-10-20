@@ -44,6 +44,9 @@ func _ready() -> void:
 	_create_enemies()
 	_create_npcs()
 	_create_hud()
+	var audio_feedback := get_node_or_null("/root/AudioFeedback")
+	if audio_feedback != null:
+		audio_feedback.call("start_ambience")
 
 	if OS.get_cmdline_user_args().has("--continue"):
 		_load_game()
