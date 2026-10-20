@@ -40,6 +40,7 @@ func _run() -> void:
 			burst_accepted = bool(network_manager.call("consume_remote_rpc_budget", synthetic_peer_id, 5000)) and burst_accepted
 		_check(burst_accepted, "per-peer RPC budget accepts its configured initial burst")
 		_check(not bool(network_manager.call("consume_remote_rpc_budget", synthetic_peer_id, 5000)), "per-peer RPC budget rejects traffic after burst exhaustion")
+		_check(not bool(network_manager.call("consume_remote_rpc_budget", synthetic_peer_id, 5024)), "per-peer RPC budget stays exhausted before a full refill interval")
 		_check(bool(network_manager.call("consume_remote_rpc_budget", synthetic_peer_id, 5025)), "per-peer RPC budget refills at the configured rate")
 		_check(bool(network_manager.call("consume_remote_rpc_budget", synthetic_peer_id + 1, 5000)), "RPC budgets are isolated between peer connections")
 
