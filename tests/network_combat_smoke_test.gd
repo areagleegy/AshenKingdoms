@@ -24,6 +24,10 @@ func _run() -> void:
 	print("[network-smoke] avatar ready")
 	_check(float(avatar.get("current_health")) == 100.0, "network avatar starts with expected health")
 	_check(bool(multiplayer.is_server()), "offline smoke harness is allowed to exercise server logic")
+	_check(bool(avatar.call("_is_valid_input_direction", Vector3(0.5, 0.0, -0.5))), "finite movement input is accepted")
+	_check(not bool(avatar.call("_is_valid_input_direction", Vector3(NAN, 0.0, 0.0))), "NaN movement input is rejected")
+	_check(not bool(avatar.call("_is_valid_input_direction", Vector3(0.0, 0.0, INF))), "infinite movement input is rejected")
+	_check(not bool(avatar.call("_is_valid_input_direction", Vector3(100.0, 0.0, 0.0))), "out-of-range movement input is rejected")
 
 	avatar.call("server_grant_experience", 100)
 	print("[network-smoke] XP tested")
