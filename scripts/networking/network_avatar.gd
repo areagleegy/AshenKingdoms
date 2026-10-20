@@ -112,9 +112,8 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 		return
 
 	var now_msec := Time.get_ticks_msec()
-	if _last_input_received_msec > 0 and now_msec - _last_input_received_msec < INPUT_RATE_LIMIT_MSEC:
+	if not _accept_input_timestamp(now_msec):
 		return
-	_last_input_received_msec = now_msec
 
 	var safe_direction := Vector3(direction.x, 0.0, direction.z)
 	if safe_direction.length_squared() > 1.0:
@@ -125,6 +124,13 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 
 func _is_authorized_input_sender(sender_id: int) -> bool:
 	return sender_id > 1 and sender_id == owner_peer_id and not is_dead
+
+
+func _accept_input_timestamp(now_msec: int) -> bool:
+	if _last_input_received_msec > 0 and now_msec - _last_input_received_msec < INPUT_RATE_LIMIT_MSEC:
+		return false
+	_last_input_received_msec = now_msec
+	return true
 
 
 func _is_valid_input_direction(direction: Vector3) -> bool:
