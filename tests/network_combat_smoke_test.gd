@@ -25,6 +25,35 @@ func _run() -> void:
 	_check(float(avatar.get("current_health")) == 100.0, "network avatar starts with expected health")
 	_check(bool(multiplayer.is_server()), "offline smoke harness is allowed to exercise server logic")
 
+	_check(bool(avatar.call("_is_valid_network_direction", Vector3.ZERO)), "zero movement input is valid")
+	_check(bool(avatar.call("_is_valid_network_direction", Vector3(0.70710678, 0.0, 0.70710678))), "normalized diagonal movement input is valid")
+	_check(not bool(avatar.call("_is_valid_network_direction", Vector3(NAN, 0.0, 0.0))), "NaN movement input is rejected")
+	_check(not bool(avatar.call("_is_valid_network_direction", Vector3(INF, 0.0, 0.0))), "infinite movement input is rejected")
+	_check(not bool(avatar.call("_is_valid_network_direction", Vector3(0.0, 1.0, 0.0))), "vertical movement vector is rejected")
+	_check(not bool(avatar.call("_is_valid_network_direction", Vector3(2.0, 0.0, 0.0))), "movement vector outside the accepted magnitude is rejected")
+	var rate_limit_test_peer_id := 64001
+	_check(not bool(NetworkManager.call("allow_peer_input_rpc_attempt", 1, 100)), "host id is not accepted as a remote input sender")
+	_check(not bool(avatar.call("_try_validate_input_attempt", rate_limit_test_peer_id, Vector3(NAN, 0.0, 0.0), 100)), "NaN input attempt is rejected")
+	var second_avatar := NetworkAvatarScene.instantiate() as CharacterBody3D
+	second_avatar.call("configure_owner", 2)
+	add_child(second_avatar)
+	_check(not bool(second_avatar.call("_try_validate_input_attempt", rate_limit_test_peer_id, Vector3.ZERO, 105)), "malformed attempt consumes a shared rate window across avatar nodes")
+	_check(not bool(NetworkManager.call("allow_peer_input_rpc_attempt", rate_limit_test_peer_id, 109)), "peer cannot exceed the central attempt budget by targeting other avatars")
+	_check(bool(avatar.call("_try_validate_input_attempt", rate_limit_test_peer_id, Vector3.ZERO, 110)), "peer input can resume after the minimum interval")
+	NetworkManager.call("_on_peer_disconnected", rate_limit_test_peer_id)
+	_check(bool(NetworkManager.call("allow_peer_input_rpc_attempt", rate_limit_test_peer_id, 111)), "disconnect clears the sender's rate-limit window")
+	var second_test_peer_id := 64002
+	_check(bool(NetworkManager.call("allow_peer_input_rpc_attempt", second_test_peer_id, 120)), "second peer gets an independent sender budget")
+	NetworkManager.call("leave_session", false)
+	var remaining_budgets: Dictionary = NetworkManager.get("_last_input_rpc_attempt_msec_by_peer")
+	_check(remaining_budgets.is_empty(), "leaving a session clears all sender rate-limit state")
+	second_avatar.queue_free()
+
+	avatar.call("apply_damage_from_server", INF, 1)
+	_check(float(avatar.get("current_health")) == 100.0, "network avatar rejects infinite damage")
+	avatar.call("apply_damage_from_server", NAN, 1)
+	_check(float(avatar.get("current_health")) == 100.0, "network avatar rejects NaN damage")
+
 	avatar.call("server_grant_experience", 100)
 	print("[network-smoke] XP tested")
 	_check(int(avatar.get("level")) == 2, "server-granted XP advances the network avatar")
@@ -50,6 +79,10 @@ func _run() -> void:
 	add_child(enemy)
 	print("[network-smoke] enemy ready")
 	enemy.global_position = avatar.global_position + Vector3(0.0, 0.0, -2.0)
+	enemy.call("apply_damage_from_server", INF, 1)
+	_check(float(enemy.get("current_health")) == 85.0, "network enemy rejects infinite damage")
+	enemy.call("apply_damage_from_server", NAN, 1)
+	_check(float(enemy.get("current_health")) == 85.0, "network enemy rejects NaN damage")
 	var death_event: Dictionary = {"count": 0, "attacker": 0}
 	enemy.died.connect(func(_dead_enemy: Node, attacker_peer_id: int) -> void:
 		death_event["count"] = int(death_event["count"]) + 1

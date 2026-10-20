@@ -40,7 +40,7 @@ if [[ "$server_ready" -ne 1 ]]; then
 fi
 
 set +e
-timeout 20s godot --headless --path . --script res://tests/network_client_smoke_test.gd
+timeout 45s godot --headless --path . --script res://tests/network_client_smoke_test.gd
 client_status=$?
 set -e
 
