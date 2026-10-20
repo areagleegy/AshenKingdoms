@@ -120,8 +120,8 @@ jobs:
         if: always()
         run: |
           mkdir -p "$RUNNER_TEMP/asset-audit"
-          python3 tools/audit_assets.py --root . \\
-            --json-output "$RUNNER_TEMP/asset-audit/asset-audit.json" \\
+          python3 tools/audit_assets.py --root . \
+            --json-output "$RUNNER_TEMP/asset-audit/asset-audit.json" \
             --markdown-output "$RUNNER_TEMP/asset-audit/asset-audit.md"
 
       - name: Import and parse project
