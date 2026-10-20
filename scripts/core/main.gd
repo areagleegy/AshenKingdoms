@@ -4,6 +4,7 @@ const SERVER_SCRIPT: Script = preload("res://scripts/core/server.gd")
 const HEALTH_SCRIPT: Script = preload("res://scripts/components/health.gd")
 const PLAYER_SCRIPT: Script = preload("res://scripts/player/player.gd")
 const PLAYER_MODEL_PATH: String = "res://assets/characters/player/player.glb"
+const ENEMY_MODEL_PATH: String = "res://assets/characters/enemies/ash_wraith.glb"
 const CAMERA_SCRIPT: Script = preload("res://scripts/player/player_camera.gd")
 const ENEMY_SCRIPT: Script = preload("res://scripts/enemies/enemy.gd")
 const INVENTORY_SCRIPT: Script = preload("res://scripts/components/inventory.gd")
@@ -406,7 +407,8 @@ func _create_enemies() -> void:
 		enemy.set_script(ENEMY_SCRIPT)
 		enemy.set("player", player)
 		enemy.position = spawn_points[index]
-		_add_capsule_parts(enemy, 0.4, 1.7, Color(0.32, 0.36, 0.43, 1.0))
+		if not _add_enemy_model_or_placeholder(enemy):
+			_add_capsule_parts(enemy, 0.4, 1.7, Color(0.32, 0.36, 0.43, 1.0))
 
 		var health_node: Node = HEALTH_SCRIPT.new()
 		health_node.name = "Health"
@@ -414,6 +416,29 @@ func _create_enemies() -> void:
 		enemy.add_child(health_node)
 		enemy.connect("died", _on_enemy_died)
 		enemies_container.add_child(enemy)
+
+
+
+func _add_enemy_model_or_placeholder(body: CharacterBody3D) -> bool:
+	if not ResourceLoader.exists(ENEMY_MODEL_PATH):
+		return false
+
+	var model_scene := load(ENEMY_MODEL_PATH) as PackedScene
+	if model_scene == null:
+		push_warning("Ash Wraith model exists but could not be loaded: %s" % ENEMY_MODEL_PATH)
+		return false
+
+	_add_capsule_collision(body, 0.4, 1.7)
+	var visual_root := Node3D.new()
+	visual_root.name = "EnemyVisual"
+	visual_root.position.y = -0.92
+	body.add_child(visual_root)
+
+	var model_instance := model_scene.instantiate()
+	model_instance.name = "AshWraithModel"
+	visual_root.add_child(model_instance)
+	print("[ENEMY] Loaded Ash Wraith model: %s" % ENEMY_MODEL_PATH)
+	return true
 
 
 func _create_npcs() -> void:

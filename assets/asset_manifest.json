@@ -212,6 +212,20 @@
       "sha256": "8780b1fb0226ed03297682bbc015e1116482c5f7aa8887e5cf51ffe156907681"
     },
     {
+      "path": "assets/characters/enemies/ash_wraith.glb",
+      "author": "AshenKingdoms contributors — original procedural mesh variant",
+      "source_url": "https://github.com/areagleegy/AshenKingdoms/blob/assets/ui-foundation-icons-2026-10-21/tools/generate_procedural_wraith_glb.py",
+      "license": "MIT (original model variant authored for this repository; repository license applies)",
+      "license_url": "https://github.com/areagleegy/AshenKingdoms/blob/main/LICENSE",
+      "attribution": "Original AshenKingdoms Ash Wraith variant derived from the in-repository procedural player mesh; materials recolored in-project, no external geometry or textures.",
+      "commercial_use": true,
+      "redistribution_allowed": true,
+      "file_size_bytes": 104424,
+      "format": "GLB 2.0",
+      "static_mesh": true,
+      "animations_included": false
+    },
+    {
       "path": "assets/characters/player/player.glb",
       "author": "AshenKingdoms contributors — original procedural low-poly mesh",
       "source_url": "https://github.com/areagleegy/AshenKingdoms/blob/assets/ui-foundation-icons-2026-10-21/tools/generate_procedural_player_glb.py",

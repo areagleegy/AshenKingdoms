@@ -88,3 +88,10 @@ python3 tools/validate_free_assets.py
 - إعادة الإنشاء: `python3 tools/generate_procedural_player_glb.py`.
 - التحقق البنيوي: `python3 tools/validate_player_glb.py assets/characters/player/player.glb`.
 - لا توجد حركات أو Skeleton مضمّنة حتى الآن.
+
+
+## عدو شبح الرماد
+
+- نموذج GLB ثابت بخامات طيفية: `assets/characters/enemies/ash_wraith.glb`.
+- إعادة الإنشاء: `python3 tools/generate_procedural_wraith_glb.py`.
+- يتحمّل النموذج في المشهد الرئيسي مع تصادم مستقل؛ إذا تعذر تحميله يعود العدو إلى الهيئة البدائية.
