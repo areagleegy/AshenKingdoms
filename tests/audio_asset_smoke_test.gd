@@ -92,6 +92,17 @@ func _test_manifest() -> void:
 func _test_audio_feedback_script() -> void:
 	var script := ResourceLoader.load("res://scripts/core/audio_feedback.gd") as Script
 	_check(script != null and script.can_instantiate(), "AudioFeedback script loads and compiles")
+	if script == null or not script.can_instantiate():
+		return
+
+	var instance := script.new() as Node
+	_check(instance != null, "AudioFeedback instance can be created")
+	if instance == null:
+		return
+	root.add_child(instance)
+	_check(int(instance.call("get_loaded_sfx_count")) == 9, "AudioFeedback runtime-loads all nine SFX streams")
+	_check(bool(instance.call("is_ambience_loaded")), "AudioFeedback runtime-loads the ambient wind stream")
+	instance.queue_free()
 
 
 func _check(condition: bool, description: String) -> void:
