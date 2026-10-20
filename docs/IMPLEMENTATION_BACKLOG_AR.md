@@ -26,13 +26,13 @@
   - `tests/gameplay_regression_test.gd`: تغطية مدخلات الصحة غير المنتهية في اللعب الفردي.
   - `docs/NETWORKING.md` و`docs/TEST_PLAN.md`: توثيق الحواجز وحالات الاختبار.
 - **القبول المطلوب:** اجتياز اختبارات `network_combat_smoke_test.tscn` و`gameplay_regression_test.gd` وفحوص CI؛ لا يُعتبر ذلك بديلًا عن اختبار أمني كامل للشبكة.
-- **الحالة:** التغييرات مجمعة في [مسودة PR #28](https://github.com/areagleegy/AshenKingdoms/pull/28) على فرع `fix/finite-network-input-damage`؛ لا توجد نتيجة CI قابلة للتحقق حتى الآن.
+- **الحالة:** التغييرات مجمعة في [مسودة PR #28](https://github.com/areagleegy/AshenKingdoms/pull/28) على فرع `fix/finite-network-input-damage`. على commit `bda5d70991d2daa35daafbd70c88986e54c125a1` اجتاز `Validate Godot Project`، واجتاز تصدير Web؛ تصدير Android كان لا يزال قيد التنفيذ عند آخر فحص. يجب إعادة التحقق بعد أي تعديل لاحق.
 
 ## سجل المهام المرتبة
 
 | المعرّف | الأولوية | المهمة | مصدر PDF | الحالة الحالية / معيار القبول |
 |---|---|---|---|---|
-| NET-001 | P0 | رفض `NaN`/`INF` في الإدخال والضرر وتغييرات الصحة | `5.pdf` ص. 40؛ `2.pdf` ص. 10 | مسودة PR [#28](https://github.com/areagleegy/AshenKingdoms/pull/28)؛ ينتظر CI |
+| NET-001 | P0 | رفض `NaN`/`INF` في الإدخال والضرر وتغييرات الصحة | `5.pdf` ص. 40؛ `2.pdf` ص. 10 | اجتاز فحص Godot واختبارات gameplay والشبكة على commit `bda5d70991d2daa35daafbd70c88986e54c125a1`؛ تصدير Android قيد التحقق |
 | REL-001 | P0 | قبول Android الفعلي وWeb | `5.pdf` ص. 35 تعرض ادعاءات قبول قديمة تحتاج إعادة تحقق | Issue [#20](https://github.com/areagleegy/AshenKingdoms/issues/20) مفتوحة؛ يلزم جهاز حقيقي ومتصفح وبيانات قبول مسجلة |
 | ART-001 | P1 | إضافة مجموعة أصول صغيرة ذات تراخيص موثقة | `5.pdf` و`6.pdf` تناقشان الأصول والتحسينات؛ يُرجع لكل أصل إلى مصدره المحدد قبل الدمج | Issue [#22](https://github.com/areagleegy/AshenKingdoms/issues/22) مفتوحة؛ لا تُقبل الأصول بلا مصدر وترخيص وإسناد واضح |
 | DOC-001 | P1 | ربط الادعاءات التقنية بمسارات الكود الحالية | `4.pdf` ص. 406–409؛ `6.pdf` ص. 134–135 | يجب تجاهل مسارات مثال قديمة غير موجودة قبل التحقق منها؛ تحديث التوثيق مع كل تغيير فعلي |
