@@ -16,7 +16,20 @@ func _run() -> void:
 		var meshes := model.find_children("*", "MeshInstance3D", true, false)
 		if model is MeshInstance3D:
 			meshes.append(model)
-		_check(meshes.size() >= 8, "Ash Wraith has multiple visible mesh surfaces")
+
+		var surface_count := 0
+		var material_surface_count := 0
+		for mesh_instance in meshes:
+			var mesh := mesh_instance as MeshInstance3D
+			if mesh == null or mesh.mesh == null:
+				continue
+			surface_count += mesh.mesh.get_surface_count()
+			for surface_index in range(mesh.mesh.get_surface_count()):
+				if mesh.mesh.surface_get_material(surface_index) != null:
+					material_surface_count += 1
+
+		_check(surface_count >= 8, "Ash Wraith exposes at least eight mesh surfaces (found %d across %d mesh instance(s))" % [surface_count, meshes.size()])
+		_check(material_surface_count >= 7, "Ash Wraith surfaces retain multiple materials (found %d material-backed surface(s))" % material_surface_count)
 		model.free()
 
 	var main_node := Node3D.new()
