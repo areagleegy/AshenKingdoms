@@ -44,12 +44,12 @@
 
 ## آخر دليل CI ومخرجات البناء
 
-- **آخر رأس اجتاز Validate وBuild بالكامل:** `80decbc131dcda8b2b4edaa0cee2118d29951778`. نجح [Validate run 230](https://github.com/areagleegy/AshenKingdoms/actions/runs/39352288860) (22/22 خطوة) و[Build run 148](https://github.com/areagleegy/AshenKingdoms/actions/runs/39352288765) (تصدير Web وAndroid بنجاح).
-- **اختبار الحد المركزي:** على رأس الكود/الاختبار `5ea94e924cf5b7558af82314589d5957bd826100` نجح [Validate run 228](https://github.com/areagleegy/AshenKingdoms/actions/runs/39352071140)، وسجّل اختبار القتال `failures: 0` بعد اختبار رفض host ID، ورفض `NaN`، واشتراك عقدتين في نافذة المرسل، ومنع المحاولات المتكررة عند 105/109ms، وقبول المحاولة بعد 110ms. ثم اجتازت تغييرات pin للـ Actions Validate #230 وBuild #148.
-- **APK Android من Build #146:** الحجم الفعلي `27,887,223` بايت؛ SHA-256 للملف `da1de11dea7217f1fd6d4cfb315c45699306c6166d9f0ad89b3b59fb4646ab55`. Artifact `ashen-kingdoms-android-debug` معرّفه `12232959648` وحجم أرشيفه `27,630,749` بايت؛ بصمة ZIP `467290e9c274c7f4202c4653ac81b4051cb3c2bff942da3ddea5699f02db8521`.
-- **Web من Build #146:** Artifact `ashen-kingdoms-web` معرّفه `12232884642` وحجم أرشيفه `9,803,594` بايت؛ بصمة ZIP `68ee332f7310a18e907f3c8b812e48c25f9fe8696834cc5aacdbb7f231047519`.
-- الأصول المذكورة Artifacts مؤقتة وفق مدة الاحتفاظ في Workflow. احتفظ بها وبصماتها في موقع إصدار معتمد قبل انتهاء المدة. حجم أرشيف Web ليس حجم الملفات بعد فك الضغط. نجاح CI لا يثبت تشغيل APK على هاتف حقيقي أو نشر Web واختباره في متصفح أو جاهزية خادم عام أو أداء 100 لاعب.
-- **ملاحظة دقيقة:** هذه نتائج على رأس `80de...`؛ أي commit لاحق يحتاج فحص الحالة على SHA نفسه. كما يبقى اختبار جهازين فعليين وإغراق RPC وحمل تدريجي مطلوبًا قبل القبول الإنتاجي.
+- **آخر رأس متحقق منه وقت هذا التحديث:** `1f3bd5623408e68010e245ea3577546d3ae89c47`. نجح [Validate run 233](https://github.com/areagleegy/AshenKingdoms/actions/runs/39354501007) و[Build run 151](https://github.com/areagleegy/AshenKingdoms/actions/runs/39354500883)، وكلاهما انتهى بحالة `success`. اجتاز Validate اختبار Godot واختبارات اللعب والشبكة وENet loopback، وانتهى تصديرا Web وAndroid بنجاح.
+- **اختبار حد RPC المركزي:** [Validate run 228](https://github.com/areagleegy/AshenKingdoms/actions/runs/39352071140) سجّل `failures: 0` في اختبار القتال الذي يتحقق من رفض host ID و`NaN`، ومشاركة نافذة حد المحاولات بين عقد الشخصيات، والرفض عند 105/109ms، والقبول عند 110ms. تغييرات تثبيت إجراءات CI اجتازت لاحقًا [Validate #230](https://github.com/areagleegy/AshenKingdoms/actions/runs/39352288860) و[Build #148](https://github.com/areagleegy/AshenKingdoms/actions/runs/39352288765).
+- **APK Android من Build #151:** الحجم الفعلي `27,887,223` بايت؛ SHA-256 للملف `371fd57b6bd0fcb7a144ff078adbbaf6d91921f8503454a6e3a6550a55db600e`. Artifact `ashen-kingdoms-android-debug` معرّفه `12234777053`، وحجم أرشيفه `27,630,753` بايت، وبصمة أرشيف الرفع `2d41e3ddc9f1838f5173728229e72da7599e05809675f26d94ace35842a9b984`.
+- **Web من Build #151:** Artifact `ashen-kingdoms-web` معرّفه `12234523925`، وحجم أرشيفه `9,803,597` بايت، وبصمة أرشيف الرفع `11e70e0e8ced6bea2c3b4fa20f42531fdb33b9f890a0aef4fcfe38f365442405`.
+- هذه الأصول المؤقتة تنتهي صلاحيتها في 2026-10-27 وفق بيانات GitHub. انقلها إلى تخزين إصدار معتمد مع بصماتها قبل انتهاء الاحتفاظ إن كانت مطلوبة. حجم أرشيف Web ليس حجم الملفات بعد فك الضغط. نجاح CI لا يثبت تشغيل APK على هاتف فعلي أو نشر Web واختباره في متصفح أو جاهزية خادم عام أو أداء 100 لاعب.
+- **ملاحظة رأس:** رأس `1f3bd...` هو آخر رأس فحصته هذه المراجعة. أي commit لاحق يحتاج التحقق من SHA نفسه. ما زال اختبار جهازين فعليين، وإغراق RPC، والحمل التدريجي، وقياس CPU/الذاكرة/الكمون، ومراجعة أمان مستقلة مطلوبًا قبل القبول الإنتاجي.
 
 ## ملاحظات تمنع إعادة العمل الخاطئ
 
