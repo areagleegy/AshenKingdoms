@@ -72,3 +72,11 @@ godot --headless --path . --script res://tests/save_system_integrity_test.gd
 - لكل رفع لـ schema_version دالة migration واختبارات بيانات قديمة.
 - لا تُحمّل القيم العددية أو معرّفات الموارد من ملف الحفظ بلا تحقق من النوع والحدود.
 - لا يُعتبر نجاح اختبارات JSON وحده دليل قبول Android/Web أو عدم فقدان البيانات أثناء عطل عتادي.
+
+## المراجع التقنية
+
+- [Godot 4.6 — FileAccess](https://docs.godotengine.org/en/4.6/classes/class_fileaccess.html): فتح الملفات وكتابة البيانات وflush ومراجعة أخطاء I/O.
+- [Godot 4.6 — DirAccess](https://docs.godotengine.org/en/4.6/classes/class_diraccess.html): إعادة تسمية الملفات وإزالتها، بما في ذلك مسار التبديل من الملف المؤقت إلى الأساسي.
+
+يجب الرجوع إلى وثائق الإصدار الذي يستخدمه CI قبل الاعتماد على سلوك نظام ملفات جديد أو تحديث Godot.
+
