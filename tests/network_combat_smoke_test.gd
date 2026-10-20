@@ -31,6 +31,18 @@ func _run() -> void:
 	_check(not bool(avatar.call("_accept_input_packet", 1024)), "input packet inside the rate-limit window is rejected")
 	_check(bool(avatar.call("_accept_input_packet", 1025)), "input packet is accepted after the rate-limit window")
 
+	var network_manager := get_node_or_null("/root/NetworkManager")
+	_check(network_manager != null, "shared NetworkManager autoload is available for network guards")
+	if network_manager != null:
+		var synthetic_peer_id := 987654
+		var burst_accepted := true
+		for _packet_index in range(20):
+			burst_accepted = bool(network_manager.call("consume_remote_rpc_budget", synthetic_peer_id, 5000)) and burst_accepted
+		_check(burst_accepted, "per-peer RPC budget accepts its configured initial burst")
+		_check(not bool(network_manager.call("consume_remote_rpc_budget", synthetic_peer_id, 5000)), "per-peer RPC budget rejects traffic after burst exhaustion")
+		_check(bool(network_manager.call("consume_remote_rpc_budget", synthetic_peer_id, 5025)), "per-peer RPC budget refills at the configured rate")
+		_check(bool(network_manager.call("consume_remote_rpc_budget", synthetic_peer_id + 1, 5000)), "RPC budgets are isolated between peer connections")
+
 	avatar.call("server_grant_experience", 100)
 	print("[network-smoke] XP tested")
 	_check(int(avatar.get("level")) == 2, "server-granted XP advances the network avatar")
