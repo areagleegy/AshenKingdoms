@@ -80,6 +80,26 @@ func _run() -> void:
 	_check(saw_host, "client receives the host avatar")
 	_check(saw_local_avatar, "client receives its own authoritative avatar")
 	_check(enemy_count == 4, "client receives all four existing enemies")
+
+	if saw_local_avatar and current_scene != null:
+		var movement_entities := current_scene.get_node_or_null("Entities") as Node3D
+		var movement_avatar := movement_entities.get_node_or_null("Peer_%d" % local_peer_id) as Node3D if movement_entities != null else null
+		if movement_avatar != null:
+			var starting_position := movement_avatar.global_position
+			Input.action_press("move_forward")
+			var movement_deadline := Time.get_ticks_msec() + 1200
+			while Time.get_ticks_msec() < movement_deadline:
+				await process_frame
+				if movement_avatar.global_position.distance_to(starting_position) > 0.25:
+					break
+			Input.action_release("move_forward")
+			var replicated_distance := movement_avatar.global_position.distance_to(starting_position)
+			_check(replicated_distance > 0.25, "client movement input reaches the server and authoritative position replicates")
+		else:
+			_check(false, "client movement test finds the local authoritative avatar")
+	else:
+		_check(false, "client movement test waits for the local authoritative avatar")
+
 	if _failures > 0 and current_scene != null:
 		var entities := current_scene.get_node_or_null("Entities") as Node3D
 		if entities != null:
