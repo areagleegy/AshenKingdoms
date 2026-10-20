@@ -148,6 +148,17 @@ func _test_save_and_load(original_save_files: Dictionary) -> void:
 			corrupt is Dictionary and corrupt.get("recovery_marker", "") == "backup",
 			"malformed primary save recovers the previous valid backup"
 		)
+		var future_schema := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+		if future_schema == null:
+			_check(false, "test can create unsupported-schema save fixture")
+		else:
+			future_schema.store_string("{\"schema_version\": 999, \"level\": 999}")
+			future_schema.close()
+			var future_data = save_system.call("load_game")
+			_check(
+				future_data is Dictionary and future_data.get("recovery_marker", "") == "backup",
+				"unsupported primary schema recovers the previous valid backup"
+			)
 
 	_restore_save_files(original_save_files, save_system)
 	save_system.queue_free()
