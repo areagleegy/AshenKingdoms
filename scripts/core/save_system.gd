@@ -330,8 +330,10 @@ func _is_safe_json_value(value: Variant, depth: int) -> bool:
         return false
 
     match typeof(value):
-        TYPE_NIL, TYPE_BOOL, TYPE_INT:
+        TYPE_NIL, TYPE_BOOL:
             return true
+        TYPE_INT:
+            return absf(float(value)) <= MAX_ABS_NUMBER
         TYPE_FLOAT:
             var number := float(value)
             return is_finite(number) and absf(number) <= MAX_ABS_NUMBER
