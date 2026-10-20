@@ -358,7 +358,8 @@ func _reset_dialogue_state() -> void:
 			dialogue_manager.call("finish")
 		dialogue_manager.call("deserialize", {})
 	paused = false
-	Input.action_release(&"move_right")
+	if InputMap.has_action(&"move_right"):
+		Input.action_release(&"move_right")
 
 
 func _restore_original_save() -> void:
