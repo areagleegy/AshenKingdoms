@@ -34,6 +34,10 @@ func _run() -> void:
 	_check(not bool(avatar.call("_is_valid_input_direction", Vector3(NAN, 0.0, 0.0))), "NaN movement input is rejected")
 	_check(not bool(avatar.call("_is_valid_input_direction", Vector3(0.0, 0.0, INF))), "infinite movement input is rejected")
 	_check(not bool(avatar.call("_is_valid_input_direction", Vector3(100.0, 0.0, 0.0))), "out-of-range movement input is rejected")
+	avatar.call("configure_owner", 2)
+	_check(bool(avatar.call("_is_authorized_input_sender", 2)), "the owning remote peer is authorized to submit input")
+	_check(not bool(avatar.call("_is_authorized_input_sender", 3)), "a different peer cannot submit input for this avatar")
+	_check(not bool(avatar.call("_is_authorized_input_sender", 1)), "the server peer ID cannot impersonate a remote owner")
 
 	avatar.call("server_grant_experience", 100)
 	print("[network-smoke] XP tested")
