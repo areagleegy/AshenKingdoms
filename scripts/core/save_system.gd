@@ -32,14 +32,26 @@ func save_game(data: Dictionary) -> bool:
 	var temp_absolute := ProjectSettings.globalize_path(TEMP_SAVE_PATH)
 	var backup_absolute := ProjectSettings.globalize_path(BACKUP_SAVE_PATH)
 	var had_previous_save := FileAccess.file_exists(SAVE_PATH)
+	var previous_save_is_valid := had_previous_save and _is_valid_save_file(SAVE_PATH)
+	var backup_is_valid := _is_valid_save_file(BACKUP_SAVE_PATH)
 
 	if had_previous_save:
-		_remove_if_exists(BACKUP_SAVE_PATH)
-		var backup_error := DirAccess.rename_absolute(save_absolute, backup_absolute)
-		if backup_error != OK:
-			push_error("Could not back up existing save: %s" % error_string(backup_error))
-			_remove_if_exists(TEMP_SAVE_PATH)
-			return false
+		if previous_save_is_valid or not backup_is_valid:
+			# Rotate a valid current save, or preserve the invalid current file
+			# as a fallback when no valid backup exists.
+			_remove_if_exists(BACKUP_SAVE_PATH)
+			var backup_error := DirAccess.rename_absolute(save_absolute, backup_absolute)
+			if backup_error != OK:
+				push_error("Could not back up existing save: %s" % error_string(backup_error))
+				_remove_if_exists(TEMP_SAVE_PATH)
+				return false
+		else:
+			# Keep the known-good backup. A corrupt primary must not replace it.
+			var remove_error := DirAccess.remove_absolute(save_absolute)
+			if remove_error != OK:
+				push_error("Could not remove invalid primary save: %s" % error_string(remove_error))
+				_remove_if_exists(TEMP_SAVE_PATH)
+				return false
 
 	var install_error := DirAccess.rename_absolute(temp_absolute, save_absolute)
 	if install_error != OK:
@@ -110,6 +122,18 @@ func _load_backup_if_available() -> Dictionary:
 		push_error("Backup save schema version is unsupported.")
 		return {}
 	return parsed
+
+
+func _is_valid_save_file(path: String) -> bool:
+	if not FileAccess.file_exists(path):
+		return false
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return false
+	var parser := JSON.new()
+	var parse_result: Error = parser.parse(file.get_as_text())
+	file.close()
+	return parse_result == OK and parser.data is Dictionary and _has_supported_schema(parser.data)
 
 
 func _has_supported_schema(data: Dictionary) -> bool:
