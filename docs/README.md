@@ -41,6 +41,7 @@
 - [التدقيق الجنائي المرئي/الصوتي](VISUAL_AUDIO_FORENSIC_AUDIT_AR.md) و[خارطة الإنتاج](VISUAL_AUDIO_PRODUCTION_ROADMAP_AR.md): التحقيق المرحلي ومعايير القبول لكل أصل.
 - [التنفيذ المرحلي المتتابع](VISUAL_AUDIO_PHASED_EXECUTION_AR.md): تسلسل F0–F12 وبوابات القبول والمخرجات والمسؤوليات والاختبارات.
 - [سجل الأصول الآلي](../assets/asset_manifest.json) و[دليل ملف بطل اللاعب](../assets/characters/player/README.md).
+- [أداة الجرد الجنائي الآلي](../tools/audit_assets.py) و[اختباراتها](../tools/test_asset_inventory.py): بصمات SHA-256، فحص بيانات الوسائط، ومراجع `res://` مع تقارير JSON/Markdown من CI.
 
 ## خطط ومواصفات التصميم
 
