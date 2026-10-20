@@ -87,7 +87,7 @@ def load_manifest(root: Path) -> tuple[dict[str, dict], list[str]]:
     return entries, errors
 
 
-def _inspect_gltf_uris(path: Path, document: object) -> dict:
+def _inspect_gltf_uris(path: Path, document: object, project_root: Path | None = None) -> dict:
     result = {"external_uris": [], "missing_uris": [], "remote_or_absolute_uris": []}
     if not isinstance(document, dict):
         result["inspection_errors"] = ["glTF JSON root is not an object"]
@@ -126,10 +126,11 @@ def _inspect_gltf_uris(path: Path, document: object) -> dict:
                 continue
             relative = unquote(parsed.path)
             target = (path.parent / relative).resolve()
+            allowed_root = (project_root or path.parent).resolve()
             try:
-                target.relative_to(path.parent.resolve())
+                target.relative_to(allowed_root)
             except ValueError:
-                ref["status"] = "path_escapes_asset_directory"
+                ref["status"] = "path_escapes_project_root"
                 result["missing_uris"].append(ref)
                 continue
             if target.is_file():
@@ -140,7 +141,7 @@ def _inspect_gltf_uris(path: Path, document: object) -> dict:
     return result
 
 
-def _inspect_glb(path: Path) -> dict:
+def _inspect_glb(path: Path, project_root: Path | None = None) -> dict:
     result: dict = {"format": "glb", "inspection_level": "container_and_json_chunk"}
     try:
         size = path.stat().st_size
@@ -196,7 +197,7 @@ def _inspect_glb(path: Path) -> dict:
                     "GLB JSON chunk not found or not inspected"
                 )
             else:
-                result.update(_inspect_gltf_uris(path, json_document))
+                result.update(_inspect_gltf_uris(path, json_document, project_root))
     except (OSError, ValueError, UnicodeError, json.JSONDecodeError, struct.error) as exc:
         result.setdefault("inspection_errors", []).append(
             f"GLB inspection failed: {type(exc).__name__}: {exc}"
@@ -204,11 +205,11 @@ def _inspect_glb(path: Path) -> dict:
     return result
 
 
-def _inspect_gltf(path: Path) -> dict:
+def _inspect_gltf(path: Path, project_root: Path | None = None) -> dict:
     result: dict = {"format": "gltf", "inspection_level": "JSON_and_external_URIs"}
     try:
         document = json.loads(path.read_text(encoding="utf-8"))
-        result.update(_inspect_gltf_uris(path, document))
+        result.update(_inspect_gltf_uris(path, document, project_root))
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         result["inspection_errors"] = [
             f"glTF inspection failed: {type(exc).__name__}: {exc}"
@@ -216,7 +217,7 @@ def _inspect_gltf(path: Path) -> dict:
     return result
 
 
-def inspect_media(path: Path) -> dict:
+def inspect_media(path: Path, project_root: Path | None = None) -> dict:
     suffix = path.suffix.lower()
     result: dict = {
         "category": MEDIA_TYPES.get(suffix, "unknown"),
@@ -224,9 +225,9 @@ def inspect_media(path: Path) -> dict:
     }
     try:
         if suffix == ".glb":
-            result.update(_inspect_glb(path))
+            result.update(_inspect_glb(path, project_root))
         elif suffix == ".gltf":
-            result.update(_inspect_gltf(path))
+            result.update(_inspect_gltf(path, project_root))
         elif suffix == ".wav":
             result["inspection_level"] = "WAV_header"
             with wave.open(str(path), "rb") as stream:
@@ -244,8 +245,8 @@ def inspect_media(path: Path) -> dict:
             result["inspection_level"] = "PNG_signature_and_IHDR_header"
             with path.open("rb") as stream:
                 header = stream.read(24)
-            if len(header) < 24 or not header.startswith(b"\x89PNG\r\n\x1a\n"):
-                raise ValueError("invalid or truncated PNG header")
+            if len(header) < 24 or not header.startswith(b"\x89PNG\r\n\x1a\n") or header[12:16] != b"IHDR":
+                raise ValueError("invalid or truncated PNG signature/IHDR header")
             result["width_px"], result["height_px"] = struct.unpack(">II", header[16:24])
         elif suffix == ".svg":
             result["inspection_level"] = "SVG_XML_root"
@@ -340,7 +341,7 @@ def scan_media(root: Path, manifest_entries: dict[str, dict]) -> list[dict]:
                 "inspection_errors": [f"file could not be read: {exc}"],
             })
             continue
-        media_metadata = inspect_media(path)
+        media_metadata = inspect_media(path, root)
         rows.append({
             "path": relative,
             "extension": suffix,
