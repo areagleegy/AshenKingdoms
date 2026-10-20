@@ -45,3 +45,8 @@
 - [ ] حفظ قرار قبول/قبول مشروط/رفض مستند إلى الأدلة.
 
 لا تغلق بوابة الإصدار لمجرد أن جميع فحوص CI خضراء. راجع [Issue #20 — Release gate](https://github.com/areagleegy/AshenKingdoms/issues/20)، و[مهمة دعم اللعب الجماعي على Web](https://github.com/areagleegy/AshenKingdoms/issues/21)، و[مهمة الأصول المفتوحة الترخيص](https://github.com/areagleegy/AshenKingdoms/issues/22).
+
+## AK-P0-003 — سلامة الحفظ
+
+فرع العمل fix/save-integrity-schema-v1-2026-10-20 يضيف schema v1 والترحيل من صيغة بلا إصدار مخطط، والتحقق من القيم، والملف المؤقت والنسخة الاحتياطية والاستعادة، واختبار tests/save_system_integrity_test.gd. الحالة **قيد التحقق** حتى اكتمال CI على رأس PR. لا يُدّعى بعد اختبار فعلي لنفاد مساحة التخزين أو قطع الطاقة أو قبول الهاتف.
+
