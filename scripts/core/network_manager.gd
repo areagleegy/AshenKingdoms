@@ -11,6 +11,9 @@ signal peer_arena_ready(peer_id: int)
 const DEFAULT_PORT: int = 7777
 const DEFAULT_MAX_CLIENTS: int = 8
 const CONNECTION_TIMEOUT_SECONDS: float = 12.0
+# Shared per-peer token bucket for inbound application RPC handlers.
+const REMOTE_RPC_RATE_PER_SECOND: float = 40.0
+const REMOTE_RPC_BURST_CAPACITY: float = 20.0
 
 var session_mode: String = "offline"
 var session_port: int = DEFAULT_PORT
@@ -18,6 +21,7 @@ var session_port: int = DEFAULT_PORT
 var _client_connected: bool = false
 var _connection_generation: int = 0
 var _ready_peers: Dictionary = {}
+var _remote_rpc_budgets: Dictionary = {}
 
 
 func _ready() -> void:
@@ -80,6 +84,7 @@ func leave_session(notify: bool = true) -> void:
 	_connection_generation += 1
 	_client_connected = false
 	_ready_peers.clear()
+	_remote_rpc_budgets.clear()
 	var old_mode := session_mode
 	session_mode = "offline"
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
@@ -102,6 +107,36 @@ func get_ready_peer_ids() -> Array[int]:
 	return result
 
 
+# This shared budget is consumed by every reviewed server-bound RPC handler.
+# It limits application work but cannot prevent packet parsing at the transport layer.
+func consume_remote_rpc_budget(sender_id: int, now_msec: int, cost: float = 1.0) -> bool:
+	if not multiplayer.is_server() or sender_id <= 1 or now_msec < 0:
+		return false
+	if not is_finite(cost) or cost <= 0.0 or cost > REMOTE_RPC_BURST_CAPACITY:
+		return false
+
+	var bucket: Dictionary = _remote_rpc_budgets.get(sender_id, {
+		"tokens": REMOTE_RPC_BURST_CAPACITY,
+		"updated_msec": now_msec
+	})
+	var tokens := float(bucket.get("tokens", REMOTE_RPC_BURST_CAPACITY))
+	var previous_msec := int(bucket.get("updated_msec", now_msec))
+	var elapsed_msec := maxi(now_msec - previous_msec, 0)
+	tokens = minf(REMOTE_RPC_BURST_CAPACITY, tokens + float(elapsed_msec) * REMOTE_RPC_RATE_PER_SECOND / 1000.0)
+	var updated_msec := maxi(previous_msec, now_msec)
+
+	if tokens < cost:
+		bucket["tokens"] = tokens
+		bucket["updated_msec"] = updated_msec
+		_remote_rpc_budgets[sender_id] = bucket
+		return false
+
+	bucket["tokens"] = tokens - cost
+	bucket["updated_msec"] = updated_msec
+	_remote_rpc_budgets[sender_id] = bucket
+	return true
+
+
 # Called only after the network arena and its MultiplayerSpawner are ready.
 func notify_arena_ready() -> void:
 	if not is_session_active():
@@ -120,6 +155,8 @@ func _rpc_notify_arena_ready() -> void:
 		return
 	var sender_id := multiplayer.get_remote_sender_id()
 	if sender_id <= 1 or not multiplayer.get_peers().has(sender_id):
+		return
+	if not consume_remote_rpc_budget(sender_id, Time.get_ticks_msec()):
 		return
 	if _ready_peers.has(sender_id):
 		return
@@ -164,6 +201,7 @@ func _on_peer_connected(peer_id: int) -> void:
 
 func _on_peer_disconnected(peer_id: int) -> void:
 	_ready_peers.erase(peer_id)
+	_remote_rpc_budgets.erase(peer_id)
 	status_changed.emit("غادر اللاعب %d الجلسة." % peer_id)
 	peer_left.emit(peer_id)
 

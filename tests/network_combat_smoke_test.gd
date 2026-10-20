@@ -24,6 +24,25 @@ func _run() -> void:
 	print("[network-smoke] avatar ready")
 	_check(float(avatar.get("current_health")) == 100.0, "network avatar starts with expected health")
 	_check(bool(multiplayer.is_server()), "offline smoke harness is allowed to exercise server logic")
+	_check(bool(avatar.call("_is_finite_vector3", Vector3(0.5, 0.0, -0.5))), "finite network input vector is accepted")
+	_check(not bool(avatar.call("_is_finite_vector3", Vector3(INF, 0.0, 0.0))), "infinite network input vector is rejected")
+	_check(not bool(avatar.call("_is_finite_vector3", Vector3(NAN, 0.0, 0.0))), "NaN network input vector is rejected")
+	_check(bool(avatar.call("_accept_input_packet", 1000)), "first input packet is accepted")
+	_check(not bool(avatar.call("_accept_input_packet", 1024)), "input packet inside the rate-limit window is rejected")
+	_check(bool(avatar.call("_accept_input_packet", 1025)), "input packet is accepted after the rate-limit window")
+
+	var network_manager := get_node_or_null("/root/NetworkManager")
+	_check(network_manager != null, "shared NetworkManager autoload is available for network guards")
+	if network_manager != null:
+		var synthetic_peer_id := 987654
+		var burst_accepted := true
+		for _packet_index in range(20):
+			burst_accepted = bool(network_manager.call("consume_remote_rpc_budget", synthetic_peer_id, 5000)) and burst_accepted
+		_check(burst_accepted, "per-peer RPC budget accepts its configured initial burst")
+		_check(not bool(network_manager.call("consume_remote_rpc_budget", synthetic_peer_id, 5000)), "per-peer RPC budget rejects traffic after burst exhaustion")
+		_check(not bool(network_manager.call("consume_remote_rpc_budget", synthetic_peer_id, 5024)), "per-peer RPC budget stays exhausted before a full refill interval")
+		_check(bool(network_manager.call("consume_remote_rpc_budget", synthetic_peer_id, 5025)), "per-peer RPC budget refills at the configured rate")
+		_check(bool(network_manager.call("consume_remote_rpc_budget", synthetic_peer_id + 1, 5000)), "RPC budgets are isolated between peer connections")
 
 	avatar.call("server_grant_experience", 100)
 	print("[network-smoke] XP tested")
