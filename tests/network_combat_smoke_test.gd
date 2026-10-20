@@ -31,9 +31,9 @@ func _run() -> void:
 	_check(not bool(avatar.call("_is_valid_network_direction", Vector3(INF, 0.0, 0.0))), "infinite movement input is rejected")
 	_check(not bool(avatar.call("_is_valid_network_direction", Vector3(0.0, 1.0, 0.0))), "vertical movement vector is rejected")
 	_check(not bool(avatar.call("_is_valid_network_direction", Vector3(2.0, 0.0, 0.0))), "movement vector outside the accepted magnitude is rejected")
-	_check(bool(avatar.call("_try_mark_input_attempt", 100)), "first input attempt is not rate-limited")
-	_check(not bool(avatar.call("_try_mark_input_attempt", 105)), "rapid input attempts are rate-limited before payload validation")
-	_check(bool(avatar.call("_try_mark_input_attempt", 110)), "input attempt is accepted after the minimum interval")
+	_check(not bool(avatar.call("_try_validate_input_attempt", Vector3(NAN, 0.0, 0.0), 100)), "NaN input attempt is rejected")
+	_check(not bool(avatar.call("_try_validate_input_attempt", Vector3.ZERO, 105)), "malformed input attempts also consume the rate-limit window")
+	_check(bool(avatar.call("_try_validate_input_attempt", Vector3.ZERO, 110)), "valid input is accepted after the minimum interval")
 	avatar.set("_last_input_attempt_msec", -1)
 
 	avatar.call("apply_damage_from_server", INF, 1)
