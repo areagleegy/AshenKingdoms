@@ -1,7 +1,6 @@
 extends CharacterBody3D
 
 const INPUT_SEND_INTERVAL: float = 0.05
-const INPUT_MIN_INTERVAL_MSEC: int = 10
 const INPUT_TIMEOUT_MSEC: int = 350
 const MAX_LEVEL: int = 50
 const QUEST_TARGET: int = 3
@@ -36,7 +35,6 @@ var _attack_requested: bool = false
 var _last_jump_down: bool = false
 var _last_attack_down: bool = false
 var _last_input_msec: int = 0
-var _last_input_attempt_msec: int = -1
 var _next_attack_msec: int = 0
 var _death_generation: int = 0
 var _input_send_accumulator: float = 0.0
@@ -104,10 +102,14 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 	if not multiplayer.is_server():
 		return
 	var sender_id := multiplayer.get_remote_sender_id()
-	if sender_id != owner_peer_id or sender_id <= 1 or is_dead:
+	if sender_id <= 1 or not multiplayer.get_peers().has(sender_id):
 		return
 	var now_msec := Time.get_ticks_msec()
-	if not _try_validate_input_attempt(direction, now_msec):
+	# Rate-limit every connected sender before payload and ownership validation.
+	# This budget is shared across all avatar RPC paths for the same peer.
+	if not _try_validate_input_attempt(sender_id, direction, now_msec):
+		return
+	if sender_id != owner_peer_id or is_dead:
 		return
 
 	var safe_direction := Vector3(direction.x, 0.0, direction.z)
@@ -117,17 +119,10 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 	_last_input_msec = now_msec
 
 
-func _try_validate_input_attempt(direction: Vector3, now_msec: int) -> bool:
-	if not _try_mark_input_attempt(now_msec):
+func _try_validate_input_attempt(sender_id: int, direction: Vector3, now_msec: int) -> bool:
+	if not NetworkManager.allow_peer_input_rpc_attempt(sender_id, now_msec):
 		return false
 	return _is_valid_network_direction(direction)
-
-
-func _try_mark_input_attempt(now_msec: int) -> bool:
-	if _last_input_attempt_msec >= 0 and now_msec - _last_input_attempt_msec < INPUT_MIN_INTERVAL_MSEC:
-		return false
-	_last_input_attempt_msec = now_msec
-	return true
 
 
 func _is_valid_network_direction(direction: Vector3) -> bool:
