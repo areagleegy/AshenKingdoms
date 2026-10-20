@@ -132,3 +132,19 @@ A3 الشخصية     A4 البيئة      A6 صوت تجريبي
 - **موثق:** سياسة `paid_generation_apis_allowed: false`.
 - **غير منفذ:** استيراد نموذج جديد، إنتاج مكتبة صوت، اختبار فني على هاتف، أو مراجعة حقوق لأصول لم تُضف.
 - **لا يدّعى:** أن كل أسماء الوكلاء أعلاه أدوات متصلة أو أن كل مهمة بدأت تلقائيًا. تُفتح Issues منفصلة للمخرجات كي يمكن تعيين أشخاص فعليين أو ربط أداة عند توفرها.
+
+## 8. GitHub Issues المنشأة لتتبع التنفيذ
+
+| Issue | المسار | نطاق المخرج |
+|---|---|---|
+| [#40](https://github.com/areagleegy/AshenKingdoms/issues/40) | A1 — الجرد الجنائي | تقرير آلي وبصمات وفحص بنية الملفات ومراجع الموارد |
+| [#41](https://github.com/areagleegy/AshenKingdoms/issues/41) | A3 — البطل | نموذج GLB مرخص ومتحرك مع دليل استيراد |
+| [#42](https://github.com/areagleegy/AshenKingdoms/issues/42) | A4 — البيئة | أول منطقة لعب متكاملة وقابلة للقياس |
+| [#43](https://github.com/areagleegy/AshenKingdoms/issues/43) | A3/A5 — العدو والتحريك | نموذج Ash Wraith وحركات القتال |
+| [#44](https://github.com/areagleegy/AshenKingdoms/issues/44) | A6 — الصوت | مجموعة SFX أولية وسير عمل الحوار العربي |
+| [#45](https://github.com/areagleegy/AshenKingdoms/issues/45) | A7 — UI/VFX | أيقونات فعلية ومؤثر إصابة مقروء |
+| [#46](https://github.com/areagleegy/AshenKingdoms/issues/46) | A8/A10 — Android QA | قياسات متكررة على أجهزة فعلية |
+| [#47](https://github.com/areagleegy/AshenKingdoms/issues/47) | A9 — حزم المحتوى | إثبات المصدر وسلامة الحزم والاسترجاع |
+| [#48](https://github.com/areagleegy/AshenKingdoms/issues/48) | A1/A9 — الإضافات والأمن | فحص إضافات Godot وأداة التوليد ومحمّلات المحتوى |
+
+هذه Issues نقاط تنفيذ قابلة للإغلاق وليست نتيجة اكتمال. لم تُعيَّن لحسابات GitHub بشرية لأن أسماء الأدوات/الإضافات ليست حسابات GitHub صالحة تلقائيًا؛ صاحب المستودع أو المنسق يعيّن المالك البشري المناسب. كل PR من مسارات الإنتاج يجب أن يُغلق مع أدلة القبول المحددة في Issue.
