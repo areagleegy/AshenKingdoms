@@ -273,6 +273,7 @@ func toggle_inventory() -> void:
 
 
 func _set_paused(value: bool) -> void:
+	_play_sfx(&"ui_select" if value else &"ui_back", -9.0)
 	_pause_panel.visible = value
 	if value:
 		_inventory_panel.visible = false
@@ -281,6 +282,7 @@ func _set_paused(value: bool) -> void:
 
 
 func _set_inventory_visible(value: bool) -> void:
+	_play_sfx(&"ui_select" if value else &"ui_back", -9.0)
 	_inventory_panel.visible = value
 	get_tree().paused = value
 	_set_mouse_for_ui(value)
@@ -337,7 +339,9 @@ func _refresh_inventory() -> void:
 func _on_inventory_item_pressed(slot_index: int) -> void:
 	if _inventory != null and _player != null:
 		var used: bool = bool(_inventory.call("use_item", slot_index, _player))
-		if not used:
+		if used:
+			_play_sfx(&"potion_use", -6.0)
+		else:
 			show_message("لا يمكن استخدام العنصر الآن.")
 
 
@@ -371,3 +375,9 @@ func show_message(message: String) -> void:
 
 func show_saved_status(success: bool) -> void:
 	show_message("تم حفظ اللعبة." if success else "تعذر حفظ اللعبة.")
+
+
+func _play_sfx(sound_id: StringName, volume_db: float = 0.0) -> void:
+	var audio_manager := get_node_or_null("/root/AudioManager")
+	if audio_manager != null:
+		audio_manager.call("play_sfx", sound_id, volume_db)

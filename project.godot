@@ -10,6 +10,7 @@ config/features=PackedStringArray("4.6", "GL Compatibility")
 config/icon="res://assets/ashenkingdoms_icon.svg"
 
 [autoload]
+AudioManager="*res://scripts/audio/audio_manager.gd"
 DialogueManager="*res://scripts/dialogue/dialogue_manager.gd"
 ContentManager="*res://scripts/content/content_manager.gd"
 NetworkManager="*res://scripts/core/network_manager.gd"

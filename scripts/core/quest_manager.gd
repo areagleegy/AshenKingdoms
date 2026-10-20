@@ -46,6 +46,7 @@ func start_quest(requested_id: StringName) -> bool:
 	reward_xp = maxi(0, int(definition.get("reward_xp", 0)))
 	progress = 0
 	active = true
+	_play_sfx(&"quest_accept", -7.0)
 	refresh_ui()
 	return true
 
@@ -58,6 +59,7 @@ func on_enemy_defeated(enemy_id: StringName) -> void:
 		active = false
 		if is_instance_valid(progression):
 			progression.call("add_experience", reward_xp)
+		_play_sfx(&"quest_complete", -6.0)
 		quest_completed.emit(title, reward_xp)
 	refresh_ui()
 
@@ -114,3 +116,9 @@ func load_state(data: Dictionary) -> void:
 	if progress >= target:
 		active = false
 	refresh_ui()
+
+
+func _play_sfx(sound_id: StringName, volume_db: float = 0.0) -> void:
+	var audio_manager := get_node_or_null("/root/AudioManager")
+	if audio_manager != null:
+		audio_manager.call("play_sfx", sound_id, volume_db)
