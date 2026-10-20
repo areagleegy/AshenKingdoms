@@ -103,12 +103,23 @@ def _inspect_gltf_uris(path: Path, document: object) -> dict:
             if not isinstance(entry, dict) or not isinstance(entry.get("uri"), str):
                 continue  # Embedded GLB bufferView images/buffers need no external URI.
             uri = entry["uri"]
-            ref = {"section": section, "index": index, "uri": uri}
+            parsed = urlsplit(uri)
+            if uri.startswith("data:"):
+                safe_uri = "data:<embedded payload omitted>"
+            elif parsed.scheme or uri.startswith("//"):
+                host = parsed.hostname or ""
+                if parsed.port:
+                    host = host + ":" + str(parsed.port)
+                safe_uri = parsed.scheme + "://" + host + parsed.path
+                if parsed.query:
+                    safe_uri += "?[query redacted]"
+            else:
+                safe_uri = parsed.path + ("?[query redacted]" if parsed.query else "")
+            ref = {"section": section, "index": index, "uri": safe_uri}
             result["external_uris"].append(ref)
             if uri.startswith("data:"):
                 ref["status"] = "embedded_data_uri"
                 continue
-            parsed = urlsplit(uri)
             if parsed.scheme or uri.startswith("//") or Path(unquote(parsed.path)).is_absolute():
                 ref["status"] = "remote_or_absolute_not_fetched"
                 result["remote_or_absolute_uris"].append(ref)
@@ -573,6 +584,19 @@ def main() -> int:
     )
     print(f"JSON: {args.json_output}")
     print(f"Markdown: {args.markdown_output}")
+    for item in report["resource_reference_candidates"]:
+        print(
+            f"RESOURCE REF [{item['classification']}] "
+            f"{item['source_file']}:{item['line']} -> res://{item['resource_path']}"
+        )
+    for row in report["media_files"]:
+        for error in row.get("inspection", {}).get("inspection_errors", []):
+            print(f"MEDIA INSPECTION [{row['path']}]: {error}")
+        for uri in row.get("inspection", {}).get("missing_uris", []):
+            print(
+                f"GLTF URI [{uri.get('status', 'unknown')}] "
+                f"{row['path']} ({uri.get('section')}[{uri.get('index')}])"
+            )
     # Heuristic warnings are intentionally non-fatal. The separate license validator
     # is the CI gate for invalid manifests and media entries without metadata.
     return 0
