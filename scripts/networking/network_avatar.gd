@@ -1,6 +1,7 @@
 extends CharacterBody3D
 
 const INPUT_SEND_INTERVAL: float = 0.05
+const INPUT_MIN_INTERVAL_MSEC: int = 10
 const INPUT_TIMEOUT_MSEC: int = 350
 const MAX_LEVEL: int = 50
 const QUEST_TARGET: int = 3
@@ -106,12 +107,19 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 		return
 	if not _is_valid_network_direction(direction):
 		return
+	var now_msec := Time.get_ticks_msec()
+	if _is_input_rate_limited(now_msec):
+		return
 
 	var safe_direction := Vector3(direction.x, 0.0, direction.z)
 	if safe_direction.length_squared() > 1.0:
 		safe_direction = safe_direction.normalized()
 	_set_requested_input(safe_direction, jump_down, sprint_down, attack_down)
-	_last_input_msec = Time.get_ticks_msec()
+	_last_input_msec = now_msec
+
+
+func _is_input_rate_limited(now_msec: int) -> bool:
+	return _last_input_msec > 0 and now_msec - _last_input_msec < INPUT_MIN_INTERVAL_MSEC
 
 
 func _is_valid_network_direction(direction: Vector3) -> bool:
