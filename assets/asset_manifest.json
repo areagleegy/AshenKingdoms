@@ -223,7 +223,8 @@
       "file_size_bytes": 104364,
       "format": "GLB 2.0",
       "static_mesh": true,
-      "animations_included": false
+      "animations_included": false,
+      "sha256": "e27361a154a37782dc77ba0ffd09abc6fff5a2f1d8312e68b838acdb46810b87"
     },
     {
       "path": "assets/ui/icons/backpack.svg",
