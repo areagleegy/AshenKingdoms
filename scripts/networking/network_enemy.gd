@@ -109,7 +109,7 @@ func _physics_process(delta: float) -> void:
 
 
 func apply_damage_from_server(amount: float, attacker_peer_id: int) -> void:
-	if not multiplayer.is_server() or amount <= 0.0 or is_dead or current_health <= 0.0:
+	if not multiplayer.is_server() or not is_finite(amount) or amount <= 0.0 or is_dead or current_health <= 0.0:
 		return
 	current_health = clampf(current_health - amount, 0.0, max_health)
 	_last_attacker_peer_id = attacker_peer_id
