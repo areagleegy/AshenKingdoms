@@ -29,6 +29,41 @@ func _run() -> void:
 		"WebSocket client rejects endpoints without an explicit ws:// or wss:// scheme"
 	)
 
+	var input_probe := NetworkAvatarScene.instantiate() as CharacterBody3D
+	input_probe.call("configure_owner", 2)
+	add_child(input_probe)
+	input_probe.global_position = Vector3(1000.0, 0.92, 1000.0)
+	var input_test_time := Time.get_ticks_msec() + 100
+	_check(
+		not bool(input_probe.call("_accept_remote_input", 3, Vector3.ZERO, false, false, false, input_test_time)),
+		"network input rejects a sender that does not own the avatar"
+	)
+	_check(
+		not bool(input_probe.call("_accept_remote_input", 2, Vector3(INF, 0.0, 0.0), false, false, false, input_test_time)),
+		"network input rejects non-finite direction values"
+	)
+	_check(
+		not bool(input_probe.call("_accept_remote_input", 2, Vector3(0.0, 1.0, 0.0), false, false, false, input_test_time)),
+		"network input rejects vertical movement components"
+	)
+	_check(
+		not bool(input_probe.call("_accept_remote_input", 2, Vector3(1.5, 0.0, 0.0), false, false, false, input_test_time)),
+		"network input rejects over-range direction vectors"
+	)
+	_check(
+		bool(input_probe.call("_accept_remote_input", 2, Vector3(0.0, 0.0, -1.0), false, false, false, input_test_time)),
+		"network input accepts valid bounded input from its owner"
+	)
+	_check(
+		not bool(input_probe.call("_accept_remote_input", 2, Vector3.ZERO, false, false, false, input_test_time + 10)),
+		"network input rejects samples inside the 20 ms rate-limit window"
+	)
+	_check(
+		bool(input_probe.call("_accept_remote_input", 2, Vector3.ZERO, false, false, false, input_test_time + 20)),
+		"network input accepts a new sample after the rate-limit window"
+	)
+	input_probe.queue_free()
+
 	avatar.call("server_grant_experience", 100)
 	print("[network-smoke] XP tested")
 	_check(int(avatar.get("level")) == 2, "server-granted XP advances the network avatar")
