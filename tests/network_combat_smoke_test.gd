@@ -25,6 +25,18 @@ func _run() -> void:
 	_check(float(avatar.get("current_health")) == 100.0, "network avatar starts with expected health")
 	_check(bool(multiplayer.is_server()), "offline smoke harness is allowed to exercise server logic")
 
+	_check(bool(avatar.call("_is_valid_network_direction", Vector3.ZERO)), "zero movement input is valid")
+	_check(bool(avatar.call("_is_valid_network_direction", Vector3(0.70710678, 0.0, 0.70710678))), "normalized diagonal movement input is valid")
+	_check(not bool(avatar.call("_is_valid_network_direction", Vector3(NAN, 0.0, 0.0))), "NaN movement input is rejected")
+	_check(not bool(avatar.call("_is_valid_network_direction", Vector3(INF, 0.0, 0.0))), "infinite movement input is rejected")
+	_check(not bool(avatar.call("_is_valid_network_direction", Vector3(0.0, 1.0, 0.0))), "vertical movement vector is rejected")
+	_check(not bool(avatar.call("_is_valid_network_direction", Vector3(2.0, 0.0, 0.0))), "movement vector outside the accepted magnitude is rejected")
+
+	avatar.call("apply_damage_from_server", INF, 1)
+	_check(float(avatar.get("current_health")) == 100.0, "network avatar rejects infinite damage")
+	avatar.call("apply_damage_from_server", NAN, 1)
+	_check(float(avatar.get("current_health")) == 100.0, "network avatar rejects NaN damage")
+
 	avatar.call("server_grant_experience", 100)
 	print("[network-smoke] XP tested")
 	_check(int(avatar.get("level")) == 2, "server-granted XP advances the network avatar")
@@ -49,8 +61,7 @@ func _run() -> void:
 	enemy.call("configure_spawn", 1)
 	add_child(enemy)
 	print("[network-smoke] enemy ready")
-	enemy.global_position = avatar.global_position + Vector3(0.0, 0.0, -2.0)
-	var death_event: Dictionary = {"count": 0, "attacker": 0}
+undefined
 	enemy.died.connect(func(_dead_enemy: Node, attacker_peer_id: int) -> void:
 		death_event["count"] = int(death_event["count"]) + 1
 		death_event["attacker"] = attacker_peer_id
