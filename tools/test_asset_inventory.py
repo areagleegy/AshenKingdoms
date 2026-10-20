@@ -7,9 +7,10 @@ import struct
 import tempfile
 import unittest
 import wave
+from unittest.mock import patch
 from pathlib import Path
 
-from audit_assets import build_report, inspect_media, render_markdown
+from audit_assets import build_report, inspect_media, main, render_markdown
 
 
 def write_manifest(root: Path, entries: list[dict] | None = None) -> None:
@@ -183,6 +184,29 @@ class AssetInventoryTests(unittest.TestCase):
             self.assertIn("لا يثبت الترخيص القانوني", markdown)
             self.assertIn("validate_free_assets.py", markdown)
             self.assertIn("مرشحات المراجع المفقودة", markdown)
+
+    def test_cli_writes_json_and_markdown_reports(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "assets").mkdir()
+            write_manifest(root)
+            json_path = root / "out" / "report.json"
+            markdown_path = root / "out" / "report.md"
+            with patch(
+                "sys.argv",
+                [
+                    "audit_assets.py",
+                    "--root", str(root),
+                    "--json-output", str(json_path),
+                    "--markdown-output", str(markdown_path),
+                ],
+            ):
+                self.assertEqual(main(), 0)
+
+            saved_report = json.loads(json_path.read_text(encoding="utf-8"))
+            markdown = markdown_path.read_text(encoding="utf-8")
+            self.assertEqual(saved_report["media_file_count"], 0)
+            self.assertIn("تقرير الجرد الجنائي الآلي", markdown)
 
     def test_invalid_manifest_is_reported(self):
         with tempfile.TemporaryDirectory() as temporary:
