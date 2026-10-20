@@ -22,6 +22,11 @@ jobs:
           set -o pipefail
           python3 -m unittest discover -s tools -p 'test_ai_test_diagnostics.py' -v 2>&1 | tee "$RUNNER_TEMP/diagnostics-unit-tests.log"
 
+      - name: Test forensic asset inventory
+        run: |
+          set -o pipefail
+          python3 -m unittest discover -s tools -p 'test_asset_inventory.py' -v 2>&1 | tee "$RUNNER_TEMP/asset-inventory-tests.log"
+
       - name: Benchmark diagnostic corpus
         run: |
           set -o pipefail
@@ -62,6 +67,8 @@ jobs:
           test -f tools/sign_content_catalog.py
           test -f tools/test_sign_content_catalog.py
           test -f tools/validate_free_assets.py
+          test -f tools/audit_assets.py
+          test -f tools/test_asset_inventory.py
           test -f scripts/core/audio_feedback.gd
           test -f tests/audio_asset_smoke_test.gd
           test -f assets/ashenkingdoms_icon.svg
@@ -109,6 +116,14 @@ jobs:
       - name: Validate local Markdown links
         run: python3 tools/validate_docs.py
 
+      - name: Generate forensic asset inventory report
+        if: always()
+        run: |
+          mkdir -p "$RUNNER_TEMP/asset-audit"
+          python3 tools/audit_assets.py --root . \\
+            --json-output "$RUNNER_TEMP/asset-audit/asset-audit.json" \\
+            --markdown-output "$RUNNER_TEMP/asset-audit/asset-audit.md"
+
       - name: Import and parse project
         env:
           GODOT_SILENCE_ROOT_WARNING: "1"
@@ -118,7 +133,7 @@ jobs:
 
       - name: Validate local asset tools and license manifest
         run: |
-          python3 -m py_compile tools/generate_player_glb.py tools/validate_free_assets.py
+          python3 -m py_compile tools/generate_player_glb.py tools/validate_free_assets.py tools/audit_assets.py
           python3 tools/generate_player_glb.py --help > /dev/null
           python3 tools/validate_free_assets.py
 
@@ -203,3 +218,11 @@ jobs:
             ${{ runner.temp }}/diagnostic-benchmark.json
           if-no-files-found: warn
           retention-days: 7
+      - name: Upload forensic asset audit reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: asset-forensic-audit-${{ github.run_number }}
+          path: ${{ runner.temp }}/asset-audit/
+          if-no-files-found: warn
+          retention-days: 14
