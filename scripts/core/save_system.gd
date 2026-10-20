@@ -71,8 +71,7 @@ func load_game() -> Dictionary:
 		return _load_backup_if_available()
 
 	var parsed: Dictionary = parser.data
-	var schema_value: Variant = parsed.get("schema_version", 0)
-	if not (schema_value is int) or int(schema_value) < 0 or int(schema_value) > SAVE_SCHEMA_VERSION:
+	if not _has_supported_schema(parsed):
 		push_error("Save file schema version is unsupported.")
 		return _load_backup_if_available()
 
@@ -107,11 +106,28 @@ func _load_backup_if_available() -> Dictionary:
 		push_error("Backup save file is invalid.")
 		return {}
 	var parsed: Dictionary = parser.data
-	var schema_value: Variant = parsed.get("schema_version", 0)
-	if not (schema_value is int) or int(schema_value) < 0 or int(schema_value) > SAVE_SCHEMA_VERSION:
+	if not _has_supported_schema(parsed):
 		push_error("Backup save schema version is unsupported.")
 		return {}
 	return parsed
+
+
+func _has_supported_schema(data: Dictionary) -> bool:
+	# Godot's JSON parser may represent JSON numbers as integers or floats.
+	# Accept both numeric representations, but only integral finite versions.
+	var schema_value: Variant = data.get("schema_version", 0)
+	var schema_version: int
+	match typeof(schema_value):
+		TYPE_INT:
+			schema_version = int(schema_value)
+		TYPE_FLOAT:
+			var numeric_version := float(schema_value)
+			if not is_finite(numeric_version) or numeric_version != floorf(numeric_version):
+				return false
+			schema_version = int(numeric_version)
+		_:
+			return false
+	return schema_version >= 0 and schema_version <= SAVE_SCHEMA_VERSION
 
 
 func _remove_if_exists(path: String) -> void:
