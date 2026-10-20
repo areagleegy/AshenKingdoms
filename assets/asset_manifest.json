@@ -6,7 +6,7 @@
     "require_redistribution_permission": true,
     "offline_first": true,
     "paid_generation_apis_allowed": false,
-    "note_ar": "لا تضف أصلًا إلا بعد التحقق من ترخيصه ومصدره والسماح بالاستخدام التجاري وإعادة التوزيع. الأصول الفارغة هنا لا تعني أن أي أصل قد أضيف."
+    "note_ar": "لا تضف أصلًا إلا بعد التحقق من ترخيصه ومصدره والسماح بالاستخدام التجاري وإعادة التوزيع. الأيقونات الجديدة في هذا الفرع رسومات SVG أصلية لهذا المشروع؛ لا يتضمن هذا التغيير تنزيلًا أو توليدًا مدفوعًا."
   },
   "assets": [
     {
@@ -16,6 +16,76 @@
       "license": "MIT (project repository license; icon authored in this repository)",
       "license_url": "https://github.com/areagleegy/AshenKingdoms/blob/main/LICENSE",
       "attribution": "AshenKingdoms project icon; authored for this repository",
+      "commercial_use": true,
+      "redistribution_allowed": true
+    },
+    {
+      "path": "assets/ui/icons/backpack.svg",
+      "author": "AshenKingdoms contributors",
+      "source_url": "https://github.com/areagleegy/AshenKingdoms/blob/assets/ui-foundation-icons-2026-10-21/assets/ui/icons/backpack.svg",
+      "license": "MIT (original vector asset authored for this repository; see repository license)",
+      "license_url": "https://github.com/areagleegy/AshenKingdoms/blob/main/LICENSE",
+      "attribution": "Original AshenKingdoms backpack UI icon; include the repository MIT license notice",
+      "commercial_use": true,
+      "redistribution_allowed": true
+    },
+    {
+      "path": "assets/ui/icons/pause.svg",
+      "author": "AshenKingdoms contributors",
+      "source_url": "https://github.com/areagleegy/AshenKingdoms/blob/assets/ui-foundation-icons-2026-10-21/assets/ui/icons/pause.svg",
+      "license": "MIT (original vector asset authored for this repository; see repository license)",
+      "license_url": "https://github.com/areagleegy/AshenKingdoms/blob/main/LICENSE",
+      "attribution": "Original AshenKingdoms pause UI icon; include the repository MIT license notice",
+      "commercial_use": true,
+      "redistribution_allowed": true
+    },
+    {
+      "path": "assets/ui/icons/sword.svg",
+      "author": "AshenKingdoms contributors",
+      "source_url": "https://github.com/areagleegy/AshenKingdoms/blob/assets/ui-foundation-icons-2026-10-21/assets/ui/icons/sword.svg",
+      "license": "MIT (original vector asset authored for this repository; see repository license)",
+      "license_url": "https://github.com/areagleegy/AshenKingdoms/blob/main/LICENSE",
+      "attribution": "Original AshenKingdoms sword UI icon; include the repository MIT license notice",
+      "commercial_use": true,
+      "redistribution_allowed": true
+    },
+    {
+      "path": "assets/ui/icons/jump.svg",
+      "author": "AshenKingdoms contributors",
+      "source_url": "https://github.com/areagleegy/AshenKingdoms/blob/assets/ui-foundation-icons-2026-10-21/assets/ui/icons/jump.svg",
+      "license": "MIT (original vector asset authored for this repository; see repository license)",
+      "license_url": "https://github.com/areagleegy/AshenKingdoms/blob/main/LICENSE",
+      "attribution": "Original AshenKingdoms jump UI icon; include the repository MIT license notice",
+      "commercial_use": true,
+      "redistribution_allowed": true
+    },
+    {
+      "path": "assets/ui/icons/sprint.svg",
+      "author": "AshenKingdoms contributors",
+      "source_url": "https://github.com/areagleegy/AshenKingdoms/blob/assets/ui-foundation-icons-2026-10-21/assets/ui/icons/sprint.svg",
+      "license": "MIT (original vector asset authored for this repository; see repository license)",
+      "license_url": "https://github.com/areagleegy/AshenKingdoms/blob/main/LICENSE",
+      "attribution": "Original AshenKingdoms sprint UI icon; include the repository MIT license notice",
+      "commercial_use": true,
+      "redistribution_allowed": true
+    },
+    {
+      "path": "assets/ui/icons/potion.svg",
+      "author": "AshenKingdoms contributors",
+      "source_url": "https://github.com/areagleegy/AshenKingdoms/blob/assets/ui-foundation-icons-2026-10-21/assets/ui/icons/potion.svg",
+      "license": "MIT (original vector asset authored for this repository; see repository license)",
+      "license_url": "https://github.com/areagleegy/AshenKingdoms/blob/main/LICENSE",
+      "attribution": "Original AshenKingdoms potion UI icon; include the repository MIT license notice",
+      "commercial_use": true,
+      "redistribution_allowed": true
+    },
+    {
+      "path": "assets/ui/icons/quest.svg",
+      "author": "AshenKingdoms contributors",
+      "source_url": "https://github.com/areagleegy/AshenKingdoms/blob/assets/ui-foundation-icons-2026-10-21/assets/ui/icons/quest.svg",
+      "license": "MIT (original vector asset authored for this repository; see repository license)",
+      "license_url": "https://github.com/areagleegy/AshenKingdoms/blob/main/LICENSE",
+      "attribution": "Original AshenKingdoms quest UI icon; include the repository MIT license notice",
       "commercial_use": true,
       "redistribution_allowed": true
     }
