@@ -20,6 +20,7 @@ const ICON_PATHS: Array[String] = [
 	"res://assets/ui/icons/sprint.svg",
 	"res://assets/ui/icons/potion.svg",
 	"res://assets/ui/icons/quest.svg",
+	"res://assets/ashenkingdoms_icon.svg",
 ]
 
 var _failures: int = 0
@@ -79,6 +80,13 @@ func _test_manifest() -> void:
 			_check(not str(record.get("license", "")).strip_edges().is_empty(), "license recorded: %s" % manifest_path)
 			_check(record.get("commercial_use", false) == true, "commercial permission recorded: %s" % manifest_path)
 			_check(record.get("redistribution_allowed", false) == true, "redistribution recorded: %s" % manifest_path)
+			var expected_hash := str(record.get("sha256", ""))
+			_check(expected_hash.length() == 64, "SHA-256 recorded: %s" % manifest_path)
+			if expected_hash.length() == 64:
+				_check(FileAccess.get_sha256(path) == expected_hash, "SHA-256 matches file bytes: %s" % manifest_path)
+			var expected_size := int(record.get("file_size_bytes", -1))
+			if expected_size >= 0:
+				_check(FileAccess.get_file_as_bytes(path).size() == expected_size, "file size matches manifest: %s" % manifest_path)
 
 
 func _test_audio_feedback_script() -> void:
