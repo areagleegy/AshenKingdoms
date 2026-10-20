@@ -147,6 +147,10 @@ func _test_invalid_values_preserve_current_save() -> void:
         "marker": "bad-inventory",
         "inventory": [{"id": "health_potion", "amount": 0}],
     })), "inventory stack sizes below one are rejected")
+    _check(not bool(_save_system.call("save_game", {
+        "marker": "bad-generic-integer",
+        "nested": {"quantity": 1000000001},
+    })), "unbounded generic integer values are rejected")
     var after_rejections: Dictionary = _save_system.call("load_game")
     _check(after_rejections.get("marker", "") == "safe", "rejected values do not replace the last valid primary save")
 
