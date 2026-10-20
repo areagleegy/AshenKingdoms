@@ -89,6 +89,15 @@ func _run() -> void:
 			corrupt_data is Dictionary and corrupt_data.get("recovery_marker", "") == "backup",
 			"malformed primary save falls back to the previous valid backup"
 		)
+		_check(
+			bool(save_system.call("save_game", {"post_corruption_marker": "fresh"})),
+			"new save succeeds without discarding the known-good backup when primary JSON is corrupt"
+		)
+		var replaced_corrupt_data = save_system.call("load_game")
+		_check(
+			replaced_corrupt_data is Dictionary and replaced_corrupt_data.get("post_corruption_marker", "") == "fresh",
+			"new save is readable after replacing malformed primary JSON"
+		)
 		var future_schema_file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 		if future_schema_file == null:
 			_check(false, "test can create an unsupported-schema save fixture")
