@@ -2,6 +2,7 @@ extends Node
 
 const STREAM_PATHS: Dictionary = {
 	&"ash_wind_loop": "res://assets/audio/sfx/ash_wind_loop.wav",
+	&"ashen_exploration_loop": "res://assets/audio/music/ashen_exploration_loop.wav",
 	&"ash_wraith_attack": "res://assets/audio/sfx/ash_wraith_attack.wav",
 	&"ash_wraith_death": "res://assets/audio/sfx/ash_wraith_death.wav",
 	&"footstep_stone": "res://assets/audio/sfx/footstep_stone.wav",
@@ -15,7 +16,7 @@ const STREAM_PATHS: Dictionary = {
 	&"ui_back": "res://assets/audio/sfx/ui_back.wav",
 	&"ui_select": "res://assets/audio/sfx/ui_select.wav"
 }
-const LOOP_IDS: Array[StringName] = [&"ash_wind_loop"]
+const LOOP_IDS: Array[StringName] = [&"ash_wind_loop", &"ashen_exploration_loop"]
 const SFX_POOL_SIZE: int = 8
 
 var _stream_cache: Dictionary = {}

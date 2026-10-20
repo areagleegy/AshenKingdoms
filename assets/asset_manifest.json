@@ -20,6 +20,25 @@
       "redistribution_allowed": true
     },
     {
+      "path": "assets/audio/music/ashen_exploration_loop.wav",
+      "author": "AshenKingdoms project (original procedural composition)",
+      "source_url": "https://github.com/areagleegy/AshenKingdoms/blob/assets/audio-foundation-sfx-2026-10-21/assets/audio/music/ashen_exploration_loop.wav",
+      "license": "MIT (repository license; original procedural music created for AshenKingdoms)",
+      "license_url": "https://github.com/areagleegy/AshenKingdoms/blob/main/LICENSE",
+      "attribution": "Original AshenKingdoms exploration loop synthesized procedurally; no third-party samples used.",
+      "commercial_use": true,
+      "redistribution_allowed": true,
+      "codec": "WAV PCM signed 16-bit",
+      "duration_seconds": 8,
+      "sample_rate_hz": 22050,
+      "channels": 1,
+      "bit_depth": 16,
+      "file_size_bytes": 352844,
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "peak_fraction": 0.27458,
+      "rms_fraction": 0.08482
+    },
+    {
       "path": "assets/audio/sfx/ash_wind_loop.wav",
       "author": "AshenKingdoms project (original procedural synthesis)",
       "source_url": "https://github.com/areagleegy/AshenKingdoms/blob/assets/audio-foundation-sfx-2026-10-21/assets/audio/sfx/ash_wind_loop.wav",

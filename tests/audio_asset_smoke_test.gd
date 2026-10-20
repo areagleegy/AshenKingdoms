@@ -2,6 +2,7 @@ extends SceneTree
 
 const SOUND_PATHS: PackedStringArray = [
 	"res://assets/audio/sfx/ash_wind_loop.wav",
+	"res://assets/audio/music/ashen_exploration_loop.wav",
 	"res://assets/audio/sfx/ash_wraith_attack.wav",
 	"res://assets/audio/sfx/ash_wraith_death.wav",
 	"res://assets/audio/sfx/footstep_stone.wav",
@@ -37,6 +38,7 @@ func _run() -> void:
 	if manager != null:
 		_check(bool(manager.call("play_sfx", &"ui_select", -12.0)), "UI select can be resolved for playback")
 		_check(bool(manager.call("play_loop", &"ash_wind_loop", -18.0)), "world ambience can be resolved for looping")
+		_check(bool(manager.call("play_loop", &"ashen_exploration_loop", -23.0)), "exploration music resolves for looping")
 		manager.call("stop_all")
 	print("[audio-smoke] files: %d; failures: %d" % [SOUND_PATHS.size(), _failures])
 	quit(1 if _failures > 0 else 0)
