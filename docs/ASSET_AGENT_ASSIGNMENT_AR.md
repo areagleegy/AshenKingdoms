@@ -156,9 +156,13 @@ A3 الشخصية     A4 البيئة      A6 صوت تجريبي
 
 ## 9. شريحة الإنتاج الفعلية على فرع PR #49
 
-- الأيقونات السبعة: `assets/ui/icons/{backpack,pause,sword,jump,sprint,potion,quest}.svg`.
+- أيقونات الواجهة التسعة: `assets/ui/icons/{backpack,pause,sword,jump,sprint,potion,quest,interact,quest_complete}.svg`.
 - الصوتيات العشرة: `assets/audio/sfx/{ui_select,footstep_stone,sword_swing,sword_hit,ash_wraith_attack,potion_use,quest_complete,ash_wraith_death,player_hit,ash_wind_loop}.wav`.
 - الربط: `scripts/core/audio_feedback.gd`، `scripts/player/player.gd`، `scripts/enemies/enemy.gd`، `scripts/core/main.gd`، `scripts/ui/hud.gd`، ومورد `resources/items/health_potion.tres`.
 - اختبار جديد: `tests/audio_asset_smoke_test.gd` يُنفذ ضمن `.github/workflows/validate.yml`.
 - طلب المراجعة: [PR #49](https://github.com/areagleegy/AshenKingdoms/pull/49). الأصول أولية مصنوعة محليًا؛ تحتاج معاينة بصرية/سمعية على Android قبل اعتمادها.
 - حظر التوليد المدفوع مستمر؛ لم تُستخدم أرصدة Cyber AI أو Thrixel.
+
+## 10. بوابة F1 — أدلة CI
+
+على الرأس `df9b57dd5491d0e2f46da6783bd1611a1f8db801` نجح Validate #332 وBuild Android/Web #250. الجرد الآلي وجد 20 ملف وسائط، دون تكرارات أو سجلات manifest ناقصة، وثلاث إحالات معروفة اختيارية فقط إلى `player.glb`. نجحت 11 وحدة اختبار للجرد؛ لا يُعد ذلك اختبار قبول بصري/سمعي يدويًا أو اختبار هاتف حقيقي.
