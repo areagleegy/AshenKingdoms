@@ -211,7 +211,7 @@ func _server_try_attack() -> void:
 
 
 func apply_damage_from_server(amount: float, attacker_peer_id: int = 0) -> void:
-	if not multiplayer.is_server() or amount <= 0.0 or is_dead or current_health <= 0.0:
+	if not multiplayer.is_server() or not is_finite(amount) or amount <= 0.0 or is_dead or current_health <= 0.0:
 		return
 	current_health = clampf(current_health - amount, 0.0, max_health)
 	if current_health <= 0.0:
