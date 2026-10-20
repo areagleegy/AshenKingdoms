@@ -9,7 +9,8 @@
 - [نطاق الإصدار المعتمد](RELEASE_SCOPE_AR.md): القرارات المعتمدة ومتطلبات القبول المستهدفة.
 - [حالة التنفيذ الحالية](PROJECT_STATUS_AR.md): ما هو موجود حاليًا، وما هو تجريبي أو مؤجل أو غير متحقق يدويًا.
 - [دليل كتابة وصيانة الوثائق](DOCUMENTATION_GUIDE_AR.md): قواعد التحديث والروابط والأدلة المطلوبة.
-- [تدقيق التوثيق وخطة الاستكمال](DOCUMENTATION_AUDIT_AR.md): سجل الفجوات والأولويات ومعايير الأدلة وحدود المراجعة.\n- [تدقيق Issues وPull Requests](ISSUE_AUDIT_AR.md): لقطة مؤرخة لحالات GitHub، والحالة الفعلية المعلنة، وبوابات قبول الإصدار.
+- [تدقيق التوثيق وخطة الاستكمال](DOCUMENTATION_AUDIT_AR.md): سجل الفجوات والأولويات ومعايير الأدلة وحدود المراجعة.
+- [تدقيق Issues وPull Requests](ISSUE_AUDIT_AR.md): لقطة مؤرخة لحالات GitHub، والحالة الفعلية المعلنة، وبوابات قبول الإصدار.
 - [نموذج تهديدات الشبكة](NETWORK_THREAT_MODEL_AR.md): مراجعة ساكنة لحدود الثقة والمخاطر وضوابط ما قبل النشر.
 - [البنية المختصرة وحالة التنفيذ](ARCHITECTURE.md): ملخص تقني بالإنجليزية.
 - [البنية التقنية التفصيلية](TECHNICAL_ARCHITECTURE.md): المشاهد والأنظمة والسكربتات وحدود التكامل.
@@ -20,7 +21,7 @@
 - [البناء إلى Android وWeb](BUILD_ANDROID_WEB_AR.md): إصدارات الأدوات ومخرجات البناء ومعايير التثبيت والنشر.
 - [التطوير من متصفح هاتف Android](CLOUD_PHONE_GUIDE_AR.md): استخدام Codespaces وطرفية Godot وإدارة الموارد.
 - [سير عمل التحقق](../.github/workflows/validate.yml) و[سير عمل بناء المنصات](../.github/workflows/build.yml): التعريفات التنفيذية الفعلية لفحوص CI.
-- [اختبارات اللعب والانحدار](../tests/gameplay_regression_test.gd) و[اختبار تحميل الموارد](../tests/script_load_smoke_test.gd).
+- [اختبارات اللعب والانحدار](../tests/gameplay_regression_test.gd) و[اختبار تحميل الموارد](../tests/script_load_smoke_test.gd) و[فحص الصوتيات والأيقونات](../tests/audio_asset_smoke_test.gd).
 - [اختبار القتال الشبكي](../tests/network_combat_smoke_test.tscn) و[اختبار اتصال العميل/المضيف](../tests/network_client_smoke_test.gd).
 
 ## الأنظمة
@@ -36,7 +37,7 @@
 - [توليد بطل اللاعب بالذكاء الاصطناعي](AI_PLAYER_CHARACTER_PIPELINE_AR.md): مسار مرجعي، وليس إثباتًا على وجود نموذج نهائي.
 - [ربط أدوات الأصول الإضافية](PLUGIN_INTEGRATION_AR.md): إضافة المحرر وأداة التوليد الخارجية وشروطها.
 - [سجل الأصول والتراخيص](ASSET_CREDITS.md): بيانات المصدر والرخصة والإسناد.
-- [الجرد الفعلي](VISUAL_AUDIO_ASSET_INVENTORY_AR.md) و[توزيع الوكلاء](ASSET_AGENT_ASSIGNMENT_AR.md): الحقيقة الحالية ومسؤوليات الإكمال.
+- [الجرد الفعلي](VISUAL_AUDIO_ASSET_INVENTORY_AR.md) و[توزيع الوكلاء](ASSET_AGENT_ASSIGNMENT_AR.md): الحقيقة الحالية ومسؤوليات الإكمال، مع حالة حزمة SVG/WAV في PR #49.
 - [التدقيق الجنائي المرئي/الصوتي](VISUAL_AUDIO_FORENSIC_AUDIT_AR.md) و[خارطة الإنتاج](VISUAL_AUDIO_PRODUCTION_ROADMAP_AR.md): التحقيق المرحلي ومعايير القبول لكل أصل.
 - [التنفيذ المرحلي المتتابع](VISUAL_AUDIO_PHASED_EXECUTION_AR.md): تسلسل F0–F12 وبوابات القبول والمخرجات والمسؤوليات والاختبارات.
 - [سجل الأصول الآلي](../assets/asset_manifest.json) و[دليل ملف بطل اللاعب](../assets/characters/player/README.md).
