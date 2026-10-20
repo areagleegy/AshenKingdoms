@@ -19,6 +19,13 @@ var _inventory_panel: PanelContainer
 var _inventory_list: VBoxContainer
 var _pause_panel: PanelContainer
 
+const ICON_INVENTORY: Texture2D = preload("res://assets/ui/icons/backpack.svg")
+const ICON_PAUSE: Texture2D = preload("res://assets/ui/icons/pause.svg")
+const ICON_SWORD: Texture2D = preload("res://assets/ui/icons/sword.svg")
+const ICON_JUMP: Texture2D = preload("res://assets/ui/icons/jump.svg")
+const ICON_SPRINT: Texture2D = preload("res://assets/ui/icons/sprint.svg")
+const ICON_QUEST: Texture2D = preload("res://assets/ui/icons/quest.svg")
+
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -86,13 +93,25 @@ func _build_ui() -> void:
 	quest_panel.offset_top = 16.0
 	quest_panel.offset_bottom = 112.0
 	_root.add_child(quest_panel)
+	var quest_row := HBoxContainer.new()
+	quest_row.add_theme_constant_override("separation", 8)
+	quest_panel.add_child(quest_row)
+
+	var quest_icon := TextureRect.new()
+	quest_icon.texture = ICON_QUEST
+	quest_icon.custom_minimum_size = Vector2(28, 28)
+	quest_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	quest_row.add_child(quest_icon)
+
 	_quest_label = Label.new()
-	_quest_label.custom_minimum_size = Vector2(290, 80)
+	_quest_label.custom_minimum_size = Vector2(248, 80)
 	_quest_label.autowrap_mode = TextServer.AUTOWRAP_WORD
-	quest_panel.add_child(_quest_label)
+	quest_row.add_child(_quest_label)
 
 	var inventory_button := Button.new()
 	inventory_button.text = "الحقيبة (I)"
+	inventory_button.icon = ICON_INVENTORY
+	inventory_button.add_theme_constant_override("icon_max_width", 26)
 	inventory_button.position = Vector2(16, 136)
 	inventory_button.custom_minimum_size = Vector2(132, 42)
 	inventory_button.pressed.connect(toggle_inventory)
@@ -100,6 +119,8 @@ func _build_ui() -> void:
 
 	var pause_button := Button.new()
 	pause_button.text = "إيقاف (Esc)"
+	pause_button.icon = ICON_PAUSE
+	pause_button.add_theme_constant_override("icon_max_width", 26)
 	pause_button.position = Vector2(156, 136)
 	pause_button.custom_minimum_size = Vector2(132, 42)
 	pause_button.pressed.connect(toggle_pause)
@@ -215,6 +236,14 @@ func _add_touch_button(
 ) -> void:
 	var button := Button.new()
 	button.text = label_text
+	match action:
+		&"attack":
+			button.icon = ICON_SWORD
+		&"jump":
+			button.icon = ICON_JUMP
+		&"sprint":
+			button.icon = ICON_SPRINT
+	button.add_theme_constant_override("icon_max_width", 26)
 	button.anchor_left = anchor_x
 	button.anchor_right = anchor_x
 	button.anchor_top = anchor_y
