@@ -13,16 +13,7 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	var had_original_save := FileAccess.file_exists(SAVE_PATH)
-	var original_save := ""
-	if had_original_save:
-		var original_file := FileAccess.open(SAVE_PATH, FileAccess.READ)
-		if original_file == null:
-			push_error("Could not back up existing save before running smoke tests.")
-			quit(1)
-			return
-		original_save = original_file.get_as_text()
-		original_file.close()
+	var original_save_files := _snapshot_save_files()
 
 	var network_manager: Node = root.get_node_or_null("NetworkManager")
 	_check(network_manager != null, "network manager autoload is present for smoke tests")
@@ -69,6 +60,7 @@ func _run() -> void:
 
 	var save_system: Node = SaveSystemScript.new()
 	root.add_child(save_system)
+	_check(bool(save_system.call("save_game", {"recovery_marker": "backup"})), "save system creates a baseline for recovery testing")
 	var sample_data: Dictionary = {
 		"version": 1,
 		"smoke_test_marker": "ashen-kingdoms",
@@ -89,24 +81,44 @@ func _run() -> void:
 		corrupt_file.store_string("{invalid json")
 		corrupt_file.close()
 		var corrupt_data = save_system.call("load_game")
-		_check(corrupt_data is Dictionary and corrupt_data.is_empty(), "malformed JSON is rejected safely")
+		_check(
+			corrupt_data is Dictionary and corrupt_data.get("recovery_marker", "") == "backup",
+			"malformed primary save falls back to the previous valid backup"
+		)
 
-	_restore_original_save(had_original_save, original_save, save_system)
+	_restore_save_files(original_save_files, save_system)
 
 	print("[smoke] failures: %d" % _failures)
 	quit(1 if _failures > 0 else 0)
 
 
-func _restore_original_save(had_original_save: bool, original_save: String, save_system: Node) -> void:
-	if had_original_save:
-		var restore_file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-		if restore_file == null:
-			_check(false, "existing save file can be restored after the test")
-			return
-		restore_file.store_string(original_save)
-		restore_file.close()
-	else:
-		_check(bool(save_system.call("delete_save")), "temporary smoke-test save is removed")
+func _snapshot_save_files() -> Dictionary:
+	var snapshot: Dictionary = {}
+	for path in [SAVE_PATH, "user://savegame.json.tmp", "user://savegame.json.bak"]:
+		if FileAccess.file_exists(path):
+			var file := FileAccess.open(path, FileAccess.READ)
+			if file == null:
+				push_error("Could not snapshot save-related file: %s" % path)
+				return {}
+			snapshot[path] = file.get_as_text()
+			file.close()
+		else:
+			snapshot[path] = null
+	return snapshot
+
+
+func _restore_save_files(snapshot: Dictionary, save_system: Node) -> void:
+	_check(bool(save_system.call("delete_save")), "test save, temporary file, and backup are cleared before restoration")
+	for path in snapshot:
+		if snapshot[path] == null:
+			continue
+		var file := FileAccess.open(path, FileAccess.WRITE)
+		if file == null:
+			_check(false, "original save-related file can be restored: %s" % path)
+			continue
+		file.store_string(String(snapshot[path]))
+		file.close()
+	_check(true, "original save-related files are restored")
 
 
 func _check(condition: bool, description: String) -> void:
