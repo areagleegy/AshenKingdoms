@@ -287,8 +287,22 @@ func _spawn_network_entity(data: Variant) -> Node:
 func _spawn_avatar(peer_id: int) -> void:
 	if not multiplayer.is_server() or peer_id < 1:
 		return
-	if _entities.get_node_or_null("Peer_%d" % peer_id) != null:
+	if peer_id > 1 and not multiplayer.get_peers().has(peer_id):
 		return
+
+	var existing := _entities.get_node_or_null("Peer_%d" % peer_id)
+	if existing != null and existing.is_queued_for_deletion():
+		# A fast reconnect can arrive before the previous avatar is freed.
+		# Wait one frame, then revalidate the peer and scene before spawning.
+		await get_tree().process_frame
+		if not is_inside_tree() or not multiplayer.is_server():
+			return
+		if peer_id > 1 and not multiplayer.get_peers().has(peer_id):
+			return
+		existing = _entities.get_node_or_null("Peer_%d" % peer_id)
+	if existing != null:
+		return
+
 	_spawner.spawn({"kind": "player", "peer_id": peer_id})
 	_refresh_session_status()
 
