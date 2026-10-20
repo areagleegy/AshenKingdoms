@@ -25,20 +25,15 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	var had_original_save := FileAccess.file_exists(SAVE_PATH)
-	var original_save := ""
-	if had_original_save:
-		var original_file := FileAccess.open(SAVE_PATH, FileAccess.READ)
-		if original_file == null:
-			_check(false, "existing save can be backed up before regression tests")
-			quit(1)
-			return
-		original_save = original_file.get_as_text()
-		original_file.close()
+	var original_save_files := _snapshot_save_files()
+	if original_save_files.size() != 3:
+		push_error("Could not snapshot every save-related file; aborting to protect existing saves.")
+		quit(1)
+		return
 
 	_test_player_and_health()
 	_test_inventory_and_potions()
-	_test_save_and_load(had_original_save, original_save)
+	_test_save_and_load(original_save_files)
 	_test_dialogue_and_quests()
 	_test_android_configuration()
 	_test_runtime_input_registration()
@@ -128,10 +123,11 @@ func _test_inventory_and_potions() -> void:
 	player.queue_free()
 
 
-func _test_save_and_load(had_original_save: bool, original_save: String) -> void:
+func _test_save_and_load(original_save_files: Dictionary) -> void:
 	var save_system: Node = SaveSystemScript.new()
 	root.add_child(save_system)
 
+	_check(bool(save_system.call("save_game", {"recovery_marker": "backup"})), "save system creates a baseline for recovery testing")
 	_check(bool(save_system.call("save_game", {"level": 4, "health": 61.5, "flags": {"intro_seen": true}})), "save system writes structured data")
 	var loaded = save_system.call("load_game")
 	_check(loaded is Dictionary, "save system returns a dictionary for valid JSON")
@@ -148,23 +144,64 @@ func _test_save_and_load(had_original_save: bool, original_save: String) -> void
 		malformed.store_string("{not valid JSON")
 		malformed.close()
 		var corrupt = save_system.call("load_game")
-		_check(corrupt is Dictionary and corrupt.is_empty(), "malformed JSON safely returns an empty dictionary")
+		_check(
+			corrupt is Dictionary and corrupt.get("recovery_marker", "") == "backup",
+			"malformed primary save recovers the previous valid backup"
+		)
+		_check(
+			bool(save_system.call("save_game", {"post_corruption_marker": "fresh"})),
+			"new save preserves the valid backup after detecting a corrupt primary"
+		)
+		var replaced_corrupt = save_system.call("load_game")
+		_check(
+			replaced_corrupt is Dictionary and replaced_corrupt.get("post_corruption_marker", "") == "fresh",
+			"fresh save can be read after replacing a corrupt primary"
+		)
+		var future_schema := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+		if future_schema == null:
+			_check(false, "test can create unsupported-schema save fixture")
+		else:
+			future_schema.store_string("{\"schema_version\": 999, \"level\": 999}")
+			future_schema.close()
+			var future_data = save_system.call("load_game")
+			_check(
+				future_data is Dictionary and future_data.get("recovery_marker", "") == "backup",
+				"unsupported primary schema recovers the previous valid backup"
+			)
 
-	_restore_original_save(had_original_save, original_save, save_system)
-	_check(not bool(save_system.call("has_save")) if not had_original_save else bool(save_system.call("has_save")), "save fixture is cleaned up or original save is restored")
+	_restore_save_files(original_save_files, save_system)
 	save_system.queue_free()
 
 
-func _restore_original_save(had_original_save: bool, original_save: String, save_system: Node) -> void:
-	if had_original_save:
-		var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+func _snapshot_save_files() -> Dictionary:
+	var snapshot: Dictionary = {}
+	for path in [SAVE_PATH, "user://savegame.json.tmp", "user://savegame.json.bak"]:
+		if FileAccess.file_exists(path):
+			var file := FileAccess.open(path, FileAccess.READ)
+			if file == null:
+				_check(false, "save-related file can be snapshotted: %s" % path)
+				return {}
+			snapshot[path] = file.get_as_text()
+			file.close()
+		else:
+			snapshot[path] = null
+	return snapshot
+
+
+func _restore_save_files(snapshot: Dictionary, save_system: Node) -> void:
+	var restored_ok := bool(save_system.call("delete_save"))
+	_check(restored_ok, "test save, temporary file, and backup are cleared before restoration")
+	for path in snapshot:
+		if snapshot[path] == null:
+			continue
+		var file := FileAccess.open(path, FileAccess.WRITE)
 		if file == null:
-			_check(false, "original save can be restored after test")
-			return
-		file.store_string(original_save)
+			restored_ok = false
+			_check(false, "original save-related file can be restored: %s" % path)
+			continue
+		file.store_string(String(snapshot[path]))
 		file.close()
-	else:
-		_check(bool(save_system.call("delete_save")), "temporary save file is removed after test")
+	_check(restored_ok, "original save-related files are restored")
 
 
 func _test_dialogue_and_quests() -> void:
