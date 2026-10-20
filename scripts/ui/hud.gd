@@ -115,6 +115,7 @@ func _build_ui() -> void:
 	inventory_button.position = Vector2(16, 136)
 	inventory_button.custom_minimum_size = Vector2(132, 42)
 	inventory_button.pressed.connect(toggle_inventory)
+	inventory_button.pressed.connect(_play_ui_select)
 	_root.add_child(inventory_button)
 
 	var pause_button := Button.new()
@@ -124,6 +125,7 @@ func _build_ui() -> void:
 	pause_button.position = Vector2(156, 136)
 	pause_button.custom_minimum_size = Vector2(132, 42)
 	pause_button.pressed.connect(toggle_pause)
+	pause_button.pressed.connect(_play_ui_select)
 	_root.add_child(pause_button)
 
 	_message_label = Label.new()
@@ -155,6 +157,7 @@ func _build_inventory_panel() -> void:
 	close_button.pressed.connect(func() -> void:
 		_set_inventory_visible(false)
 	)
+	close_button.pressed.connect(_play_ui_select)
 	box.add_child(close_button)
 
 
@@ -174,6 +177,7 @@ func _build_pause_panel() -> void:
 	resume_button.pressed.connect(func() -> void:
 		_set_paused(false)
 	)
+	resume_button.pressed.connect(_play_ui_select)
 	box.add_child(resume_button)
 
 	var save_button := Button.new()
@@ -181,6 +185,7 @@ func _build_pause_panel() -> void:
 	save_button.pressed.connect(func() -> void:
 		save_requested.emit()
 	)
+	save_button.pressed.connect(_play_ui_select)
 	box.add_child(save_button)
 
 	var load_button := Button.new()
@@ -188,6 +193,7 @@ func _build_pause_panel() -> void:
 	load_button.pressed.connect(func() -> void:
 		load_requested.emit()
 	)
+	load_button.pressed.connect(_play_ui_select)
 	box.add_child(load_button)
 
 	var quit_button := Button.new()
@@ -195,6 +201,7 @@ func _build_pause_panel() -> void:
 	quit_button.pressed.connect(func() -> void:
 		get_tree().quit()
 	)
+	quit_button.pressed.connect(_play_ui_select)
 	box.add_child(quit_button)
 
 
@@ -355,6 +362,7 @@ func _refresh_inventory() -> void:
 		var item_button := Button.new()
 		item_button.text = "%s × %d" % [String(item.get("display_name")), int(slot.get("amount", 1))]
 		item_button.pressed.connect(_on_inventory_item_pressed.bind(index))
+		item_button.pressed.connect(_play_ui_select)
 		_inventory_list.add_child(item_button)
 
 	if not has_items:
@@ -364,10 +372,21 @@ func _refresh_inventory() -> void:
 
 
 func _on_inventory_item_pressed(slot_index: int) -> void:
-	if _inventory != null and _player != null:
-		var used: bool = bool(_inventory.call("use_item", slot_index, _player))
-		if not used:
-			show_message("لا يمكن استخدام العنصر الآن.")
+	if _inventory == null or _player == null:
+		return
+
+	var item_id: StringName = &""
+	var slots: Array = _inventory.get("slots")
+	if slot_index >= 0 and slot_index < slots.size():
+		var item: Variant = slots[slot_index].get("item")
+		if item != null:
+			item_id = StringName(str(item.get("id")))
+
+	var used: bool = bool(_inventory.call("use_item", slot_index, _player))
+	if used and item_id == &"health_potion":
+		_play_sfx(&"potion_use", -5.0)
+	elif not used:
+		show_message("لا يمكن استخدام العنصر الآن.")
 
 
 func _on_health_changed(current: float, maximum: float) -> void:
@@ -391,6 +410,7 @@ func _on_quest_updated(title: String, description: String, current: int, target:
 
 
 func _on_quest_completed(title: String, reward_xp: int) -> void:
+	_play_sfx(&"quest_complete", -5.0)
 	show_message("اكتملت المهمة «%s»! +%d XP" % [title, reward_xp])
 
 
@@ -400,3 +420,13 @@ func show_message(message: String) -> void:
 
 func show_saved_status(success: bool) -> void:
 	show_message("تم حفظ اللعبة." if success else "تعذر حفظ اللعبة.")
+
+
+func _play_ui_select() -> void:
+	_play_sfx(&"ui_select", -11.0)
+
+
+func _play_sfx(sound_id: StringName, volume_db: float = -6.0) -> void:
+	var audio_feedback := get_node_or_null("/root/AudioFeedback")
+	if audio_feedback != null:
+		audio_feedback.call("play_sfx", sound_id, volume_db)
