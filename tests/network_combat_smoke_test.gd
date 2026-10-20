@@ -38,6 +38,10 @@ func _run() -> void:
 	_check(bool(avatar.call("_is_authorized_input_sender", 2)), "the owning remote peer is authorized to submit input")
 	_check(not bool(avatar.call("_is_authorized_input_sender", 3)), "a different peer cannot submit input for this avatar")
 	_check(not bool(avatar.call("_is_authorized_input_sender", 1)), "the server peer ID cannot impersonate a remote owner")
+	_check(bool(avatar.call("_accept_input_timestamp", 1000)), "first movement input timestamp is accepted")
+	_check(not bool(avatar.call("_accept_input_timestamp", 1019)), "movement input inside the 20 ms limit is rejected")
+	_check(bool(avatar.call("_accept_input_timestamp", 1020)), "movement input at the 20 ms boundary is accepted")
+	_check(bool(avatar.call("_accept_input_timestamp", 1070)), "normal 50 ms client cadence is accepted")
 
 	avatar.call("server_grant_experience", 100)
 	print("[network-smoke] XP tested")
