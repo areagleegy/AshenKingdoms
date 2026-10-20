@@ -105,9 +105,14 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 	if not multiplayer.is_server():
 		return
 	var sender_id := multiplayer.get_remote_sender_id()
-	if sender_id != owner_peer_id or sender_id <= 1 or is_dead:
+	if sender_id <= 1 or not multiplayer.get_peers().has(sender_id):
 		return
-	# Rate-limit packets before vector validation so malformed bursts take the cheap path.
+	# Share the connection budget across server-bound RPC endpoints before owner checks.
+	if not NetworkManager.consume_remote_rpc_budget(sender_id, Time.get_ticks_msec()):
+		return
+	if sender_id != owner_peer_id or is_dead:
+		return
+	# Per-avatar limiter adds a stricter guard to movement input after the shared budget.
 	if not _accept_input_packet(Time.get_ticks_msec()):
 		return
 	if not _is_finite_vector3(direction):
