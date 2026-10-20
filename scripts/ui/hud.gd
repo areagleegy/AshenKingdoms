@@ -13,6 +13,7 @@ var _health_label: Label
 var _xp_bar: ProgressBar
 var _xp_label: Label
 var _quest_label: Label
+var _quest_icon: TextureRect
 var _message_label: Label
 var _root: Control
 var _inventory_panel: PanelContainer
@@ -25,6 +26,7 @@ const ICON_SWORD: Texture2D = preload("res://assets/ui/icons/sword.svg")
 const ICON_JUMP: Texture2D = preload("res://assets/ui/icons/jump.svg")
 const ICON_SPRINT: Texture2D = preload("res://assets/ui/icons/sprint.svg")
 const ICON_QUEST: Texture2D = preload("res://assets/ui/icons/quest.svg")
+const ICON_QUEST_COMPLETE: Texture2D = preload("res://assets/ui/icons/quest_complete.svg")
 
 
 func _ready() -> void:
@@ -97,11 +99,11 @@ func _build_ui() -> void:
 	quest_row.add_theme_constant_override("separation", 8)
 	quest_panel.add_child(quest_row)
 
-	var quest_icon := TextureRect.new()
-	quest_icon.texture = ICON_QUEST
-	quest_icon.custom_minimum_size = Vector2(28, 28)
-	quest_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	quest_row.add_child(quest_icon)
+	_quest_icon = TextureRect.new()
+	_quest_icon.texture = ICON_QUEST
+	_quest_icon.custom_minimum_size = Vector2(28, 28)
+	_quest_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	quest_row.add_child(_quest_icon)
 
 	_quest_label = Label.new()
 	_quest_label.custom_minimum_size = Vector2(248, 80)
@@ -404,8 +406,13 @@ func _on_experience_changed(experience: int, required: int, level: int) -> void:
 func _on_quest_updated(title: String, description: String, current: int, target: int) -> void:
 	if title == "لا توجد مهمة نشطة":
 		_quest_label.text = "%s\n%s" % [title, description]
+		if is_instance_valid(_quest_icon):
+			_quest_icon.texture = ICON_QUEST
 		return
-	var status := "مكتملة" if current >= target else "%d / %d" % [current, target]
+	var is_complete := current >= target
+	if is_instance_valid(_quest_icon):
+		_quest_icon.texture = ICON_QUEST_COMPLETE if is_complete else ICON_QUEST
+	var status := "مكتملة" if is_complete else "%d / %d" % [current, target]
 	_quest_label.text = "المهمة: %s\n%s\nالتقدم: %s" % [title, description, status]
 
 

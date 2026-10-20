@@ -7,6 +7,8 @@ var current_target: NPC
 var _in_range: Array[NPC] = []
 var _interact_button: Button
 
+const ICON_INTERACT: Texture2D = preload("res://assets/ui/icons/interact.svg")
+
 
 func _ready() -> void:
 	monitoring = true
@@ -102,6 +104,8 @@ func _build_touch_interact_button() -> void:
 	_interact_button = Button.new()
 	_interact_button.name = "InteractButton"
 	_interact_button.text = "تحدّث"
+	_interact_button.icon = ICON_INTERACT
+	_interact_button.add_theme_constant_override("icon_max_width", 28)
 	_interact_button.custom_minimum_size = Vector2(116.0, 54.0)
 	_interact_button.anchor_left = 1.0
 	_interact_button.anchor_right = 1.0
