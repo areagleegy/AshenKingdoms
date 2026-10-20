@@ -109,6 +109,50 @@ class AssetInventoryTests(unittest.TestCase):
                 "remote_or_absolute_not_fetched",
             )
 
+    def test_gltf_can_reference_shared_asset_inside_project_root(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            assets = root / "assets"
+            (assets / "models").mkdir(parents=True)
+            (assets / "shared.bin").write_bytes(b"shared")
+            (assets / "models" / "hero.gltf").write_text(
+                json.dumps({
+                    "asset": {"version": "2.0"},
+                    "buffers": [{"uri": "../shared.bin", "byteLength": 6}],
+                }),
+                encoding="utf-8",
+            )
+            write_manifest(root)
+
+            report = build_report(root)
+            inspection = next(
+                row["inspection"] for row in report["media_files"]
+                if row["path"] == "assets/models/hero.gltf"
+            )
+
+            self.assertEqual(inspection["missing_uris"], [])
+            self.assertEqual(inspection["external_uris"][0]["status"], "found")
+
+    def test_remote_gltf_uri_query_is_redacted(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            assets = root / "assets"
+            assets.mkdir()
+            (assets / "remote.gltf").write_text(
+                json.dumps({
+                    "asset": {"version": "2.0"},
+                    "images": [{"uri": "https://example.invalid/texture.png?token=secret"}],
+                }),
+                encoding="utf-8",
+            )
+            write_manifest(root)
+
+            report = build_report(root)
+            uri = report["media_files"][0]["inspection"]["external_uris"][0]["uri"]
+
+            self.assertNotIn("secret", uri)
+            self.assertIn("query redacted", uri)
+
     def test_truncated_glb_is_reported_instead_of_crashing(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
