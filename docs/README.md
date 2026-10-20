@@ -38,7 +38,7 @@
 - [سجل الأصول والتراخيص](ASSET_CREDITS.md): بيانات المصدر والرخصة والإسناد.
 - [الجرد الفعلي](VISUAL_AUDIO_ASSET_INVENTORY_AR.md) و[توزيع الوكلاء](ASSET_AGENT_ASSIGNMENT_AR.md): الحقيقة الحالية ومسؤوليات الإكمال.
 - [التدقيق الجنائي المرئي/الصوتي](VISUAL_AUDIO_FORENSIC_AUDIT_AR.md) و[خارطة الإنتاج](VISUAL_AUDIO_PRODUCTION_ROADMAP_AR.md): التحقيق المرحلي ومعايير القبول لكل أصل.
-- [أداة الجرد الجنائي الآلي](../tools/audit_assets.py) واختباراتها](../tools/test_asset_inventory.py): بصمات الأصول وفحص ترويسات الوسائط ومرشحات موارد Godot، مع تقرير JSON/Markdown من CI.
+- [أداة الجرد الجنائي الآلي](../tools/audit_assets.py) و[اختباراتها](../tools/test_asset_inventory.py): بصمات الأصول وفحص ترويسات الوسائط ومرشحات موارد Godot، مع تقرير JSON/Markdown من CI.
 - [التنفيذ المرحلي المتتابع](VISUAL_AUDIO_PHASED_EXECUTION_AR.md): تسلسل F0–F12 وبوابات القبول والمخرجات والمسؤوليات والاختبارات.
 - [سجل الأصول الآلي](../assets/asset_manifest.json) و[دليل ملف بطل اللاعب](../assets/characters/player/README.md).
 
