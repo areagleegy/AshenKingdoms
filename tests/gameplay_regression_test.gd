@@ -148,6 +148,15 @@ func _test_save_and_load(original_save_files: Dictionary) -> void:
 			corrupt is Dictionary and corrupt.get("recovery_marker", "") == "backup",
 			"malformed primary save recovers the previous valid backup"
 		)
+		_check(
+			bool(save_system.call("save_game", {"post_corruption_marker": "fresh"})),
+			"new save preserves the valid backup after detecting a corrupt primary"
+		)
+		var replaced_corrupt = save_system.call("load_game")
+		_check(
+			replaced_corrupt is Dictionary and replaced_corrupt.get("post_corruption_marker", "") == "fresh",
+			"fresh save can be read after replacing a corrupt primary"
+		)
 		var future_schema := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 		if future_schema == null:
 			_check(false, "test can create unsupported-schema save fixture")
