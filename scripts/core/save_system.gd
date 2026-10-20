@@ -25,6 +25,10 @@ const READ_CANDIDATES: Array[String] = [
 
 
 func save_game(data: Dictionary) -> bool:
+    if _has_unsupported_future_schema(SAVE_PATH):
+        push_warning("Save aborted: the primary file uses a newer unsupported schema.")
+        return false
+
     var prepared: Dictionary = _prepare_save_data(data)
     if prepared.is_empty():
         push_warning("Save rejected: data failed schema or bounds validation.")
@@ -74,6 +78,10 @@ func save_game(data: Dictionary) -> bool:
 
 
 func load_game() -> Dictionary:
+    if _has_unsupported_future_schema(SAVE_PATH):
+        push_warning("Primary save uses a newer unsupported schema; it will not be overwritten.")
+        return {}
+
     var primary: Dictionary = _read_save_data(SAVE_PATH)
     if not primary.is_empty():
         if _file_needs_migration(SAVE_PATH):
@@ -100,6 +108,8 @@ func load_game() -> Dictionary:
 
 
 func has_save() -> bool:
+    if _has_unsupported_future_schema(SAVE_PATH):
+        return false
     for candidate in READ_CANDIDATES:
         if not _read_save_data(candidate).is_empty():
             return true
@@ -349,6 +359,20 @@ func _is_safe_json_value(value: Variant, depth: int) -> bool:
             return false
 
 
+func _has_unsupported_future_schema(path: String) -> bool:
+    var raw_text := _read_raw_text(path)
+    if raw_text.is_empty():
+        return false
+    var parser := JSON.new()
+    if parser.parse(raw_text) != OK or not (parser.data is Dictionary):
+        return false
+    var data: Dictionary = parser.data
+    if not data.has("schema_version"):
+        return false
+    var schema_value: Variant = data["schema_version"]
+    return _is_integer_value(schema_value) and int(schema_value) > CURRENT_SCHEMA_VERSION
+
+
 func _file_needs_migration(path: String) -> bool:
     var raw_text := _read_raw_text(path)
     if raw_text.is_empty():
@@ -363,6 +387,9 @@ func _file_needs_migration(path: String) -> bool:
 func _read_raw_text(path: String) -> String:
     var file := FileAccess.open(path, FileAccess.READ)
     if file == null:
+        return ""
+    if file.get_length() > MAX_SAVE_BYTES:
+        file.close()
         return ""
     var text := file.get_as_text()
     file.close()
