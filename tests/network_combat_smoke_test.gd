@@ -33,10 +33,14 @@ func _run() -> void:
 	_check(not bool(avatar.call("_is_valid_network_direction", Vector3(2.0, 0.0, 0.0))), "movement vector outside the accepted magnitude is rejected")
 	var rate_limit_test_peer_id := 64001
 	_check(not bool(NetworkManager.call("allow_peer_input_rpc_attempt", 1, 100)), "host id is not accepted as a remote input sender")
-	_check(bool(NetworkManager.call("allow_peer_input_rpc_attempt", rate_limit_test_peer_id, 100)), "first peer input RPC attempt enters the central rate window")
-	_check(not bool(NetworkManager.call("allow_peer_input_rpc_attempt", rate_limit_test_peer_id, 105)), "rapid attempts share a rate window across avatar RPC paths")
+	_check(not bool(avatar.call("_try_validate_input_attempt", rate_limit_test_peer_id, Vector3(NAN, 0.0, 0.0), 100)), "NaN input attempt is rejected")
+	var second_avatar := NetworkAvatarScene.instantiate() as CharacterBody3D
+	second_avatar.call("configure_owner", 2)
+	add_child(second_avatar)
+	_check(not bool(second_avatar.call("_try_validate_input_attempt", rate_limit_test_peer_id, Vector3.ZERO, 105)), "malformed attempt consumes a shared rate window across avatar nodes")
 	_check(not bool(NetworkManager.call("allow_peer_input_rpc_attempt", rate_limit_test_peer_id, 109)), "peer cannot exceed the central attempt budget by targeting other avatars")
-	_check(bool(NetworkManager.call("allow_peer_input_rpc_attempt", rate_limit_test_peer_id, 110)), "peer input can resume after the minimum interval")
+	_check(bool(avatar.call("_try_validate_input_attempt", rate_limit_test_peer_id, Vector3.ZERO, 110)), "peer input can resume after the minimum interval")
+	second_avatar.queue_free()
 
 	avatar.call("apply_damage_from_server", INF, 1)
 	_check(float(avatar.get("current_health")) == 100.0, "network avatar rejects infinite damage")
