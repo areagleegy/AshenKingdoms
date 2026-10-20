@@ -13,6 +13,8 @@ signal died(player: Node)
 @onready var health: Health = $Health
 @onready var inventory: Inventory = $Inventory
 
+const COMBAT_HIT_EFFECT_SCENE: PackedScene = preload("res://scenes/vfx/CombatHitEffect.tscn")
+
 const ANIMATION_ALIASES: Dictionary = {
 	"idle": ["idle", "stand", "breath"],
 	"walk": ["walk", "walking"],
@@ -119,12 +121,27 @@ func _attack() -> void:
 	if not hit.is_empty():
 		var collider: Object = hit.get("collider")
 		if collider is Node and collider.has_method("take_damage"):
+			var hit_position: Vector3 = hit.get("position", to)
+			_spawn_combat_hit_effect(hit_position)
 			_play_sfx(&"sword_hit", -3.5)
 			collider.call("take_damage", attack_damage)
 
 	await get_tree().create_timer(attack_cooldown).timeout
 	_can_attack = true
 	_is_attacking = false
+
+
+func _spawn_combat_hit_effect(hit_position: Vector3) -> void:
+	if OS.has_feature("dedicated_server") or DisplayServer.get_name() == "headless":
+		return
+	var effect := COMBAT_HIT_EFFECT_SCENE.instantiate() as Node3D
+	if effect == null:
+		return
+	var scene_root := get_tree().current_scene
+	if scene_root == null:
+		scene_root = get_tree().root
+	scene_root.add_child(effect)
+	effect.global_position = hit_position
 
 
 func _find_animation_player() -> void:

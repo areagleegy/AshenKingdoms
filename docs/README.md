@@ -73,3 +73,8 @@ python3 tools/validate_free_assets.py
 ## تحديث الواجهة
 
 - تمت إضافة رمز التفاعل `assets/ui/icons/interact.svg` إلى زر «تحدّث»، ورمز `assets/ui/icons/quest_complete.svg` إلى حالة اكتمال المهمة. راجع `docs/ASSET_CREDITS.md` لسجل الأصول.
+
+
+## مؤثرات القتال
+
+- تأثير وميض/شظايا أولي مرتبط بإصابة السيف: `scenes/vfx/CombatHitEffect.tscn`، مع اختبار ذاتي في `tests/combat_hit_effect_smoke_test.gd`.
