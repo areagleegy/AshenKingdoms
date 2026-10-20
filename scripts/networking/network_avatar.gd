@@ -126,7 +126,7 @@ func _try_mark_input_attempt(now_msec: int) -> bool:
 	return true
 
 
-func _is_valid_network_direction(direction: Vector3) :
+func _is_valid_network_direction(direction: Vector3) -> bool:
 	# Clients should send finite, horizontal, normalized-or-near-normalized intent only.
 	return (
 		direction.is_finite()
