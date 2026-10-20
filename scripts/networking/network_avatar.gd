@@ -36,6 +36,7 @@ var _attack_requested: bool = false
 var _last_jump_down: bool = false
 var _last_attack_down: bool = false
 var _last_input_msec: int = 0
+var _last_input_attempt_msec: int = -1
 var _next_attack_msec: int = 0
 var _death_generation: int = 0
 var _input_send_accumulator: float = 0.0
@@ -105,10 +106,10 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 	var sender_id := multiplayer.get_remote_sender_id()
 	if sender_id != owner_peer_id or sender_id <= 1 or is_dead:
 		return
-	if not _is_valid_network_direction(direction):
-		return
 	var now_msec := Time.get_ticks_msec()
-	if _is_input_rate_limited(now_msec):
+	if not _try_mark_input_attempt(now_msec):
+		return
+	if not _is_valid_network_direction(direction):
 		return
 
 	var safe_direction := Vector3(direction.x, 0.0, direction.z)
@@ -118,11 +119,14 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 	_last_input_msec = now_msec
 
 
-func _is_input_rate_limited(now_msec: int) -> bool:
-	return _last_input_msec > 0 and now_msec - _last_input_msec < INPUT_MIN_INTERVAL_MSEC
+func _try_mark_input_attempt(now_msec: int) -> bool:
+	if _last_input_attempt_msec >= 0 and now_msec - _last_input_attempt_msec < INPUT_MIN_INTERVAL_MSEC:
+		return false
+	_last_input_attempt_msec = now_msec
+	return true
 
 
-func _is_valid_network_direction(direction: Vector3) -> bool:
+func _is_valid_network_direction(direction: Vector3) :
 	# Clients should send finite, horizontal, normalized-or-near-normalized intent only.
 	return (
 		direction.is_finite()
