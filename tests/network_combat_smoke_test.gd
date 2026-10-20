@@ -61,7 +61,12 @@ func _run() -> void:
 	enemy.call("configure_spawn", 1)
 	add_child(enemy)
 	print("[network-smoke] enemy ready")
-undefined
+	enemy.global_position = avatar.global_position + Vector3(0.0, 0.0, -2.0)
+	enemy.call("apply_damage_from_server", INF, 1)
+	_check(float(enemy.get("current_health")) == 85.0, "network enemy rejects infinite damage")
+	enemy.call("apply_damage_from_server", NAN, 1)
+	_check(float(enemy.get("current_health")) == 85.0, "network enemy rejects NaN damage")
+	var death_event: Dictionary = {"count": 0, "attacker": 0}
 	enemy.died.connect(func(_dead_enemy: Node, attacker_peer_id: int) -> void:
 		death_event["count"] = int(death_event["count"]) + 1
 		death_event["attacker"] = attacker_peer_id
