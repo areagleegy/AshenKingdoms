@@ -19,6 +19,8 @@ const STREAM_PATHS: Dictionary = {
 const LOOP_IDS: Array[StringName] = [&"ash_wind_loop", &"ashen_exploration_loop"]
 const SFX_POOL_SIZE: int = 8
 
+var master_volume_linear: float = 1.0
+var muted: bool = false
 var _stream_cache: Dictionary = {}
 var _players: Array[AudioStreamPlayer] = []
 var _loop_players: Dictionary = {}
@@ -67,6 +69,20 @@ func play_loop(sound_id: StringName, volume_db: float = -16.0) -> bool:
 	if not active_player.playing:
 		active_player.play()
 	return true
+
+
+func set_master_volume(value: float) -> void:
+	master_volume_linear = clampf(value, 0.0, 1.0)
+	var bus_index := AudioServer.get_bus_index("Master")
+	if bus_index >= 0:
+		AudioServer.set_bus_volume_db(bus_index, linear_to_db(maxf(master_volume_linear, 0.0001)))
+
+
+func set_muted(value: bool) -> void:
+	muted = value
+	var bus_index := AudioServer.get_bus_index("Master")
+	if bus_index >= 0:
+		AudioServer.set_bus_mute(bus_index, muted)
 
 
 func stop_loop(sound_id: StringName) -> void:
