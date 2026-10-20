@@ -2,6 +2,7 @@ extends Node3D
 
 const NetworkAvatarScene: PackedScene = preload("res://scenes/network/NetworkAvatar.tscn")
 const NetworkEnemyScene: PackedScene = preload("res://scenes/network/NetworkEnemy.tscn")
+const NetworkAvatarScript: GDScript = preload("res://scripts/networking/network_avatar.gd")
 
 var _failures: int = 0
 
@@ -12,6 +13,13 @@ func _ready() -> void:
 
 func _run() -> void:
 	print("[network-smoke] start")
+	_check(NetworkAvatarScript.is_valid_network_input_direction(Vector3.ZERO), "zero input direction is accepted")
+	_check(NetworkAvatarScript.is_valid_network_input_direction(Vector3(1.0, 0.0, -1.0)), "finite input direction is accepted for normalization")
+	_check(not NetworkAvatarScript.is_valid_network_input_direction(Vector3(INF, 0.0, 0.0)), "infinite input direction is rejected")
+	_check(not NetworkAvatarScript.is_valid_network_input_direction(Vector3(NAN, 0.0, 0.0)), "NaN input direction is rejected")
+	_check(not NetworkAvatarScript.is_network_input_rate_limited(100, -1), "first input packet is not rate-limited")
+	_check(NetworkAvatarScript.is_network_input_rate_limited(124, 100), "input packets inside the 25 ms minimum interval are rate-limited")
+	_check(not NetworkAvatarScript.is_network_input_rate_limited(125, 100), "input packet at the 25 ms interval is accepted")
 	# Run inside a real Node3D scene tree so 3D physics and multiplayer nodes
 	# have their normal viewport/world context in headless CI.
 	var avatar := NetworkAvatarScene.instantiate() as CharacterBody3D
