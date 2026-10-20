@@ -115,19 +115,22 @@ func _test_legacy_schema_migration() -> void:
 
 func _test_future_schema_is_rejected() -> void:
     _check(_reset_managed_files(), "managed save files can be reset before future-schema test")
+    _check(bool(_save_system.call("save_game", {"marker": "older-valid", "level": 1})), "future-schema test creates a valid first save")
+    _check(bool(_save_system.call("save_game", {"marker": "newer-valid", "level": 1})), "future-schema test preserves an older backup")
     _check(_write_raw_text(SAVE_PATH, JSON.stringify({
         "schema_version": 999,
         "marker": "future",
         "level": 1,
     })), "test writes an unsupported future-schema fixture")
-    _check(((_save_system.call("load_game")) as Dictionary).is_empty(), "unsupported future schema is rejected")
-    _check(not bool(_save_system.call("has_save")), "unsupported future schema is not advertised as a usable save")
+    _check(((_save_system.call("load_game")) as Dictionary).is_empty(), "unsupported future schema is rejected even if a backup exists")
+    _check(not bool(_save_system.call("has_save")), "future primary schema is not advertised as a usable save")
     _check(not bool(_save_system.call("save_game", {
-        "schema_version": 999,
-        "marker": "should-not-write",
-    })), "save writer refuses a future schema version")
-    _check(((_save_system.call("load_game")) as Dictionary).is_empty(), "future-schema rejection leaves the original file unmodified")
-
+        "schema_version": 1,
+        "marker": "should-not-overwrite-future",
+        "level": 1,
+    })), "save writer refuses to overwrite a newer primary schema")
+    var preserved: Dictionary = _read_json_dictionary(SAVE_PATH)
+    _check(int(preserved.get("schema_version", 0)) == 999 and preserved.get("marker", "") == "future", "load and save rejection preserve the future-schema file")
 
 func _test_invalid_values_preserve_current_save() -> void:
     _check(_reset_managed_files(), "managed save files can be reset before bounds tests")
