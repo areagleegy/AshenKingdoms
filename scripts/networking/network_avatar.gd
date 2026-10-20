@@ -2,6 +2,8 @@ extends CharacterBody3D
 
 const INPUT_SEND_INTERVAL: float = 0.05
 const INPUT_TIMEOUT_MSEC: int = 350
+const MIN_INPUT_INTERVAL_MSEC: int = 20
+const MAX_INPUT_DIRECTION_LENGTH_SQUARED: float = 1.21
 const MAX_LEVEL: int = 50
 const QUEST_TARGET: int = 3
 const QUEST_REWARD_XP: int = 75
@@ -36,6 +38,7 @@ var _attack_requested: bool = false
 var _last_jump_down: bool = false
 var _last_attack_down: bool = false
 var _last_input_msec: int = 0
+var _has_received_input: bool = false
 var _next_attack_msec: int = 0
 var _death_generation: int = 0
 var _input_send_accumulator: float = 0.0
@@ -47,6 +50,8 @@ func configure_owner(peer_id: int) -> void:
 	set_multiplayer_authority(1, true)
 	position = _spawn_position(owner_peer_id)
 	current_health = max_health
+	_last_input_msec = 0
+	_has_received_input = false
 
 
 func configure_battle_royale(enabled: bool) -> void:
@@ -107,14 +112,36 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 	if not multiplayer.is_server():
 		return
 	var sender_id := multiplayer.get_remote_sender_id()
-	if sender_id != owner_peer_id or sender_id <= 1 or is_dead:
-		return
+	_accept_remote_input(sender_id, direction, jump_down, sprint_down, attack_down, Time.get_ticks_msec())
 
-	var safe_direction := Vector3(direction.x, 0.0, direction.z)
-	if safe_direction.length_squared() > 1.0:
-		safe_direction = safe_direction.normalized()
-	_set_requested_input(safe_direction, jump_down, sprint_down, attack_down)
-	_last_input_msec = Time.get_ticks_msec()
+
+## Server-side gate shared by the RPC handler and deterministic regression tests.
+## Clients may send at most one accepted input per player every 20 ms.
+func _accept_remote_input(
+	sender_id: int,
+	direction: Vector3,
+	jump_down: bool,
+	sprint_down: bool,
+	attack_down: bool,
+	now_msec: int
+) -> bool:
+	if not multiplayer.is_server() or sender_id != owner_peer_id or sender_id <= 1:
+		return false
+	if is_dead or current_health <= 0.0 or now_msec < 0:
+		return false
+	if not direction.is_finite() or absf(direction.y) > 0.001:
+		return false
+
+	var planar_direction := Vector2(direction.x, direction.z)
+	if not planar_direction.is_finite() or planar_direction.length_squared() > MAX_INPUT_DIRECTION_LENGTH_SQUARED:
+		return false
+	if _has_received_input and now_msec - _last_input_msec < MIN_INPUT_INTERVAL_MSEC:
+		return false
+
+	_set_requested_input(Vector3(planar_direction.x, 0.0, planar_direction.y), jump_down, sprint_down, attack_down)
+	_last_input_msec = now_msec
+	_has_received_input = true
+	return true
 
 
 func _set_requested_input(direction: Vector3, jump_down: bool, sprint_down: bool, attack_down: bool) -> void:
