@@ -107,9 +107,7 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 	if sender_id != owner_peer_id or sender_id <= 1 or is_dead:
 		return
 	var now_msec := Time.get_ticks_msec()
-	if not _try_mark_input_attempt(now_msec):
-		return
-	if not _is_valid_network_direction(direction):
+	if not _try_validate_input_attempt(direction, now_msec):
 		return
 
 	var safe_direction := Vector3(direction.x, 0.0, direction.z)
@@ -117,6 +115,12 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 		safe_direction = safe_direction.normalized()
 	_set_requested_input(safe_direction, jump_down, sprint_down, attack_down)
 	_last_input_msec = now_msec
+
+
+func _try_validate_input_attempt(direction: Vector3, now_msec: int) -> bool:
+	if not _try_mark_input_attempt(now_msec):
+		return false
+	return _is_valid_network_direction(direction)
 
 
 func _try_mark_input_attempt(now_msec: int) -> bool:
