@@ -40,6 +40,13 @@ func _run() -> void:
 	_check(not bool(second_avatar.call("_try_validate_input_attempt", rate_limit_test_peer_id, Vector3.ZERO, 105)), "malformed attempt consumes a shared rate window across avatar nodes")
 	_check(not bool(NetworkManager.call("allow_peer_input_rpc_attempt", rate_limit_test_peer_id, 109)), "peer cannot exceed the central attempt budget by targeting other avatars")
 	_check(bool(avatar.call("_try_validate_input_attempt", rate_limit_test_peer_id, Vector3.ZERO, 110)), "peer input can resume after the minimum interval")
+	NetworkManager.call("_on_peer_disconnected", rate_limit_test_peer_id)
+	_check(bool(NetworkManager.call("allow_peer_input_rpc_attempt", rate_limit_test_peer_id, 111)), "disconnect clears the sender's rate-limit window")
+	var second_test_peer_id := 64002
+	_check(bool(NetworkManager.call("allow_peer_input_rpc_attempt", second_test_peer_id, 120)), "second peer gets an independent sender budget")
+	NetworkManager.call("leave_session", false)
+	var remaining_budgets: Dictionary = NetworkManager.get("_last_input_rpc_attempt_msec_by_peer")
+	_check(remaining_budgets.is_empty(), "leaving a session clears all sender rate-limit state")
 	second_avatar.queue_free()
 
 	avatar.call("apply_damage_from_server", INF, 1)
