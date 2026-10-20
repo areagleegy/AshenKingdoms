@@ -56,6 +56,7 @@ func _run() -> void:
 	var local_peer_id: int = multiplayer_api.get_unique_id()
 	var saw_host := false
 	var saw_local_avatar := false
+	var peer_avatar_count := 0
 	var enemy_count := 0
 	var spawn_deadline := Time.get_ticks_msec() + SPAWN_TIMEOUT_MSEC
 
@@ -70,15 +71,20 @@ func _run() -> void:
 
 		saw_host = entities.get_node_or_null("Peer_1") != null
 		saw_local_avatar = entities.get_node_or_null("Peer_%d" % local_peer_id) != null
+		peer_avatar_count = 0
+		for child in entities.get_children():
+			if child.name.begins_with("Peer_"):
+				peer_avatar_count += 1
 		enemy_count = 0
 		for slot in range(1, 5):
 			if entities.get_node_or_null("Enemy_%02d" % slot) != null:
 				enemy_count += 1
-		if saw_host and saw_local_avatar and enemy_count == 4:
+		if saw_host and saw_local_avatar and peer_avatar_count == 2 and enemy_count == 4:
 			break
 
 	_check(saw_host, "client receives the host avatar")
 	_check(saw_local_avatar, "client receives its own authoritative avatar")
+	_check(peer_avatar_count == 2, "first connection creates exactly one avatar per connected peer")
 	_check(enemy_count == 4, "client receives all four existing enemies")
 	if _failures > 0 and current_scene != null:
 		var entities := current_scene.get_node_or_null("Entities") as Node3D
