@@ -24,6 +24,12 @@ func _run() -> void:
 	print("[network-smoke] avatar ready")
 	_check(float(avatar.get("current_health")) == 100.0, "network avatar starts with expected health")
 	_check(bool(multiplayer.is_server()), "offline smoke harness is allowed to exercise server logic")
+	_check(bool(avatar.call("_is_finite_vector3", Vector3(0.5, 0.0, -0.5))), "finite network input vector is accepted")
+	_check(not bool(avatar.call("_is_finite_vector3", Vector3(INF, 0.0, 0.0))), "infinite network input vector is rejected")
+	_check(not bool(avatar.call("_is_finite_vector3", Vector3(NAN, 0.0, 0.0))), "NaN network input vector is rejected")
+	_check(bool(avatar.call("_accept_input_packet", 1000)), "first input packet is accepted")
+	_check(not bool(avatar.call("_accept_input_packet", 1024)), "input packet inside the rate-limit window is rejected")
+	_check(bool(avatar.call("_accept_input_packet", 1025)), "input packet is accepted after the rate-limit window")
 
 	avatar.call("server_grant_experience", 100)
 	print("[network-smoke] XP tested")
