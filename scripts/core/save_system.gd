@@ -189,7 +189,7 @@ func _prepare_save_data(data: Dictionary) -> Dictionary:
 
     var prepared: Dictionary = data.duplicate(true)
     var schema_value: Variant = prepared.get("schema_version", 0)
-    if typeof(schema_value) != TYPE_INT:
+    if not _is_integer_value(schema_value):
         return {}
     var schema_version := int(schema_value)
     if schema_version < 0 or schema_version > CURRENT_SCHEMA_VERSION:
@@ -220,14 +220,14 @@ func _migrate_v0_to_v1(legacy: Dictionary) -> Dictionary:
 func _validate_gameplay_fields(data: Dictionary) -> bool:
     var level := 1
     if data.has("level"):
-        if typeof(data["level"]) != TYPE_INT:
+        if not _is_integer_value(data["level"]):
             return false
         level = int(data["level"])
         if level < 1 or level > MAX_PLAYER_LEVEL:
             return false
 
     if data.has("experience"):
-        if typeof(data["experience"]) != TYPE_INT:
+        if not _is_integer_value(data["experience"]):
             return false
         var required_xp := 100 + ((level - 1) * 50)
         if int(data["experience"]) < 0 or int(data["experience"]) >= required_xp:
@@ -272,7 +272,7 @@ func _validate_gameplay_fields(data: Dictionary) -> bool:
             if String(item_data["id"]).is_empty() or String(item_data["id"]).length() > 128:
                 return false
             var amount: Variant = item_data.get("amount", 1)
-            if typeof(amount) != TYPE_INT or int(amount) < 1 or int(amount) > MAX_INVENTORY_STACK:
+            if not _is_integer_value(amount) or int(amount) < 1 or int(amount) > MAX_INVENTORY_STACK:
                 return false
 
     if data.has("quest"):
@@ -284,7 +284,7 @@ func _validate_gameplay_fields(data: Dictionary) -> bool:
         if quest.has("title") and typeof(quest["title"]) != TYPE_STRING:
             return false
         if quest.has("progress"):
-            if typeof(quest["progress"]) != TYPE_INT:
+            if not _is_integer_value(quest["progress"]):
                 return false
             if int(quest["progress"]) < 0 or int(quest["progress"]) > MAX_QUEST_PROGRESS:
                 return false
@@ -303,6 +303,16 @@ func _validate_gameplay_fields(data: Dictionary) -> bool:
                 if typeof(flag_name) != TYPE_STRING or typeof(flags[flag_name]) != TYPE_BOOL:
                     return false
     return true
+
+
+
+func _is_integer_value(value: Variant) -> bool:
+    if typeof(value) == TYPE_INT:
+        return true
+    if typeof(value) != TYPE_FLOAT:
+        return false
+    var number := float(value)
+    return is_finite(number) and absf(number) <= MAX_ABS_NUMBER and number == floorf(number)
 
 
 func _is_safe_json_value(value: Variant, depth: int) -> bool:
