@@ -125,11 +125,11 @@ python -m unittest discover -s tools -p 'test_ai_test_diagnostics.py' -v
 
 ## التدقيق الجنائي الآلي لوسائط الأصول
 
-أداة \`tools/audit_assets.py\` تنشئ جردًا ثابتًا دون تنزيل أو تعديل الأصول. تعرض المسار والامتداد والحجم وSHA-256 وحالة manifest، وتفحص حاوية GLB/JSON في حدودها المعلنة، وURIs الخارجية في glTF، وبيانات WAV الأساسية، وترويسات PNG/SVG وبعض صيغ الوسائط الأخرى. تمسح أيضًا المسارات الحرفية \`res://\` في ملفات المصدر وتفصل مسار اللاعب الاختياري المعروف عن المرشحات التي تحتاج مراجعة.
+أداة `tools/audit_assets.py` تنشئ جردًا ثابتًا دون تنزيل أو تعديل الأصول. تعرض المسار والامتداد والحجم وSHA-256 وحالة manifest، وتفحص حاوية GLB/JSON في حدودها المعلنة، وURIs الخارجية في glTF، وبيانات WAV الأساسية، وترويسات PNG/SVG وبعض صيغ الوسائط الأخرى. تمسح أيضًا المسارات الحرفية `res://` في ملفات المصدر وتفصل مسار اللاعب الاختياري المعروف عن المرشحات التي تحتاج مراجعة.
 
 شغّل من جذر المستودع:
 
-\`\`\`bash
+```bash
 python3 -m py_compile tools/audit_assets.py
 python3 -m unittest discover -s tools -p 'test_asset_inventory.py' -v
 mkdir -p /tmp/ashen-asset-audit
@@ -137,9 +137,9 @@ python3 tools/audit_assets.py --root . \
   --json-output /tmp/ashen-asset-audit/asset-audit.json \
   --markdown-output /tmp/ashen-asset-audit/asset-audit.md
 python3 tools/validate_free_assets.py
-\`\`\`
+```
 
-لا تفشل الأداة بسبب المرشحات النصية وحدها: المرشح ليس عيبًا مؤكدًا، ويلزم فحص السطر المقصود في سياقه أو تحميل المورد في Godot. يبقى \`tools/validate_free_assets.py\` بوابة CI المانعة للأصول داخل \`assets/\` التي ينقصها سجل التراخيص المطلوب. يرفع Workflow ملفي JSON وMarkdown كـ Artifact باسم \`asset-forensic-audit-<run>\` لمدة الاحتفاظ المحددة في إعداد سير العمل.
+لا تفشل الأداة بسبب المرشحات النصية وحدها: المرشح ليس عيبًا مؤكدًا، ويلزم فحص السطر المقصود في سياقه أو تحميل المورد في Godot. يبقى `tools/validate_free_assets.py` بوابة CI المانعة للأصول داخل `assets/` التي ينقصها سجل التراخيص المطلوب. يرفع Workflow ملفي JSON وMarkdown كـ Artifact باسم `asset-forensic-audit-<run>` لمدة الاحتفاظ المحددة في إعداد سير العمل.
 
 **حدود الاستنتاج:** البصمة والحجم وبيانات الحاوية لا تثبت الملكية أو الترخيص، ولا تعوّض عرض نموذج ثلاثي الأبعاد أو الاستماع للصوت أو اختبار هاتف Android. لا يفك هذا الفحص كل صيغ الوسائط بالكامل، ولا يجلب URIs خارجية، ولا يثبت صلاحية الهيكل العظمي أو الجودة الفنية.
 
