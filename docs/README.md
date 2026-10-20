@@ -80,3 +80,11 @@ python3 tools/validate_free_assets.py
 ## مؤثرات القتال
 
 - تأثير وميض/شظايا أولي مرتبط بإصابة السيف: `scenes/vfx/CombatHitEffect.tscn`، مع اختبار ذاتي في `tests/combat_hit_effect_smoke_test.gd`.
+
+
+## نموذج اللاعب
+
+- النموذج الحالي ملف GLB ثابت بُني إجرائيًا: `assets/characters/player/player.glb`.
+- إعادة الإنشاء: `python3 tools/generate_procedural_player_glb.py`.
+- التحقق البنيوي: `python3 tools/validate_player_glb.py assets/characters/player/player.glb`.
+- لا توجد حركات أو Skeleton مضمّنة حتى الآن.

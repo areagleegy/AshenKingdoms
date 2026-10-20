@@ -91,6 +91,8 @@ jobs:
           test -f tests/network_combat_smoke_test.tscn
           test -f tools/test-network-loopback.sh
           test -f tools/generate_player_glb.py
+          test -f tools/generate_procedural_player_glb.py
+          test -f tools/validate_player_glb.py
           test -f tests/player_character_smoke_test.gd
           test -f tests/combat_hit_effect_smoke_test.gd
           test -f scenes/vfx/CombatHitEffect.tscn
@@ -142,6 +144,8 @@ jobs:
         run: |
           python3 -m py_compile tools/generate_player_glb.py tools/validate_free_assets.py tools/audit_assets.py
           python3 tools/generate_player_glb.py --help > /dev/null
+          python3 -m py_compile tools/generate_procedural_player_glb.py tools/validate_player_glb.py
+          python3 tools/validate_player_glb.py assets/characters/player/player.glb
           python3 tools/validate_free_assets.py
 
 

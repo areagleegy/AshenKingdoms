@@ -39,7 +39,13 @@ func _test_model_loader_and_placeholder() -> void:
 		_check(body.get_node_or_null("HeroFallbackVisual/ChestArmor") != null, "fallback includes a visible chest armor mesh")
 	else:
 		_check(body.get_node_or_null("CollisionShape3D") != null, "GLB player keeps independent capsule collision")
-		_check(body.get_node_or_null("PlayerVisual/GeneratedPlayerModel") != null, "GLB is attached below PlayerVisual")
+		var model_instance := body.get_node_or_null("PlayerVisual/GeneratedPlayerModel")
+		_check(model_instance != null, "GLB is attached below PlayerVisual")
+		if model_instance != null:
+			var model_meshes := model_instance.find_children("*", "MeshInstance3D", true, false)
+			if model_instance is MeshInstance3D:
+				model_meshes.append(model_instance)
+			_check(not model_meshes.is_empty(), "GLB has a visible MeshInstance3D")
 
 	body.free()
 	main_node.free()

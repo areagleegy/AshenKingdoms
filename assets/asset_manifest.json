@@ -214,7 +214,7 @@
     {
       "path": "assets/characters/player/player.glb",
       "author": "AshenKingdoms contributors — original procedural low-poly mesh",
-      "source_url": "https://github.com/areagleegy/AshenKingdoms/blob/assets/ui-foundation-icons-2026-10-21/assets/characters/player/player.glb",
+      "source_url": "https://github.com/areagleegy/AshenKingdoms/blob/assets/ui-foundation-icons-2026-10-21/tools/generate_procedural_player_glb.py",
       "license": "MIT (original mesh authored for this repository; repository license applies)",
       "license_url": "https://github.com/areagleegy/AshenKingdoms/blob/main/LICENSE",
       "attribution": "Original static AshenKingdoms player character constructed procedurally in-repository; no external mesh or textures.",
