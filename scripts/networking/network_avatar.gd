@@ -104,17 +104,37 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 	var sender_id := multiplayer.get_remote_sender_id()
 	if sender_id != owner_peer_id or sender_id <= 1 or is_dead:
 		return
+	if not _is_finite_vector3(direction):
+		return
 
 	var safe_direction := Vector3(direction.x, 0.0, direction.z)
-	if safe_direction.length_squared() > 1.0:
+	var direction_length_squared := safe_direction.length_squared()
+	if not is_finite(direction_length_squared):
+		return
+	if direction_length_squared > 1.0:
 		safe_direction = safe_direction.normalized()
+
 	_set_requested_input(safe_direction, jump_down, sprint_down, attack_down)
 	_last_input_msec = Time.get_ticks_msec()
 
 
+func _is_finite_vector3(value: Vector3) -> bool:
+	return is_finite(value.x) and is_finite(value.y) and is_finite(value.z)
+
+
 func _set_requested_input(direction: Vector3, jump_down: bool, sprint_down: bool, attack_down: bool) -> void:
+	if not _is_finite_vector3(direction):
+		_requested_direction = Vector3.ZERO
+		_sprint_requested = false
+		_jump_buffered = false
+		_attack_requested = false
+		return
+
 	_requested_direction = Vector3(direction.x, 0.0, direction.z)
-	if _requested_direction.length_squared() > 1.0:
+	var direction_length_squared := _requested_direction.length_squared()
+	if not is_finite(direction_length_squared):
+		_requested_direction = Vector3.ZERO
+	elif direction_length_squared > 1.0:
 		_requested_direction = _requested_direction.normalized()
 	_sprint_requested = sprint_down
 	if jump_down and not _last_jump_down:
@@ -135,6 +155,8 @@ func _server_step(delta: float) -> void:
 		_sprint_requested = false
 		_jump_buffered = false
 		_attack_requested = false
+		_last_jump_down = false
+		_last_attack_down = false
 
 	if not is_on_floor():
 		velocity.y -= _gravity * delta
