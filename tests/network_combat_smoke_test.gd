@@ -34,33 +34,42 @@ func _run() -> void:
 	add_child(input_probe)
 	input_probe.global_position = Vector3(1000.0, 0.92, 1000.0)
 	var input_test_time := Time.get_ticks_msec() + 100
+	var input_sequence := 1
 	_check(
-		not bool(input_probe.call("_accept_remote_input", 3, Vector3.ZERO, false, false, false, input_test_time)),
+		not bool(input_probe.call("_accept_remote_input", 3, 1, Vector3.ZERO, false, false, false, input_test_time)),
 		"network input rejects a sender that does not own the avatar"
 	)
 	_check(
-		not bool(input_probe.call("_accept_remote_input", 2, Vector3(INF, 0.0, 0.0), false, false, false, input_test_time)),
+		not bool(input_probe.call("_accept_remote_input", 2, 1, Vector3(INF, 0.0, 0.0), false, false, false, input_test_time)),
 		"network input rejects non-finite direction values"
 	)
 	_check(
-		not bool(input_probe.call("_accept_remote_input", 2, Vector3(0.0, 1.0, 0.0), false, false, false, input_test_time)),
+		not bool(input_probe.call("_accept_remote_input", 2, 1, Vector3(0.0, 1.0, 0.0), false, false, false, input_test_time)),
 		"network input rejects vertical movement components"
 	)
 	_check(
-		not bool(input_probe.call("_accept_remote_input", 2, Vector3(1.5, 0.0, 0.0), false, false, false, input_test_time)),
+		not bool(input_probe.call("_accept_remote_input", 2, 1, Vector3(1.5, 0.0, 0.0), false, false, false, input_test_time)),
 		"network input rejects over-range direction vectors"
 	)
 	_check(
-		bool(input_probe.call("_accept_remote_input", 2, Vector3(0.0, 0.0, -1.0), false, false, false, input_test_time)),
+		bool(input_probe.call("_accept_remote_input", 2, input_sequence, Vector3(0.0, 0.0, -1.0), false, false, false, input_test_time)),
 		"network input accepts valid bounded input from its owner"
 	)
 	_check(
-		not bool(input_probe.call("_accept_remote_input", 2, Vector3.ZERO, false, false, false, input_test_time + 10)),
+		not bool(input_probe.call("_accept_remote_input", 2, input_sequence + 1, Vector3.ZERO, false, false, false, input_test_time + 10)),
 		"network input rejects samples inside the 20 ms rate-limit window"
 	)
 	_check(
-		bool(input_probe.call("_accept_remote_input", 2, Vector3.ZERO, false, false, false, input_test_time + 20)),
+		bool(input_probe.call("_accept_remote_input", 2, input_sequence + 1, Vector3.ZERO, false, false, false, input_test_time + 20)),
 		"network input accepts a new sample after the rate-limit window"
+	)
+	_check(
+		not bool(input_probe.call("_accept_remote_input", 2, input_sequence + 1, Vector3.ZERO, false, false, false, input_test_time + 40)),
+		"network input rejects duplicate sequence values even after the rate-limit interval"
+	)
+	_check(
+		not bool(input_probe.call("_accept_remote_input", 2, input_sequence, Vector3.ZERO, false, false, false, input_test_time + 60)),
+		"network input rejects out-of-order stale sequence values"
 	)
 	input_probe.queue_free()
 

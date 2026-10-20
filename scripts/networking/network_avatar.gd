@@ -42,6 +42,8 @@ var _has_received_input: bool = false
 var _next_attack_msec: int = 0
 var _death_generation: int = 0
 var _input_send_accumulator: float = 0.0
+var _input_sequence: int = 0
+var _last_input_sequence: int = -1
 var _base_color: Color = Color.WHITE
 
 
@@ -52,6 +54,8 @@ func configure_owner(peer_id: int) -> void:
 	current_health = max_health
 	_last_input_msec = 0
 	_has_received_input = false
+	_input_sequence = 0
+	_last_input_sequence = -1
 
 
 func configure_battle_royale(enabled: bool) -> void:
@@ -97,9 +101,11 @@ func _physics_process(delta: float) -> void:
 	_input_send_accumulator += delta
 	if _input_send_accumulator >= INPUT_SEND_INTERVAL:
 		_input_send_accumulator = 0.0
+		_input_sequence += 1
 		rpc_id(
 			1,
 			"_rpc_submit_input",
+			_input_sequence,
 			_read_world_direction(),
 			Input.is_action_pressed("jump"),
 			Input.is_action_pressed("sprint"),
@@ -108,17 +114,18 @@ func _physics_process(delta: float) -> void:
 
 
 @rpc("any_peer", "call_remote", "unreliable")
-func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, attack_down: bool) -> void:
+func _rpc_submit_input(input_sequence: int, direction: Vector3, jump_down: bool, sprint_down: bool, attack_down: bool) -> void:
 	if not multiplayer.is_server():
 		return
 	var sender_id := multiplayer.get_remote_sender_id()
-	_accept_remote_input(sender_id, direction, jump_down, sprint_down, attack_down, Time.get_ticks_msec())
+	_accept_remote_input(sender_id, input_sequence, direction, jump_down, sprint_down, attack_down, Time.get_ticks_msec())
 
 
 ## Server-side gate shared by the RPC handler and deterministic regression tests.
 ## Clients may send at most one accepted input per player every 20 ms.
 func _accept_remote_input(
 	sender_id: int,
+	input_sequence: int,
 	direction: Vector3,
 	jump_down: bool,
 	sprint_down: bool,
@@ -128,6 +135,8 @@ func _accept_remote_input(
 	if not multiplayer.is_server() or sender_id != owner_peer_id or sender_id <= 1:
 		return false
 	if is_dead or current_health <= 0.0 or now_msec < 0:
+		return false
+	if input_sequence < 0 or input_sequence <= _last_input_sequence:
 		return false
 	if not direction.is_finite() or absf(direction.y) > 0.001:
 		return false
@@ -140,6 +149,7 @@ func _accept_remote_input(
 
 	_set_requested_input(Vector3(planar_direction.x, 0.0, planar_direction.y), jump_down, sprint_down, attack_down)
 	_last_input_msec = now_msec
+	_last_input_sequence = input_sequence
 	_has_received_input = true
 	return true
 
