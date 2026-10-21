@@ -164,7 +164,11 @@ func _validate_payload(data: Dictionary) -> bool:
 	if not is_finite(health) or health < 0.0 or health > 9999.0:
 		return false
 
-	if typeof(data["level"]) != TYPE_INT or int(data["level"]) < 1 or int(data["level"]) > 10000:
+	if not _is_number(data["level"]):
+		return false
+	if not is_finite(float(data["level"])) or float(data["level"]) != float(int(data["level"])):
+		return false
+	if int(data["level"]) < 1 or int(data["level"]) > 10000:
 		return false
 	if not _is_number(data["experience"]) or not is_finite(float(data["experience"])) or float(data["experience"]) < 0.0:
 		return false
