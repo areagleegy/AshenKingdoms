@@ -107,6 +107,8 @@ jobs:
           test -f data/combat/armor.json
           test -f tools/validate_combat_catalog.py
           test -f tools/test_combat_catalog.py
+          test -f scripts/combat/combat_catalog.gd
+          test -f tests/combat_catalog_smoke_test.gd
 
       - name: Validate local Markdown links
         run: python3 tools/validate_docs.py
@@ -137,6 +139,13 @@ jobs:
         run: |
           set -o pipefail
           godot --headless --path . --script res://tests/script_load_smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/resource-smoke.log"
+
+      - name: Run runtime combat catalog smoke tests
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -o pipefail
+          godot --headless --path . --script res://tests/combat_catalog_smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/combat-runtime-tests.log"
 
       - name: Run gameplay smoke tests
         env:
@@ -192,7 +201,7 @@ jobs:
           ASHEN_AI_ENDPOINT: ${{ secrets.ASHEN_AI_ENDPOINT }}
           ASHEN_AI_API_KEY: ${{ secrets.ASHEN_AI_API_KEY }}
           ASHEN_AI_MODEL: ${{ vars.ASHEN_AI_MODEL }}
-        run: python3 tools/ai_test_diagnostics.py --log "$RUNNER_TEMP/diagnostics-unit-tests.log" --log "$RUNNER_TEMP/diagnostic-benchmark.log" --log "$RUNNER_TEMP/godot-setup.log" --log "$RUNNER_TEMP/godot-import.log" --log "$RUNNER_TEMP/gameplay-tests.log" --log "$RUNNER_TEMP/gameplay-regression.log" --log "$RUNNER_TEMP/content-tests.log" --log "$RUNNER_TEMP/python-tests.log" --log "$RUNNER_TEMP/player-character-tests.log" --log "$RUNNER_TEMP/resource-smoke.log" --log "$RUNNER_TEMP/network-combat.log" --log "$RUNNER_TEMP/network-loopback.log" --log "$RUNNER_TEMP/combat-catalog-tests.log" --output "$RUNNER_TEMP/ashen-test-diagnostics.json"
+        run: python3 tools/ai_test_diagnostics.py --log "$RUNNER_TEMP/diagnostics-unit-tests.log" --log "$RUNNER_TEMP/diagnostic-benchmark.log" --log "$RUNNER_TEMP/godot-setup.log" --log "$RUNNER_TEMP/godot-import.log" --log "$RUNNER_TEMP/gameplay-tests.log" --log "$RUNNER_TEMP/gameplay-regression.log" --log "$RUNNER_TEMP/content-tests.log" --log "$RUNNER_TEMP/python-tests.log" --log "$RUNNER_TEMP/player-character-tests.log" --log "$RUNNER_TEMP/resource-smoke.log" --log "$RUNNER_TEMP/network-combat.log" --log "$RUNNER_TEMP/network-loopback.log" --log "$RUNNER_TEMP/combat-catalog-tests.log" --log "$RUNNER_TEMP/combat-runtime-tests.log" --output "$RUNNER_TEMP/ashen-test-diagnostics.json"
 
       - name: Upload diagnostic report
         if: always()
