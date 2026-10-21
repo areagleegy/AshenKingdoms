@@ -104,6 +104,8 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 	var sender_id := multiplayer.get_remote_sender_id()
 	if sender_id != owner_peer_id or sender_id <= 1 or is_dead:
 		return
+	if not direction.is_finite():
+		return
 
 	var safe_direction := Vector3(direction.x, 0.0, direction.z)
 	if safe_direction.length_squared() > 1.0:
@@ -113,6 +115,8 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 
 
 func _set_requested_input(direction: Vector3, jump_down: bool, sprint_down: bool, attack_down: bool) -> void:
+	if not direction.is_finite():
+		direction = Vector3.ZERO
 	_requested_direction = Vector3(direction.x, 0.0, direction.z)
 	if _requested_direction.length_squared() > 1.0:
 		_requested_direction = _requested_direction.normalized()
