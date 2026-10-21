@@ -113,7 +113,7 @@ def make_report(catalog: dict[str, Any], profile: str, results: list[dict[str, A
             diagnostic_lines.extend(str(item.get("summary", "")).splitlines())
     try:
         from ai_test_diagnostics import classify_text
-        ai_diagnostics = classify_text("\\n".join(diagnostic_lines)) if diagnostic_lines else []
+        ai_diagnostics = classify_text("\n".join(diagnostic_lines)) if diagnostic_lines else []
     except Exception as exc:
         ai_diagnostics = [{"category": "diagnostics_unavailable", "severity": "low", "reason": type(exc).__name__}]
     return {
