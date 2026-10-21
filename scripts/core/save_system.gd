@@ -81,9 +81,6 @@ func has_save() -> bool:
 
 
 func delete_save() -> bool:
-	var save_absolute := ProjectSettings.globalize_path(SAVE_PATH)
-	var temp_absolute := ProjectSettings.globalize_path(TEMP_SAVE_PATH)
-	var backup_absolute := ProjectSettings.globalize_path(BACKUP_SAVE_PATH)
 	for path in [SAVE_PATH, TEMP_SAVE_PATH, BACKUP_SAVE_PATH]:
 		if FileAccess.file_exists(path):
 			var absolute_path := ProjectSettings.globalize_path(path)
