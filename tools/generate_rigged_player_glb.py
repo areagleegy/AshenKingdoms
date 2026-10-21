@@ -136,7 +136,7 @@ def component_bone(center, material_index):
     if material_index == 2 and y < 0.56 and ax < 0.27:
         return BONE_INDEX[f"LowerLeg_{side}"]
     if material_index == 6 and y < 0.70 and ax < 0.27:
-        return BONE_INDEX[f"LowerLeg_{side}"] if y < 0.42 else BONE_INDEX[f"UpperLeg_{side}"]
+        return BONE_INDEX[f"LowerLeg_{side}"] if y < 0.30 else BONE_INDEX[f"UpperLeg_{side}"]
     if material_index == 1 and y < 0.22 and 0.035 < ax < 0.25:
         return BONE_INDEX[f"Foot_{side}"]
     if material_index == 1 and ax >= 0.25 and z > 0.08 and 0.30 <= y < 0.86:
@@ -285,6 +285,10 @@ def add_animations(document, binary, joint_node_map, pivots):
     add_animation(document, binary, "Walking", [0, .25, .5, .75, 1.0], [
         R("UpperLeg_L", [1,0,0], [0, .42, 0, -.42, 0]),
         R("UpperLeg_R", [1,0,0], [0, -.42, 0, .42, 0]),
+        R("LowerLeg_L", [1,0,0], [0, .16, 0, -.16, 0]),
+        R("LowerLeg_R", [1,0,0], [0, -.16, 0, .16, 0]),
+        R("Foot_L", [1,0,0], [0, -.08, 0, .08, 0]),
+        R("Foot_R", [1,0,0], [0, .08, 0, -.08, 0]),
         R("UpperArm_L", [1,0,0], [0, -.25, 0, .25, 0]),
         R("UpperArm_R", [1,0,0], [0, .25, 0, -.25, 0]),
         R("Cape", [1,0,0], [0, .045, 0, -.03, 0]),
@@ -292,6 +296,10 @@ def add_animations(document, binary, joint_node_map, pivots):
     add_animation(document, binary, "Running", [0, .175, .35, .525, .7], [
         R("UpperLeg_L", [1,0,0], [0, .68, 0, -.68, 0]),
         R("UpperLeg_R", [1,0,0], [0, -.68, 0, .68, 0]),
+        R("LowerLeg_L", [1,0,0], [0, .27, 0, -.27, 0]),
+        R("LowerLeg_R", [1,0,0], [0, -.27, 0, .27, 0]),
+        R("Foot_L", [1,0,0], [0, -.15, 0, .15, 0]),
+        R("Foot_R", [1,0,0], [0, .15, 0, -.15, 0]),
         R("UpperArm_L", [1,0,0], [0, -.43, 0, .43, 0]),
         R("UpperArm_R", [1,0,0], [0, .43, 0, -.43, 0]),
         R("Cape", [1,0,0], [0, .08, 0, -.05, 0]),
@@ -299,6 +307,10 @@ def add_animations(document, binary, joint_node_map, pivots):
     add_animation(document, binary, "Jump", [0, .18, .4, .62, .8], [
         R("UpperLeg_L", [1,0,0], [0, .28, .12, -.05, 0]),
         R("UpperLeg_R", [1,0,0], [0, -.22, -.12, .05, 0]),
+        R("LowerLeg_L", [1,0,0], [0, -.12, -.18, -.05, 0]),
+        R("LowerLeg_R", [1,0,0], [0, -.12, .18, .05, 0]),
+        R("Foot_L", [1,0,0], [0, -.08, .10, .02, 0]),
+        R("Foot_R", [1,0,0], [0, -.08, -.10, -.02, 0]),
         R("UpperArm_L", [1,0,0], [0, -.38, -.6, -.2, 0]),
         R("UpperArm_R", [1,0,0], [0, -.38, -.6, -.2, 0]),
         R("Cape", [1,0,0], [0, .12, .28, .15, 0]),
@@ -306,6 +318,7 @@ def add_animations(document, binary, joint_node_map, pivots):
     add_animation(document, binary, "HeavyAttack", [0, .15, .30, .48, .68], [
         R("UpperArm_R", [1,0,0], [0, -.38, 1.2, .65, 0]),
         R("LowerArm_R", [1,0,0], [0, -.12, -.72, .28, 0]),
+        R("Hand_R", [1,0,0], [0, -.08, -.30, .10, 0]),
         R("Chest", [0,1,0], [0, -.16, -.35, .1, 0]),
         R("Cape", [1,0,0], [0, .06, .2, -.1, 0]),
     ], joint_node_map)
