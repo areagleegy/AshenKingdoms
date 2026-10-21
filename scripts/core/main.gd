@@ -136,6 +136,11 @@ func _create_world() -> void:
 	ground_mesh_node.material_override = ground_material
 	world.add_child(ground_mesh_node)
 
+	var audio_manager := get_node_or_null("/root/AudioManager")
+	if audio_manager != null:
+		audio_manager.call("play_loop", &"ash_wind_loop", -17.0)
+		audio_manager.call("play_loop", &"ashen_exploration_loop", -23.0)
+
 
 func _create_managers() -> void:
 	progression = PROGRESSION_SCRIPT.new()

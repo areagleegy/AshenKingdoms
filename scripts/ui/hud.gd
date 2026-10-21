@@ -18,6 +18,9 @@ var _root: Control
 var _inventory_panel: PanelContainer
 var _inventory_list: VBoxContainer
 var _pause_panel: PanelContainer
+var _master_volume_slider: HSlider
+var _audio_mute_button: Button
+var _audio_muted: bool = false
 
 
 func _ready() -> void:
@@ -148,6 +151,29 @@ func _build_pause_panel() -> void:
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title_label)
 
+	var audio_label := Label.new()
+	audio_label.text = "مستوى الصوت"
+	box.add_child(audio_label)
+
+	_master_volume_slider = HSlider.new()
+	_master_volume_slider.min_value = 0.0
+	_master_volume_slider.max_value = 100.0
+	_master_volume_slider.step = 5.0
+	_master_volume_slider.custom_minimum_size = Vector2(260.0, 24.0)
+	var audio_manager := get_node_or_null("/root/AudioManager")
+	if audio_manager != null:
+		_master_volume_slider.value = clampf(float(audio_manager.get("master_volume_linear")) * 100.0, 0.0, 100.0)
+	else:
+		_master_volume_slider.value = 100.0
+	_master_volume_slider.value_changed.connect(_on_master_volume_changed)
+	box.add_child(_master_volume_slider)
+	_on_master_volume_changed(_master_volume_slider.value)
+
+	_audio_mute_button = Button.new()
+	_audio_mute_button.text = "كتم الصوت"
+	_audio_mute_button.pressed.connect(_toggle_master_mute)
+	box.add_child(_audio_mute_button)
+
 	var resume_button := Button.new()
 	resume_button.text = "استئناف"
 	resume_button.pressed.connect(func() -> void:
@@ -273,6 +299,7 @@ func toggle_inventory() -> void:
 
 
 func _set_paused(value: bool) -> void:
+	_play_sfx(&"ui_select" if value else &"ui_back", -9.0)
 	_pause_panel.visible = value
 	if value:
 		_inventory_panel.visible = false
@@ -281,6 +308,7 @@ func _set_paused(value: bool) -> void:
 
 
 func _set_inventory_visible(value: bool) -> void:
+	_play_sfx(&"ui_select" if value else &"ui_back", -9.0)
 	_inventory_panel.visible = value
 	get_tree().paused = value
 	_set_mouse_for_ui(value)
@@ -337,7 +365,9 @@ func _refresh_inventory() -> void:
 func _on_inventory_item_pressed(slot_index: int) -> void:
 	if _inventory != null and _player != null:
 		var used: bool = bool(_inventory.call("use_item", slot_index, _player))
-		if not used:
+		if used:
+			_play_sfx(&"potion_use", -6.0)
+		else:
 			show_message("لا يمكن استخدام العنصر الآن.")
 
 
@@ -371,3 +401,24 @@ func show_message(message: String) -> void:
 
 func show_saved_status(success: bool) -> void:
 	show_message("تم حفظ اللعبة." if success else "تعذر حفظ اللعبة.")
+
+
+func _play_sfx(sound_id: StringName, volume_db: float = 0.0) -> void:
+	var audio_manager := get_node_or_null("/root/AudioManager")
+	if audio_manager != null:
+		audio_manager.call("play_sfx", sound_id, volume_db)
+
+
+func _on_master_volume_changed(value: float) -> void:
+	var audio_manager := get_node_or_null("/root/AudioManager")
+	if audio_manager != null:
+		audio_manager.call("set_master_volume", value / 100.0)
+
+
+func _toggle_master_mute() -> void:
+	_audio_muted = not _audio_muted
+	var audio_manager := get_node_or_null("/root/AudioManager")
+	if audio_manager != null:
+		audio_manager.call("set_muted", _audio_muted)
+	if is_instance_valid(_audio_mute_button):
+		_audio_mute_button.text = "تشغيل الصوت" if _audio_muted else "كتم الصوت"

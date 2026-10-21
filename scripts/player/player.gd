@@ -29,6 +29,7 @@ var is_dead: bool = false
 var _animation_player: AnimationPlayer
 var _resolved_animations: Dictionary = {}
 var _is_attacking: bool = false
+var _footstep_timer: float = 0.0
 
 
 func _ready() -> void:
@@ -50,6 +51,7 @@ func _physics_process(delta: float) -> void:
 
 	if Input.is_action_just_pressed("jump") and is_on_floor():
 		velocity.y = jump_velocity
+		_play_sfx(&"player_jump", -7.0)
 
 	var input_vector := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var direction := Vector3.ZERO
@@ -73,6 +75,7 @@ func _physics_process(delta: float) -> void:
 		rotation.y = lerp_angle(rotation.y, target_y, rotation_speed * delta)
 
 	move_and_slide()
+	_update_footstep_audio(direction, delta)
 
 	if not _is_attacking:
 		_update_animation(direction)
@@ -82,8 +85,12 @@ func _physics_process(delta: float) -> void:
 
 
 func take_damage(amount: float) -> void:
-	if not is_dead:
-		health.take_damage(amount)
+	if is_dead:
+		return
+	var previous_health := health.current
+	health.take_damage(amount)
+	if health.current < previous_health:
+		_play_sfx(&"player_hit", -6.0)
 
 
 func reset_after_death(spawn_position: Vector3) -> void:
@@ -99,6 +106,7 @@ func _attack() -> void:
 	_can_attack = false
 	_is_attacking = true
 	_play_animation(&"attack")
+	_play_sfx(&"sword_swing", -5.0)
 	var from := global_position + Vector3.UP * 0.65
 	var to := from - global_transform.basis.z * attack_range
 	var query := PhysicsRayQueryParameters3D.create(from, to)
@@ -109,10 +117,27 @@ func _attack() -> void:
 		var collider: Object = hit.get("collider")
 		if collider is Node and collider.has_method("take_damage"):
 			collider.call("take_damage", attack_damage)
+			_play_sfx(&"sword_hit", -4.0)
 
 	await get_tree().create_timer(attack_cooldown).timeout
 	_can_attack = true
 	_is_attacking = false
+
+
+func _update_footstep_audio(direction: Vector3, delta: float) -> void:
+	if not is_on_floor() or direction.length_squared() <= 0.001:
+		_footstep_timer = 0.0
+		return
+	_footstep_timer -= delta
+	if _footstep_timer <= 0.0:
+		_play_sfx(&"footstep_stone", -14.0)
+		_footstep_timer = 0.34 if Input.is_action_pressed("sprint") else 0.52
+
+
+func _play_sfx(sound_id: StringName, volume_db: float = 0.0) -> void:
+	var audio_manager := get_node_or_null("/root/AudioManager")
+	if audio_manager != null:
+		audio_manager.call("play_sfx", sound_id, volume_db)
 
 
 func _find_animation_player() -> void:
