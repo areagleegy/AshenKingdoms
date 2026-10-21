@@ -23,6 +23,9 @@ func _run() -> void:
 	add_child(avatar)
 	print("[network-smoke] avatar ready")
 	_check(float(avatar.get("current_health")) == 100.0, "network avatar starts with expected health")
+	_check(bool(avatar.call("_is_valid_input_direction", Vector3(1.0, 0.0, -1.0))), "network input accepts finite bounded directions")
+	_check(not bool(avatar.call("_is_valid_input_direction", Vector3(3.0, 0.0, 0.0))), "network input rejects out-of-range direction components")
+	_check(not bool(avatar.call("_is_valid_input_direction", Vector3(INF, 0.0, 0.0))), "network input rejects infinite direction components")
 	_check(bool(multiplayer.is_server()), "offline smoke harness is allowed to exercise server logic")
 
 	avatar.call("server_grant_experience", 100)
