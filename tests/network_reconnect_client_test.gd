@@ -47,7 +47,8 @@ func _run() -> void:
 		for _duplicate in range(3):
 			manager.call("notify_arena_ready")
 
-		var peer_id := multiplayer.get_unique_id()
+		var multiplayer_api: MultiplayerAPI = manager.get_multiplayer()
+		var peer_id: int = multiplayer_api.get_unique_id()
 		if not await _wait_for_single_avatar(peer_id):
 			_fail("cycle %d: expected exactly one avatar for peer %d" % [cycle + 1, peer_id])
 			manager.call("leave_session", false)
