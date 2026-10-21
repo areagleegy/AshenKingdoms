@@ -129,6 +129,14 @@ func _test_inventory_and_potions() -> void:
 
 
 func _test_save_and_load(had_original_save: bool, original_save: String) -> void:
+	# Preserve all save-related files, not only the primary file. These tests
+	# deliberately overwrite .bak and .tmp fixtures and must not destroy a
+	# pre-existing backup when run against a developer's user:// directory.
+	var had_original_backup := FileAccess.file_exists("user://savegame.json.bak")
+	var original_backup := _read_text_file("user://savegame.json.bak") if had_original_backup else ""
+	var had_original_temp := FileAccess.file_exists("user://savegame.json.tmp")
+	var original_temp := _read_text_file("user://savegame.json.tmp") if had_original_temp else ""
+
 	var save_system: Node = SaveSystemScript.new()
 	root.add_child(save_system)
 
@@ -212,8 +220,37 @@ func _test_save_and_load(had_original_save: bool, original_save: String) -> void
 			)
 
 	_restore_original_save(had_original_save, original_save, save_system)
-	_check(not bool(save_system.call("has_save")) if not had_original_save else bool(save_system.call("has_save")), "save fixture is cleaned up or original save is restored")
+	_restore_auxiliary_save_file("user://savegame.json.bak", had_original_backup, original_backup)
+	_restore_auxiliary_save_file("user://savegame.json.tmp", had_original_temp, original_temp)
+	_check(
+		bool(save_system.call("has_save")) if had_original_save or had_original_backup else not bool(save_system.call("has_save")),
+		"save fixtures are cleaned up or original save files are restored"
+	)
 	save_system.queue_free()
+
+
+func _read_text_file(path: String) -> String:
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return ""
+	var content := file.get_as_text()
+	file.close()
+	return content
+
+
+func _restore_auxiliary_save_file(path: String, had_original_file: bool, original_content: String) -> void:
+	var absolute_path := ProjectSettings.globalize_path(path)
+	if FileAccess.file_exists(path) and DirAccess.remove_absolute(absolute_path) != OK:
+		_check(false, "test-generated save file can be removed: %s" % path)
+		return
+	if not had_original_file:
+		return
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		_check(false, "original save-related file can be restored: %s" % path)
+		return
+	file.store_string(original_content)
+	file.close()
 
 
 func _restore_original_save(had_original_save: bool, original_save: String, save_system: Node) -> void:
