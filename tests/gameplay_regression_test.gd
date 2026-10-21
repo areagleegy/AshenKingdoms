@@ -187,6 +187,30 @@ func _test_save_and_load(had_original_save: bool, original_save: String) -> void
 			)
 			_check(FileAccess.file_exists(SAVE_PATH), "corrupt-primary recovery restores the primary save path")
 
+
+		# A subsequent save must not delete a valid backup just because the
+		# primary path exists but contains malformed JSON.
+		var corrupt_before_save := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+		var backup_before_save := FileAccess.open("user://savegame.json.bak", FileAccess.WRITE)
+		if corrupt_before_save == null or backup_before_save == null:
+			_check(false, "test can create corrupt-primary save fixture")
+			if corrupt_before_save != null:
+				corrupt_before_save.close()
+			if backup_before_save != null:
+				backup_before_save.close()
+		else:
+			corrupt_before_save.store_string("{bad primary")
+			corrupt_before_save.close()
+			backup_before_save.store_string(JSON.stringify({"older_level": 4}))
+			backup_before_save.close()
+			var saved_after_recovery := bool(save_system.call("save_game", {"fresh_save": true}))
+			var fresh_data = save_system.call("load_game")
+			_check(saved_after_recovery, "save_game succeeds after recovering a valid backup")
+			_check(
+				fresh_data is Dictionary and bool(fresh_data.get("fresh_save", false)),
+				"new save replaces the recovered backup only after a successful write"
+			)
+
 	_restore_original_save(had_original_save, original_save, save_system)
 	_check(not bool(save_system.call("has_save")) if not had_original_save else bool(save_system.call("has_save")), "save fixture is cleaned up or original save is restored")
 	save_system.queue_free()
