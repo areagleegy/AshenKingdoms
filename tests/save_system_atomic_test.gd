@@ -112,6 +112,28 @@ func _test_invalid_schema_rejected(save_system: Node) -> void:
 	invalid["player_health"] = INF
 	_check(not bool(save_system.call("save_game", invalid)), "non-finite player health is rejected")
 
+	invalid = _valid_payload()
+	invalid["inventory"] = [{"id": "health_potion", "amount": "many"}]
+	_check(not bool(save_system.call("save_game", invalid)), "inventory item with a non-numeric amount is rejected")
+
+	invalid = _valid_payload()
+	invalid["inventory"] = [{"id": "", "amount": 1}]
+	_check(not bool(save_system.call("save_game", invalid)), "inventory item with an empty id is rejected")
+
+	invalid = _valid_payload()
+	invalid["inventory"] = []
+	for _i in range(81):
+		invalid["inventory"].append(null)
+	_check(not bool(save_system.call("save_game", invalid)), "inventory exceeding the supported 80 slots is rejected")
+
+	invalid = _valid_payload()
+	invalid["quest"] = {"active": "yes", "progress": 0}
+	_check(not bool(save_system.call("save_game", invalid)), "quest with a non-boolean active field is rejected")
+
+	invalid = _valid_payload()
+	invalid["quest"] = {"active": false, "progress": 0}
+	_check(bool(save_system.call("save_game", invalid)), "legacy quest payload with active/progress remains valid")
+
 
 func _test_future_version_rejected(save_system: Node) -> void:
 	_write_text(SAVE_PATH, JSON.stringify(_valid_payload(3, 9)))
