@@ -25,6 +25,38 @@ func _run() -> void:
 	_check(float(avatar.get("current_health")) == 100.0, "network avatar starts with expected health")
 	_check(bool(multiplayer.is_server()), "offline smoke harness is allowed to exercise server logic")
 
+	_check(bool(avatar.call("_is_valid_input_direction", Vector3.ZERO)), "zero input direction is valid")
+	_check(
+		bool(avatar.call("_is_valid_input_direction", Vector3(1.0, 0.0, 1.0))),
+		"ordinary diagonal input direction is valid"
+	)
+	_check(
+		not bool(avatar.call("_is_valid_input_direction", Vector3(INF, 0.0, 0.0))),
+		"infinite input direction is rejected"
+	)
+	_check(
+		not bool(avatar.call("_is_valid_input_direction", Vector3(2.0, 0.0, 0.0))),
+		"oversized input direction is rejected"
+	)
+	var accepted_burst := 0
+	for _index in range(60):
+		if bool(avatar.call("_consume_input_token", 1000)):
+			accepted_burst += 1
+	_check(accepted_burst == 60, "input rate limiter allows its configured initial burst")
+	_check(
+		not bool(avatar.call("_consume_input_token", 1000)),
+		"input rate limiter rejects traffic beyond the burst"
+	)
+	var accepted_refill := 0
+	for _index in range(30):
+		if bool(avatar.call("_consume_input_token", 2000)):
+			accepted_refill += 1
+	_check(accepted_refill == 30, "input rate limiter refills at the configured rate")
+	_check(
+		not bool(avatar.call("_consume_input_token", 2000)),
+		"input rate limiter rejects traffic beyond the replenished budget"
+	)
+
 	avatar.call("server_grant_experience", 100)
 	print("[network-smoke] XP tested")
 	_check(int(avatar.get("level")) == 2, "server-granted XP advances the network avatar")
