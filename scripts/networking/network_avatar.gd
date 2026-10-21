@@ -2,7 +2,9 @@ extends CharacterBody3D
 
 const INPUT_SEND_INTERVAL: float = 0.05
 const INPUT_TIMEOUT_MSEC: int = 350
-const MIN_INPUT_PACKET_INTERVAL_MSEC: int = 20
+const INPUT_RATE_PER_SECOND: float = 30.0
+const INPUT_BURST_CAPACITY: float = 60.0
+const MAX_INPUT_PAYLOAD_BYTES: int = 512
 const MAX_LEVEL: int = 50
 const QUEST_TARGET: int = 3
 const QUEST_REWARD_XP: int = 75
@@ -36,7 +38,8 @@ var _attack_requested: bool = false
 var _last_jump_down: bool = false
 var _last_attack_down: bool = false
 var _last_input_msec: int = 0
-var _last_input_packet_msec: int = -1000000
+var _input_bucket_tokens: float = INPUT_BURST_CAPACITY
+var _input_bucket_last_usec: int = 0
 var _next_attack_msec: int = 0
 var _death_generation: int = 0
 var _input_send_accumulator: float = 0.0
@@ -108,17 +111,38 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 		return
 	if not _is_valid_input_direction(direction):
 		return
+	var payload_bytes := var_to_bytes([direction, jump_down, sprint_down, attack_down]).size()
+	if payload_bytes > MAX_INPUT_PAYLOAD_BYTES:
+		return
+	if not _consume_input_token():
+		return
 
 	var now_msec := Time.get_ticks_msec()
-	if now_msec - _last_input_packet_msec < MIN_INPUT_PACKET_INTERVAL_MSEC:
-		return
-	_last_input_packet_msec = now_msec
 
 	var safe_direction := Vector3(direction.x, 0.0, direction.z)
 	if safe_direction.length_squared() > 1.0:
 		safe_direction = safe_direction.normalized()
 	_set_requested_input(safe_direction, jump_down, sprint_down, attack_down)
 	_last_input_msec = now_msec
+
+
+func _consume_input_token() -> bool:
+	var now_usec := Time.get_ticks_usec()
+	if _input_bucket_last_usec == 0:
+		_input_bucket_last_usec = now_usec
+	var elapsed_seconds := maxf(
+		0.0,
+		float(now_usec - _input_bucket_last_usec) / 1_000_000.0
+	)
+	_input_bucket_tokens = minf(
+		INPUT_BURST_CAPACITY,
+		_input_bucket_tokens + elapsed_seconds * INPUT_RATE_PER_SECOND
+	)
+	_input_bucket_last_usec = now_usec
+	if _input_bucket_tokens < 1.0:
+		return false
+	_input_bucket_tokens -= 1.0
+	return true
 
 
 func _is_valid_input_direction(direction: Vector3) -> bool:
