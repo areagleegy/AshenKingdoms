@@ -334,10 +334,10 @@ def transform(source: bytes) -> bytes:
         joint_node_map[name] = node_index
         joint_indices.append(node_index)
         joint_nodes.append(matrix_inverse_translation(pivot))
-    nodes[armature_index:armature_index] = [{
+    nodes.insert(armature_index, {
         "name": "Armature",
-        "children": list(joint_indices),
-    }]
+        "children": [idx + 1 for idx in joint_indices],
+    })
     # Inserting the Armature shifts every joint node index by one.
     joint_node_map = {name: idx + 1 for name, idx in joint_node_map.items()}
     joint_indices = [idx + 1 for idx in joint_indices]
