@@ -47,6 +47,7 @@ func _test_atomic_save() -> void:
 	_check(int(save.call("load_game").get("level", 0)) == 2, "load returns newest save")
 	_check(bool(save.call("save_game", {"level": 3})), "third save replaces an existing backup")
 	_check(int(save.call("load_game").get("level", 0)) == 3, "load returns newest save after backup replacement")
+	_check(not FileAccess.file_exists(TEST_SAVE + ".old.tmp"), "replacement staging file is removed after success")
 	_write_raw(TEST_SAVE, "{corrupt")
 	_check(int(save.call("load_game").get("level", 0)) == 2, "corrupt primary falls back to most recent backup")
 	_write_raw(TEST_SAVE, "{}")
