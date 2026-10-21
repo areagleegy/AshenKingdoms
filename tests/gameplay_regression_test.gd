@@ -133,9 +133,13 @@ func _test_save_and_load(had_original_save: bool, original_save: String) -> void
 	# deliberately overwrite .bak and .tmp fixtures and must not destroy a
 	# pre-existing backup when run against a developer's user:// directory.
 	var had_original_backup := FileAccess.file_exists("user://savegame.json.bak")
-	var original_backup := _read_text_file("user://savegame.json.bak") if had_original_backup else ""
+	var original_backup: Variant = _read_text_file("user://savegame.json.bak") if had_original_backup else ""
 	var had_original_temp := FileAccess.file_exists("user://savegame.json.tmp")
-	var original_temp := _read_text_file("user://savegame.json.tmp") if had_original_temp else ""
+	var original_temp: Variant = _read_text_file("user://savegame.json.tmp") if had_original_temp else ""
+	# Abort before mutating fixtures if an existing file could not be read.
+	if (had_original_backup and original_backup == null) or (had_original_temp and original_temp == null):
+		_check(false, "existing backup and temporary save files can be read before regression tests")
+		return
 
 	var save_system: Node = SaveSystemScript.new()
 	root.add_child(save_system)
@@ -229,10 +233,10 @@ func _test_save_and_load(had_original_save: bool, original_save: String) -> void
 	save_system.queue_free()
 
 
-func _read_text_file(path: String) -> String:
+func _read_text_file(path: String) -> Variant:
 	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
-		return ""
+		return null
 	var content := file.get_as_text()
 	file.close()
 	return content
