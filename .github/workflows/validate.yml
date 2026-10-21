@@ -83,6 +83,9 @@ jobs:
           test -f tools/test-network-loopback.sh
           test -f tools/generate_player_glb.py
           test -f tests/player_character_smoke_test.gd
+          test -f tests/enemy_ai_test.gd
+          test -f tests/enemy_ai_test.tscn
+          test -f tests/fixtures/ai_test_target.gd
           test -f docs/PLUGIN_INTEGRATION_AR.md
           test -f docs/FREE_ASSET_PIPELINE_AR.md
           test -f docs/AI_PLAYER_CHARACTER_PIPELINE_AR.md
@@ -147,6 +150,13 @@ jobs:
         run: |
           set -o pipefail
           godot --headless --path . --script res://tests/player_character_smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/player-character-tests.log"
+
+      - name: Run enemy AI behavior tests
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -o pipefail
+          timeout 45s godot --headless --path . res://tests/enemy_ai_test.tscn 2>&1 | tee "$RUNNER_TEMP/enemy-ai-tests.log"
 
       - name: Run network combat smoke tests
         env:
