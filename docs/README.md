@@ -23,6 +23,11 @@
 - [اختبارات اللعب والانحدار](../tests/gameplay_regression_test.gd) و[اختبار تحميل الموارد](../tests/script_load_smoke_test.gd).
 - [اختبار القتال الشبكي](../tests/network_combat_smoke_test.tscn) و[اختبار اتصال العميل/المضيف](../tests/network_client_smoke_test.gd).
 
+## القتال والبيانات
+
+- [كتالوج بيانات الأسلحة والدروع والتحقق منها](COMBAT_DATA_CATALOG_AR.md).
+- [اختبارات مدقق بيانات القتال](../tools/test_combat_catalog.py).
+
 ## الأنظمة
 
 - [الشبكة وENet](NETWORKING.md): تشغيل المضيف والعميل، سلطة الخادم، القيود الأمنية وما يلزم قبل النشر.
