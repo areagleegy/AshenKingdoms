@@ -50,6 +50,9 @@ func _test_player_without_animations() -> void:
 	root.add_child(player)
 
 	_check(player.get("_animation_player") == null, "player tolerates missing AnimationPlayer")
+	var weapon_profile: Dictionary = player.call("_get_equipped_weapon_profile")
+	_check(weapon_profile.get("id", "") == "ash_dagger", "player resolves its equipped weapon from the combat catalog")
+	_check(int(weapon_profile.get("damage", 0)) == 15, "player attack profile reads damage from catalog data")
 	player.call("_play_animation", &"idle")
 	player.call("_update_animation", Vector3.ZERO)
 	_check(true, "missing animation clips do not block idle update")
