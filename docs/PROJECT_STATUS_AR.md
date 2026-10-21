@@ -45,7 +45,9 @@
 **رأس الكود الذي اختُبر في دورة التحقق الأخيرة:** `233edacf0be20f5a6ab37b71ffe793cc44a0beff`.
 
 - [Validate Godot Project #407](https://github.com/areagleegy/AshenKingdoms/actions/runs/39533678232): **نجاح**؛ شمل اختبارات مولّد المرشح، سلامة مكونات الوزن المتصلة، واختبار استيراد Godot ومقاطع الحركة.
-- [Build Android and Web #325](https://github.com/areagleegy/AshenKingdoms/actions/runs/39533678326): تصدير Web **نجح**؛ تصدير Android كان **قيد التنفيذ عند آخر فحص**.
+- [Build Android and Web #325](https://github.com/areagleegy/AshenKingdoms/actions/runs/39533678326): تصدير Web وAndroid **نجحا**.
+- [حزمة APK الاختبارية](https://github.com/areagleegy/AshenKingdoms/actions/runs/39533678326/artifacts/12316492097): `AshenKingdoms.apk`، الحجم `28,068,644` بايت، SHA-256: `aa9d37a7d7373205cd4852c108818c4c12bdf5286ce0a5c7416ea2048f5a2ebf`. هذا APK للاختبار (Debug)، وليس بناء إصدار موقّعًا للنشر.
+- [حزمة Web](https://github.com/areagleegy/AshenKingdoms/actions/runs/39533678326/artifacts/12316482058) متاحة للتنزيل والاختبار؛ نجاح التصدير لا يثبت اختبار المتصفح يدويًا.
 - [أثر مرشح اللاعب #407](https://github.com/areagleegy/AshenKingdoms/actions/runs/39533678232/artifacts/12315829963) و[تقرير تدقيق الأصول #407](https://github.com/areagleegy/AshenKingdoms/actions/runs/39533678232/artifacts/12317030248).
 - المعاينة المرجعية للمرشح تُظهر تحسنًا آليًا في توزيع الأجزاء أثناء المشي وتأرجح اليد أثناء الهجوم. هذه مراجعة هندسية من ملف GLB وليست قبولًا فنيًا داخل Godot أو على Android.
 - لا يوجد اختبار على هاتف Android فعلي أو قياس مقارن لتكلفة shader مقابل خامة نقطية؛ يظل الأداء والجودة البصرية بحاجة إلى قياس ميداني.
