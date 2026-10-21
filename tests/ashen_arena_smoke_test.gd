@@ -83,7 +83,7 @@ func _test_ground_material() -> void:
 		if material != null:
 			_check(material.shader != null, "procedural ground shader resource is attached")
 			_check(material.shader.code.contains("stone_mask"), "ground shader draws stone seams without an image texture")
-			_check(material.shader.code.contains("value_noise"), "ground shader adds deterministic low-cost surface variation")
+			_check(material.shader.code.contains("hash21(tile_id)"), "ground shader varies tile colors with one deterministic hash rather than layered noise")
 			_check(is_equal_approx(float(material.get_shader_parameter("tile_scale")), 0.72), "ground shader receives the documented world tile scale")
 	var ground_body := world.get_node_or_null("Ground") as StaticBody3D if world != null else null
 	_check(ground_body != null, "procedural visual preserves separate ground collision")
