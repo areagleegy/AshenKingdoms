@@ -9,6 +9,7 @@
 - `assets/characters/player/player.glb` نموذج إجرائي ثابت منخفض التفاصيل، موثق في PR #49. ليس له Skeleton أو حركات مضمّنة.
 - `assets/characters/enemies/ash_wraith.glb` نسخة عدو ثابتة بمواد طيفية مشتقة من هندسة داخل المشروع؛ لا ينبغي وصفها بأنها rigged أو ذات تحريك.
 - `tools/generate_procedural_player_glb.py` و`tools/generate_procedural_wraith_glb.py` يعيدان إنشاء النموذجين، و`tools/validate_player_glb.py` يتحقق بنيويًا من ملفات GLB.
+- أُضيفت `tools/generate_rigged_player_glb.py` و`tools/validate_rigged_player_glb.py` لبناء مرشح هيكل/أنيميشن من النموذج الثابت. المرشح يستخدم أوزانًا مكانية أولية مناسبة لاختبار المسار، ويُنشأ في CI باسم `player_rigged_candidate_ci.glb` ولا يُستبدل به الأصل الثابت تلقائيًا.
 - اختبارات Godot تتحقق من الاستيراد ووجود الأسطح والمواد وربط الشكل بالمشهد. نجاحها لا يثبت جودة الحركة أو عدم اختراق الدروع أو جودة العرض على هاتف فعلي.
 
 ## 2. ترتيب العمل
@@ -69,6 +70,22 @@
 
 الأهداف ليست ادعاء أداء. النموذج الثابت الحالي أصغر بكثير من ميزانية الشخصية النهائية؛ لا ترفع المضلعات لمجرد الوصول إلى الحد الأعلى.
 
+## 6.1 مرشح التحريك الأولي القابل لإعادة البناء
+
+لتقليل المخاطرة، يُنشأ المرشح في مجلد العمل المؤقت داخل CI بدل تثبيته كأصل اللعبة مباشرة:
+
+~~~bash
+python3 tools/generate_rigged_player_glb.py \
+  --source assets/characters/player/player.glb \
+  --output assets/characters/player/player_rigged_candidate_ci.glb
+python3 tools/validate_rigged_player_glb.py assets/characters/player/player_rigged_candidate_ci.glb
+python3 tools/validate_player_glb.py assets/characters/player/player_rigged_candidate_ci.glb
+godot --headless --path . --editor --quit
+godot --headless --path . --script res://tests/rigged_player_candidate_smoke_test.gd
+~~~
+
+يتحقق مدقق المرشح من تعداد العظام، ومرجعيات JOINTS/WEIGHTS، ومجموع أوزان كل رأس، ومصفوفات inverse bind، وأسماء المقاطع ومرجعيات قنواتها وتتابع أزمنة المفاتيح وتطبيع quaternion. ويختبر Godot استيراد Skeleton3D وAnimationPlayer والمقاطع المطلوبة. الاختبارات البنيوية لا تثبت أن التوزيع المكاني للأوزان يبدو تشريحيًا جيدًا؛ لا بد من معاينة الحركات داخل المحرك قبل استخدام المرشح في مشهد اللعب. قد يُرفع الملف الناتج كأثر CI للمراجعة ثم يُحذف من مجلد العمل؛ ليس جزءًا من الحزمة النهائية.
+
 ## 7. بوابات الاختبار
 
 ### آلي — مطلوب قبل الدمج
@@ -99,7 +116,8 @@
 
 - [x] نموذج لاعب ثابت وملف GLB مولّد داخل المشروع.
 - [x] مدقق بنيوي واختبار دخان لمسار تحميل اللاعب.
-- [ ] Skeleton بشبكة موزونة ومقاطع حركة موثقة.
+- [x] مولّد مرشح هيكل/حركات أولي ومدقق بنيوي واختبار استيراد Godot (تظل نتيجة CI على الرأس الحالي بوابة اعتماد).
+- [ ] اعتماد Skeleton والشبكة الموزونة بعد معاينة بصرية؛ أوزان المرشح الحالية مكانية وليست أوزانًا فنية نهائية.
 - [ ] اختبار تشوه وقدم/سيف داخل Godot.
 - [ ] اختبار Android فعلي موثق.
 - [ ] معاينة/قبول فني للشخصية النهائية.
