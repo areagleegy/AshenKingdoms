@@ -11,7 +11,7 @@
 - تحميل السكربتات والمشاهد، واختبارات اللعب الأساسية والانحدار وبطل اللاعب. ويتحقق اختبار تحميل الموارد أيضًا من مسارات عقد مشهد `TouchControls.tscn` مقابل العقد الموجودة فعليًا، لمنع عودة مراجع `$NodePath` المكسورة.
 - اختبارات قتال الشبكة، واتصال ENet loopback بين عمليتين محليتين.
 - اختبارات فهرس حزم المحتوى ومثبتها، واختبارات Python لبناء الحزم وتوقيع الفهرس.
-- فحص سجل الأصول والرخص، والتحقق من الروابط المحلية في ملفات Markdown.
+- فحص سجل الأصول والرخص والروابط المحلية في Markdown، واختبارات الجرد الجنائي للأصول، ومدققي GLB وإعادة توليد نموذج اللاعب وشبح الرماد، واختبارات دخان للصوتيات وواجهة المستخدم والعدو والمؤثرات البصرية والبيئة الإجرائية للخرائب وخامة الأرضية ومرشح التحريك الهيكلي.
 - تشغّل `.github/workflows/build.yml` تصدير Android وWeb بصورة مستقلة وترفع المخرجات كـ Artifacts.
 
 راجع [تعريف التحقق](../.github/workflows/validate.yml) و[تعريف البناء](../.github/workflows/build.yml) إذا تغيرت قائمة الخطوات؛ هذان الملفان هما المصدر التنفيذي النهائي، وليس هذه القائمة المختصرة.
@@ -27,6 +27,7 @@ godot --headless --path . --script res://tests/script_load_smoke_test.gd
 godot --headless --path . --script res://tests/gameplay_smoke_test.gd
 godot --headless --path . --script res://tests/gameplay_regression_test.gd
 godot --headless --path . --script res://tests/player_character_smoke_test.gd
+godot --headless --path . --script res://tests/ashen_arena_smoke_test.gd
 timeout 45s godot --headless --path . res://tests/network_combat_smoke_test.tscn
 bash tools/test-network-loopback.sh
 godot --headless --path . --script res://tests/content_catalog_smoke_test.gd
@@ -123,6 +124,25 @@ python -m unittest discover -s tools -p 'test_ai_test_diagnostics.py' -v
 التشخيص يعمل بقواعد محلية مرتبة حسب الأولوية، ويستخدم مجموعة حالات اصطناعية محددة لتقييم الاسترجاع والإنذارات الكاذبة. هو أداة اقتراح لا إصلاح تلقائي؛ تصنيف الأخطاء ليس احتمالًا إحصائيًا مثبتًا. المساعد الخارجي معطل افتراضيًا ولا يُفعّل إلا بموافقة إعدادات صريحة، وقد يرسل مقتطفات سجلات منقحة إلى الخدمة المحددة، والتنقيح لا يضمن حذف كل سر.
 
 
+## التدقيق الجنائي الآلي لوسائط الأصول
+
+الأداة `tools/audit_assets.py` تنشئ جردًا ثابتًا دون تنزيل أو تعديل الأصول. تعرض المسار والامتداد والحجم وSHA-256 وحالة manifest، وتفحص حاوية GLB/JSON في حدودها المعلنة، وURIs الخارجية في glTF، وبيانات WAV الأساسية، وترويسات PNG/SVG وبعض صيغ الوسائط الأخرى. تمسح أيضًا المسارات الحرفية `res://` في ملفات المصدر وتفصل مسار اللاعب الاختياري المعروف عن المرشحات التي تحتاج مراجعة.
+
+شغّل من جذر المستودع:
+
+```bash
+python3 -m py_compile tools/audit_assets.py
+python3 -m unittest discover -s tools -p 'test_asset_inventory.py' -v
+mkdir -p /tmp/ashen-asset-audit
+python3 tools/audit_assets.py --root . \
+  --json-output /tmp/ashen-asset-audit/asset-audit.json \
+  --markdown-output /tmp/ashen-asset-audit/asset-audit.md
+python3 tools/validate_free_assets.py
+```
+
+لا تفشل الأداة بسبب المرشحات النصية وحدها: المرشح ليس عيبًا مؤكدًا، ويلزم فحص السطر المقصود في سياقه أو تحميل المورد في Godot. يبقى `tools/validate_free_assets.py` بوابة CI المانعة للأصول داخل `assets/` التي ينقصها سجل التراخيص المطلوب. يرفع Workflow ملفي JSON وMarkdown كـ Artifact باسم `asset-forensic-audit-<run>` لمدة الاحتفاظ المحددة في إعداد سير العمل.
+
+**حدود الاستنتاج:** البصمة والحجم وبيانات الحاوية لا تثبت الملكية أو الترخيص، ولا تعوّض عرض نموذج ثلاثي الأبعاد أو الاستماع للصوت أو اختبار هاتف Android. لا يفك هذا الفحص كل صيغ الوسائط بالكامل، ولا يجلب URIs خارجية، ولا يثبت صلاحية الهيكل العظمي أو الجودة الفنية.
 ## اختبارات بطل اللاعب والأصول
 
 أوامر التحقق من مسار الأصول المحلي:
@@ -134,7 +154,37 @@ python3 tools/validate_free_assets.py
 godot --headless --path . --script res://tests/player_character_smoke_test.gd
 ```
 
-تتحقق الاختبارات من تحميل أدوات Python، وصحة بيانات ترخيص الأصول، ومسار تحميل النموذج عند وجوده، والرجوع الآمن إلى شكل بطل مؤقت عند غياب `player.glb`، وفصل التصادم عن المجسم البصري، وسلوك اللاعب عندما لا تتوفر الحركات أو تختلف أسماء مقاطعها. هذا لا يعني أن نموذج GLB نهائيًا أو صوتيات قد أضيفت، ولا يغني عن معاينة مرئية واختبار Android فعلي.
+تتحقق الاختبارات من تحميل أدوات Python، وصحة بيانات ترخيص الأصول، ومسار تحميل `player.glb` عند وجوده، والرجوع الآمن إلى شكل بطل مؤقت عند غياب النموذج، وفصل التصادم عن المجسم البصري، وسلوك اللاعب عندما لا تتوفر الحركات أو تختلف أسماء مقاطعها. الموجود حاليًا نموذج لاعب ثابت منخفض التفاصيل بلا Skeleton أو أنيميشن؛ أما ملفات WAV وSVG ومجسم شبح الرماد وتأثير الإصابة فهي أصول تأسيسية وليست اعتمادًا فنيًا نهائيًا. يلزم الاستيراد والمعاينة المرئية والاستماع واختبار Android فعلي قبل القبول.
+
+
+## اختبار مرشح التحريك الهيكلي
+
+ينشئ سير التحقق مرشحًا مؤقتًا من الشكل الثابت دون استبدال `player.glb` المستخدم في اللعبة. للتحقق يدويًا بعد تثبيت Python 3 وGodot 4.6:
+
+~~~bash
+python3 -m py_compile tools/generate_rigged_player_glb.py tools/validate_rigged_player_glb.py tools/test_rigged_player_glb.py
+python3 -m unittest discover -s tools -p 'test_rigged_player_glb.py' -v
+python3 tools/generate_rigged_player_glb.py --source assets/characters/player/player.glb --output assets/characters/player/player_rigged_candidate_ci.glb
+python3 tools/validate_rigged_player_glb.py assets/characters/player/player_rigged_candidate_ci.glb
+godot --headless --path . --editor --quit
+godot --headless --path . --script res://tests/rigged_player_candidate_smoke_test.gd
+~~~
+
+المرشح الأولي ينشئ 17 مفصلًا ومقاطع `Idle_01`, `Walking`, `Running`, `Jump`, `HeavyAttack`, `Hit`, و`Death`. تُجمع المثلثات المتجاورة بحسب الحواف المشتركة وتُسند كل قطعة متصلة إلى مفصل واحد؛ يرفض المدقق المكوّنات التي تتلقى أوزانًا من مفاصل مختلفة. هذا يقلل التشوهات الشوكية في الأجزاء المنفصلة لكنه ليس بديلًا عن أوزان تشريحية ناعمة. إضافةً إلى الفحص البنيوي والاستيراد، يختبر سكربت Godot تشغيل `HeavyAttack` ويتحقق أن وضعية عظمة `Hand_R` تتغير فعليًا. لا يثبت ذلك جودة التشوه التشريحي أو توقيت الضربة أو موضع السيف أثناء اللعب اليدوي. يجب معاينة GLB في Godot قبل اعتماده، ويجب حذف المرشح المؤقت بعد الفحص إذا أُنشئ يدويًا.
+
+
+
+## اختبار GLB والمؤثرات المرئية والصوتية
+
+يشغّل `.github/workflows/validate.yml` فحوصًا إضافية للأصول في PR #49:
+
+- `python3 tools/validate_player_glb.py assets/characters/player/player.glb` للتحقق البنيوي من GLB الحالي.
+- إعادة توليد اللاعب والعدو إلى ملفات مؤقتة ثم تشغيل المدقق عليها لاكتشاف اختلاف مولدات النماذج عن الأصل المسجل.
+- `godot --headless --path . --script res://tests/enemy_visual_smoke_test.gd` للتحقق من تحميل نموذج شبح الرماد وعدد الأسطح والخامات وربطه بالمشهد مع تصادم مستقل.
+- `godot --headless --path . --script res://tests/audio_asset_smoke_test.gd` و`godot --headless --path . --script res://tests/combat_hit_effect_smoke_test.gd` للتحقق من تحميل الموارد واختبار تأثير الإصابة الأولي.
+- يرفع CI تقرير الجرد الآلي بصيغتي JSON وMarkdown.
+
+نجاح هذه الفحوص يثبت سلامة خطوات الاستيراد والاختبارات المحددة على commit المختبر، ولا يثبت جودة الشكل تحت الإضاءة المختلفة أو جودة الصوت عند الاستماع. اختبار شبح الرماد يقيس عدد الأسطح والخامات المستوردة، لا عدد عقد `MeshInstance3D` فقط؛ قد يجمع المستورد عدة أسطح داخل عقدة واحدة.
 
 
 ## اختبارات الشبكة ENet

@@ -22,6 +22,11 @@ jobs:
           set -o pipefail
           python3 -m unittest discover -s tools -p 'test_ai_test_diagnostics.py' -v 2>&1 | tee "$RUNNER_TEMP/diagnostics-unit-tests.log"
 
+      - name: Test forensic asset inventory
+        run: |
+          set -o pipefail
+          python3 -m unittest discover -s tools -p 'test_asset_inventory.py' -v 2>&1 | tee "$RUNNER_TEMP/asset-inventory-tests.log"
+
       - name: Benchmark diagnostic corpus
         run: |
           set -o pipefail
@@ -41,6 +46,8 @@ jobs:
           test -f export_presets.cfg
           test -f scenes/boot/Main.tscn
           test -f scripts/core/main.gd
+          test -f scripts/world/ashen_arena.gd
+          test -f shaders/world/ashen_ground.gdshader
           test -f scripts/core/server.gd
           test -f README.md
           test -f LICENSE
@@ -62,6 +69,10 @@ jobs:
           test -f tools/sign_content_catalog.py
           test -f tools/test_sign_content_catalog.py
           test -f tools/validate_free_assets.py
+          test -f tools/audit_assets.py
+          test -f tools/test_asset_inventory.py
+          test -f scripts/core/audio_feedback.gd
+          test -f tests/audio_asset_smoke_test.gd
           test -f assets/ashenkingdoms_icon.svg
           test -f scenes/ui/MainMenu.tscn
           test -f scenes/network/MultiplayerArena.tscn
@@ -82,7 +93,20 @@ jobs:
           test -f tests/network_combat_smoke_test.tscn
           test -f tools/test-network-loopback.sh
           test -f tools/generate_player_glb.py
+          test -f tools/generate_procedural_player_glb.py
+          test -f tools/validate_player_glb.py
+          test -f tools/generate_rigged_player_glb.py
+          test -f tools/validate_rigged_player_glb.py
+          test -f tools/test_rigged_player_glb.py
+          test -f tests/rigged_player_candidate_smoke_test.gd
+          test -f tools/generate_procedural_wraith_glb.py
+          test -f tests/enemy_visual_smoke_test.gd
+          test -f assets/characters/enemies/ash_wraith.glb
           test -f tests/player_character_smoke_test.gd
+          test -f tests/combat_hit_effect_smoke_test.gd
+          test -f tests/ashen_arena_smoke_test.gd
+          test -f scenes/vfx/CombatHitEffect.tscn
+          test -f scripts/vfx/combat_hit_effect.gd
           test -f docs/PLUGIN_INTEGRATION_AR.md
           test -f docs/FREE_ASSET_PIPELINE_AR.md
           test -f docs/AI_PLAYER_CHARACTER_PIPELINE_AR.md
@@ -107,18 +131,79 @@ jobs:
       - name: Validate local Markdown links
         run: python3 tools/validate_docs.py
 
+      - name: Generate forensic asset inventory report
+        if: always()
+        run: |
+          mkdir -p "$RUNNER_TEMP/asset-audit"
+          python3 tools/audit_assets.py --root . \
+            --json-output "$RUNNER_TEMP/asset-audit/asset-audit.json" \
+            --markdown-output "$RUNNER_TEMP/asset-audit/asset-audit.md"
+
       - name: Import and parse project
         env:
           GODOT_SILENCE_ROOT_WARNING: "1"
         run: |
           set -o pipefail
           godot --headless --path . --editor --quit 2>&1 | tee "$RUNNER_TEMP/godot-import.log"
+          if grep -E 'SCRIPT ERROR:|ERROR: Failed to load script|ERROR: Failed to create an autoload' "$RUNNER_TEMP/godot-import.log"; then
+            echo "Godot import log contains script/autoload errors; failing validation." >&2
+            exit 1
+          fi
 
       - name: Validate local asset tools and license manifest
         run: |
-          python3 -m py_compile tools/generate_player_glb.py tools/validate_free_assets.py
+          python3 -m py_compile tools/generate_player_glb.py tools/validate_free_assets.py tools/audit_assets.py
           python3 tools/generate_player_glb.py --help > /dev/null
+          python3 -m py_compile tools/generate_procedural_player_glb.py tools/validate_player_glb.py
+          python3 tools/validate_player_glb.py assets/characters/player/player.glb
+          python3 -m py_compile tools/generate_procedural_wraith_glb.py
+          python3 tools/generate_procedural_wraith_glb.py --output "$RUNNER_TEMP/generated-wraith.glb"
+          python3 tools/validate_player_glb.py assets/characters/enemies/ash_wraith.glb
+          python3 tools/validate_player_glb.py "$RUNNER_TEMP/generated-wraith.glb"
+          python3 tools/generate_procedural_player_glb.py --output "$RUNNER_TEMP/generated-player.glb"
+          python3 tools/validate_player_glb.py "$RUNNER_TEMP/generated-player.glb"
           python3 tools/validate_free_assets.py
+
+
+      - name: Generate and validate rigged player candidate
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -o pipefail
+          python3 -m py_compile tools/generate_rigged_player_glb.py tools/validate_rigged_player_glb.py tools/test_rigged_player_glb.py
+          python3 -m unittest discover -s tools -p 'test_rigged_player_glb.py' -v 2>&1 | tee "$RUNNER_TEMP/rigged-player-python-tests.log"
+          python3 tools/generate_rigged_player_glb.py \
+            --source assets/characters/player/player.glb \
+            --output assets/characters/player/player_rigged_candidate_ci.glb
+          python3 tools/validate_rigged_player_glb.py assets/characters/player/player_rigged_candidate_ci.glb
+          python3 tools/validate_player_glb.py assets/characters/player/player_rigged_candidate_ci.glb
+          godot --headless --path . --editor --quit 2>&1 | tee "$RUNNER_TEMP/rigged-player-import.log"
+          if grep -E 'SCRIPT ERROR:|ERROR: Failed to load script|ERROR: Failed to create an autoload|ERROR: Failed loading resource' "$RUNNER_TEMP/rigged-player-import.log"; then
+            echo "Godot failed to import the rigged player candidate cleanly." >&2
+            exit 1
+          fi
+
+      - name: Run rigged player candidate smoke test
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -o pipefail
+          godot --headless --path . --script res://tests/rigged_player_candidate_smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/rigged-player-godot-tests.log"
+          if grep -E 'SCRIPT ERROR:|ERROR: Failed to load script|ERROR: Failed to create an autoload' "$RUNNER_TEMP/rigged-player-godot-tests.log"; then
+            echo "Rigged player candidate smoke test reported a script/autoload error." >&2
+            exit 1
+          fi
+
+      - name: Run audio and UI asset smoke tests
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -o pipefail
+          godot --headless --path . --script res://tests/audio_asset_smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/audio-asset-tests.log"
+          if grep -E 'SCRIPT ERROR:|ERROR: Failed to load script|ERROR: Failed to create an autoload' "$RUNNER_TEMP/audio-asset-tests.log"; then
+            echo "Audio/UI smoke log contains script/autoload errors; failing validation." >&2
+            exit 1
+          fi
 
       - name: Load every GDScript and scene
         env:
@@ -141,12 +226,37 @@ jobs:
           set -o pipefail
           godot --headless --path . --script res://tests/gameplay_regression_test.gd 2>&1 | tee "$RUNNER_TEMP/gameplay-regression.log"
 
+      - name: Run enemy visual smoke tests
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -o pipefail
+          godot --headless --path . --script res://tests/enemy_visual_smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/enemy-visual-tests.log"
+
       - name: Run player character smoke tests
         env:
           GODOT_SILENCE_ROOT_WARNING: "1"
         run: |
           set -o pipefail
           godot --headless --path . --script res://tests/player_character_smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/player-character-tests.log"
+
+      - name: Run combat hit effect smoke tests
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -o pipefail
+          godot --headless --path . --script res://tests/combat_hit_effect_smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/combat-vfx-tests.log"
+
+      - name: Run Ashen Ruins environment smoke tests
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -o pipefail
+          godot --headless --path . --script res://tests/ashen_arena_smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/ashen-arena-tests.log"
+          if grep -E 'SCRIPT ERROR:|ERROR: Failed to load script|ERROR: Failed to create an autoload' "$RUNNER_TEMP/ashen-arena-tests.log"; then
+            echo "Ashen Ruins smoke log contains script/autoload errors; failing validation." >&2
+            exit 1
+          fi
 
       - name: Run network combat smoke tests
         env:
@@ -193,3 +303,22 @@ jobs:
             ${{ runner.temp }}/diagnostic-benchmark.json
           if-no-files-found: warn
           retention-days: 7
+      - name: Upload rigged player candidate for visual review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rigged-player-candidate-${{ github.run_number }}
+          path: assets/characters/player/player_rigged_candidate_ci.glb
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Clean up generated rigged candidate
+        if: always()
+        run: rm -f assets/characters/player/player_rigged_candidate_ci.glb
+      - name: Upload forensic asset audit reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: asset-forensic-audit-${{ github.run_number }}
+          path: ${{ runner.temp }}/asset-audit/
+          if-no-files-found: warn
+          retention-days: 14

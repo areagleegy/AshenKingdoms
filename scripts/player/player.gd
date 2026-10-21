@@ -13,6 +13,8 @@ signal died(player: Node)
 @onready var health: Health = $Health
 @onready var inventory: Inventory = $Inventory
 
+const COMBAT_HIT_EFFECT_SCENE: PackedScene = preload("res://scenes/vfx/CombatHitEffect.tscn")
+
 const ANIMATION_ALIASES: Dictionary = {
 	"idle": ["idle", "stand", "breath"],
 	"walk": ["walk", "walking"],
@@ -29,6 +31,7 @@ var is_dead: bool = false
 var _animation_player: AnimationPlayer
 var _resolved_animations: Dictionary = {}
 var _is_attacking: bool = false
+var _footstep_timer: float = 0.0
 
 
 func _ready() -> void:
@@ -74,6 +77,14 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 
+	if is_on_floor() and direction.length_squared() > 0.001:
+		_footstep_timer -= delta
+		if _footstep_timer <= 0.0:
+			_play_sfx(&"footstep_stone", -14.0)
+			_footstep_timer = 0.36 if Input.is_action_pressed("sprint") else 0.50
+	else:
+		_footstep_timer = 0.10
+
 	if not _is_attacking:
 		_update_animation(direction)
 
@@ -82,7 +93,8 @@ func _physics_process(delta: float) -> void:
 
 
 func take_damage(amount: float) -> void:
-	if not is_dead:
+	if not is_dead and amount > 0.0:
+		_play_sfx(&"player_hit", -8.0)
 		health.take_damage(amount)
 
 
@@ -99,6 +111,7 @@ func _attack() -> void:
 	_can_attack = false
 	_is_attacking = true
 	_play_animation(&"attack")
+	_play_sfx(&"sword_swing", -7.0)
 	var from := global_position + Vector3.UP * 0.65
 	var to := from - global_transform.basis.z * attack_range
 	var query := PhysicsRayQueryParameters3D.create(from, to)
@@ -108,11 +121,27 @@ func _attack() -> void:
 	if not hit.is_empty():
 		var collider: Object = hit.get("collider")
 		if collider is Node and collider.has_method("take_damage"):
+			var hit_position: Vector3 = hit.get("position", to)
+			_spawn_combat_hit_effect(hit_position)
+			_play_sfx(&"sword_hit", -3.5)
 			collider.call("take_damage", attack_damage)
 
 	await get_tree().create_timer(attack_cooldown).timeout
 	_can_attack = true
 	_is_attacking = false
+
+
+func _spawn_combat_hit_effect(hit_position: Vector3) -> void:
+	if OS.has_feature("dedicated_server") or DisplayServer.get_name() == "headless":
+		return
+	var effect := COMBAT_HIT_EFFECT_SCENE.instantiate() as Node3D
+	if effect == null:
+		return
+	var scene_root := get_tree().current_scene
+	if scene_root == null:
+		scene_root = get_tree().root
+	scene_root.add_child(effect)
+	effect.global_position = hit_position
 
 
 func _find_animation_player() -> void:
@@ -179,3 +208,9 @@ func _on_health_died() -> void:
 	velocity = Vector3.ZERO
 	_play_animation(&"death")
 	died.emit(self)
+
+
+func _play_sfx(sound_id: StringName, volume_db: float = -6.0) -> void:
+	var audio_feedback := get_node_or_null("/root/AudioFeedback")
+	if audio_feedback != null:
+		audio_feedback.call("play_sfx", sound_id, volume_db)

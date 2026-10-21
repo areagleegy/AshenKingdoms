@@ -65,9 +65,17 @@ func _try_attack() -> void:
 		return
 	_next_attack_msec = now + int(attack_cooldown * 1000.0)
 	if is_instance_valid(player) and player.has_method("take_damage"):
+		_play_sfx(&"ash_wraith_attack", -13.0)
 		player.call("take_damage", attack_damage)
 
 
 func _on_health_died() -> void:
+	_play_sfx(&"ash_wraith_death", -7.0)
 	died.emit(self)
 	queue_free()
+
+
+func _play_sfx(sound_id: StringName, volume_db: float = -6.0) -> void:
+	var audio_feedback := get_node_or_null("/root/AudioFeedback")
+	if audio_feedback != null:
+		audio_feedback.call("play_sfx", sound_id, volume_db)

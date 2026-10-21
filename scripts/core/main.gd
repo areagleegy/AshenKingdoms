@@ -4,6 +4,8 @@ const SERVER_SCRIPT: Script = preload("res://scripts/core/server.gd")
 const HEALTH_SCRIPT: Script = preload("res://scripts/components/health.gd")
 const PLAYER_SCRIPT: Script = preload("res://scripts/player/player.gd")
 const PLAYER_MODEL_PATH: String = "res://assets/characters/player/player.glb"
+const ENEMY_MODEL_PATH: String = "res://assets/characters/enemies/ash_wraith.glb"
+const ASHEN_ARENA_SCRIPT: Script = preload("res://scripts/world/ashen_arena.gd")
 const CAMERA_SCRIPT: Script = preload("res://scripts/player/player_camera.gd")
 const ENEMY_SCRIPT: Script = preload("res://scripts/enemies/enemy.gd")
 const INVENTORY_SCRIPT: Script = preload("res://scripts/components/inventory.gd")
@@ -44,6 +46,9 @@ func _ready() -> void:
 	_create_enemies()
 	_create_npcs()
 	_create_hud()
+	var audio_feedback := get_node_or_null("/root/AudioFeedback")
+	if audio_feedback != null:
+		audio_feedback.call("start_ambience")
 
 	if OS.get_cmdline_user_args().has("--continue"):
 		_load_game()
@@ -130,11 +135,30 @@ func _create_world() -> void:
 	ground_mesh.size = Vector2(80.0, 80.0)
 	ground_mesh_node.mesh = ground_mesh
 	ground_mesh_node.position.y = -0.015
-	var ground_material := StandardMaterial3D.new()
-	ground_material.albedo_color = Color(0.12, 0.15, 0.17, 1.0)
-	ground_material.roughness = 1.0
+	var ground_shader := load("res://shaders/world/ashen_ground.gdshader") as Shader
+	var ground_material: Material
+	if ground_shader != null:
+		var procedural_material := ShaderMaterial.new()
+		procedural_material.shader = ground_shader
+		procedural_material.set_shader_parameter("stone_color", Color(0.12, 0.145, 0.16, 1.0))
+		procedural_material.set_shader_parameter("seam_color", Color(0.052, 0.060, 0.066, 1.0))
+		procedural_material.set_shader_parameter("tile_scale", 0.72)
+		procedural_material.set_shader_parameter("seam_width", 0.035)
+		procedural_material.set_shader_parameter("variation_strength", 0.12)
+		ground_material = procedural_material
+	else:
+		# Keep the playable scene readable if a future shader import fails.
+		var fallback_material := StandardMaterial3D.new()
+		fallback_material.albedo_color = Color(0.12, 0.15, 0.17, 1.0)
+		fallback_material.roughness = 1.0
+		ground_material = fallback_material
 	ground_mesh_node.material_override = ground_material
 	world.add_child(ground_mesh_node)
+
+	var arena_dressing := Node3D.new()
+	arena_dressing.name = "AshenArenaDressing"
+	arena_dressing.set_script(ASHEN_ARENA_SCRIPT)
+	world.add_child(arena_dressing)
 
 
 func _create_managers() -> void:
@@ -403,7 +427,8 @@ func _create_enemies() -> void:
 		enemy.set_script(ENEMY_SCRIPT)
 		enemy.set("player", player)
 		enemy.position = spawn_points[index]
-		_add_capsule_parts(enemy, 0.4, 1.7, Color(0.32, 0.36, 0.43, 1.0))
+		if not _add_enemy_model_or_placeholder(enemy):
+			_add_capsule_parts(enemy, 0.4, 1.7, Color(0.32, 0.36, 0.43, 1.0))
 
 		var health_node: Node = HEALTH_SCRIPT.new()
 		health_node.name = "Health"
@@ -411,6 +436,29 @@ func _create_enemies() -> void:
 		enemy.add_child(health_node)
 		enemy.connect("died", _on_enemy_died)
 		enemies_container.add_child(enemy)
+
+
+
+func _add_enemy_model_or_placeholder(body: CharacterBody3D) -> bool:
+	if not ResourceLoader.exists(ENEMY_MODEL_PATH):
+		return false
+
+	var model_scene := load(ENEMY_MODEL_PATH) as PackedScene
+	if model_scene == null:
+		push_warning("Ash Wraith model exists but could not be loaded: %s" % ENEMY_MODEL_PATH)
+		return false
+
+	_add_capsule_collision(body, 0.4, 1.7)
+	var visual_root := Node3D.new()
+	visual_root.name = "EnemyVisual"
+	visual_root.position.y = -0.92
+	body.add_child(visual_root)
+
+	var model_instance := model_scene.instantiate()
+	model_instance.name = "AshWraithModel"
+	visual_root.add_child(model_instance)
+	print("[ENEMY] Loaded Ash Wraith model: %s" % ENEMY_MODEL_PATH)
+	return true
 
 
 func _create_npcs() -> void:

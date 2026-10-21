@@ -13,6 +13,7 @@ config/icon="res://assets/ashenkingdoms_icon.svg"
 DialogueManager="*res://scripts/dialogue/dialogue_manager.gd"
 ContentManager="*res://scripts/content/content_manager.gd"
 NetworkManager="*res://scripts/core/network_manager.gd"
+AudioFeedback="*res://scripts/core/audio_feedback.gd"
 
 [display]
 
