@@ -98,9 +98,9 @@ jobs:
         with:
           name: ashen-test-lab-evidence
           path: |
-            \${{ runner.temp }}/test-lab-report.json
-            \${{ runner.temp }}/test-lab-report.md
-            \${{ runner.temp }}/test-lab-results/
-            \${{ runner.temp }}/test-lab-catalog.json
+            ${{ runner.temp }}/test-lab-report.json
+            ${{ runner.temp }}/test-lab-report.md
+            ${{ runner.temp }}/test-lab-results/
+            ${{ runner.temp }}/test-lab-catalog.json
           if-no-files-found: warn
           retention-days: 14
