@@ -35,7 +35,10 @@ func _run() -> void:
 		is_equal_approx(float(health.get("current")), 100.0), "infinite health assignment is ignored"
 	)
 	health.call("increase_max_health", INF)
-	_check(is_equal_approx(float(health.get("max_health")), 100.0), "infinite max-health increase is ignored")
+	_check(
+		is_equal_approx(float(health.get("max_health")), 100.0),
+		"infinite max-health increase is ignored"
+	)
 
 	print("[health-numeric-safety] checks: %d, failures: %d" % [_checks, _failures])
 	quit(1 if _failures > 0 else 0)
