@@ -306,7 +306,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: rigged-player-candidate-\${{ github.run_number }}
+          name: rigged-player-candidate-${{ github.run_number }}
           path: assets/characters/player/player_rigged_candidate_ci.glb
           if-no-files-found: ignore
           retention-days: 7
