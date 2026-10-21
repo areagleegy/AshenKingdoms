@@ -25,6 +25,17 @@ func _run() -> void:
 	_check(float(avatar.get("current_health")) == 100.0, "network avatar starts with expected health")
 	_check(bool(multiplayer.is_server()), "offline smoke harness is allowed to exercise server logic")
 
+	var input_avatar := NetworkAvatarScene.instantiate() as CharacterBody3D
+	input_avatar.call("configure_owner", 2)
+	add_child(input_avatar)
+	_check(bool(input_avatar.call("_accept_input_packet", 2, Vector3(0.5, 0.0, 0.5), 1000)), "network input accepts a finite packet from its owning peer")
+	_check(not bool(input_avatar.call("_accept_input_packet", 2, Vector3.ZERO, 1010)), "network input rate limit rejects an early repeated packet")
+	_check(bool(input_avatar.call("_accept_input_packet", 2, Vector3.ZERO, 1020)), "network input accepts the next packet after the minimum interval")
+	_check(not bool(input_avatar.call("_accept_input_packet", 3, Vector3.ZERO, 1040)), "network input rejects a packet from a non-owning peer")
+	_check(not bool(input_avatar.call("_accept_input_packet", 2, Vector3(NAN, 0.0, 0.0), 1040)), "network input rejects non-finite direction values")
+	_check(not bool(input_avatar.call("_accept_input_packet", 2, Vector3(0.0, INF, 0.0), 1040)), "network input rejects infinite direction values")
+	input_avatar.queue_free()
+
 	avatar.call("server_grant_experience", 100)
 	print("[network-smoke] XP tested")
 	_check(int(avatar.get("level")) == 2, "server-granted XP advances the network avatar")
