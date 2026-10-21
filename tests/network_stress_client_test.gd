@@ -48,7 +48,8 @@ func _run() -> void:
 		quit(1)
 		return
 
-	var peer_id := multiplayer.get_unique_id()
+	var multiplayer_api: MultiplayerAPI = manager.get_multiplayer()
+	var peer_id: int = multiplayer_api.get_unique_id()
 	var avatar: Node = null
 	deadline = Time.get_ticks_msec() + AVATAR_TIMEOUT_MSEC
 	while Time.get_ticks_msec() < deadline:
