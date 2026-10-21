@@ -14,6 +14,7 @@ signal died(player: Node)
 @export var max_stamina: float = 100.0
 @export var stamina_regen_per_second: float = 18.0
 @export var stamina_regen_delay: float = 0.65
+@export var sprint_stamina_cost_per_second: float = 12.0
 
 @onready var health: Health = $Health
 @onready var inventory: Inventory = $Inventory
@@ -72,12 +73,17 @@ func _physics_process(delta: float) -> void:
 	else:
 		direction = Vector3(input_vector.x, 0.0, -input_vector.y).normalized()
 
-	if _stamina_regen_wait > 0.0:
+	var has_movement := direction.length_squared() > 0.001
+	var sprint_requested := Input.is_action_pressed("sprint") and has_movement and not _is_attacking
+	var is_sprinting := sprint_requested and current_stamina > 0.0
+	if is_sprinting:
+		_drain_sprint_stamina(delta)
+	elif _stamina_regen_wait > 0.0:
 		_stamina_regen_wait = maxf(0.0, _stamina_regen_wait - delta)
 	elif not _is_attacking:
-		current_stamina = minf(max_stamina, current_stamina + stamina_regen_per_second * delta)
+		current_stamina = minf(max_stamina, current_stamina + maxf(0.0, stamina_regen_per_second) * delta)
 
-	var current_speed := sprint_speed if Input.is_action_pressed("sprint") else speed
+	var current_speed := sprint_speed if is_sprinting else speed
 	current_speed *= _get_equipment_movement_multiplier()
 	velocity.x = direction.x * current_speed
 	velocity.z = direction.z * current_speed
@@ -89,7 +95,7 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 	if not _is_attacking:
-		_update_animation(direction)
+		_update_animation(direction, is_sprinting)
 
 	if Input.is_action_just_pressed("attack") and _can_attack:
 		_attack()
@@ -270,12 +276,18 @@ func _play_animation(state: StringName) -> void:
 	_animation_player.play(clip_name)
 
 
-func _update_animation(direction: Vector3) -> void:
+func _drain_sprint_stamina(delta: float) -> void:
+	var drain := maxf(0.0, sprint_stamina_cost_per_second) * maxf(0.0, delta)
+	current_stamina = clampf(current_stamina - drain, 0.0, maxf(0.0, max_stamina))
+	_stamina_regen_wait = maxf(0.0, stamina_regen_delay)
+
+
+func _update_animation(direction: Vector3, is_sprinting: bool = false) -> void:
 	if not is_on_floor():
 		_play_animation(&"jump")
 	elif direction.length_squared() <= 0.001:
 		_play_animation(&"idle")
-	elif Input.is_action_pressed("sprint"):
+	elif is_sprinting:
 		_play_animation(&"run")
 	else:
 		_play_animation(&"walk")
