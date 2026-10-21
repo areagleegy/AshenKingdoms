@@ -11,7 +11,7 @@ func _ready() -> void:
 
 
 func _run() -> void:
-	var enemy := NETWORK_ENEMY_SCENE.instantiate() as CharacterBody3D
+	var enemy := NETWORK_ENEMY_SCENE.instantiate()
 	_check(enemy != null, "network enemy scene instantiates")
 	if enemy == null:
 		get_tree().quit(1)
@@ -22,7 +22,7 @@ func _run() -> void:
 	_check(is_equal_approx(float(enemy.get("current_health")), 85.0), "enemy starts at configured HP")
 
 	var death_events: Array[int] = []
-	enemy.died.connect(func(_dead_enemy: Node, attacker_peer_id: int) -> void:
+	enemy.connect("died", func(_dead_enemy: Node, attacker_peer_id: int) -> void:
 		death_events.append(attacker_peer_id)
 	)
 
