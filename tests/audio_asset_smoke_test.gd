@@ -59,8 +59,16 @@ func _run() -> void:
 		_check(is_equal_approx(float(manager.get("sfx_volume_linear")), 0.55), "SFX volume is independently stored")
 		_check(is_equal_approx(float(manager.get("ambience_volume_linear")), 0.45), "ambience volume is independently stored")
 		_check(is_equal_approx(float(manager.get("voice_volume_linear")), 0.35), "voice volume is independently stored")
+		_check(_bus_volume_matches("Master", 0.75), "master setting is applied to AudioServer")
+		_check(_bus_volume_matches("Music", 0.65), "music setting is applied to AudioServer")
+		_check(_bus_volume_matches("SFX", 0.55), "SFX setting is applied to AudioServer")
+		_check(_bus_volume_matches("Ambience", 0.45), "ambience setting is applied to AudioServer")
+		_check(_bus_volume_matches("Voice", 0.35), "voice setting is applied to AudioServer")
+
 		manager.call("set_muted", true)
-		_check(bool(manager.get("muted")), "master mute can be enabled")
+		_check(bool(manager.get("muted")), "master mute state is stored")
+		var master_index := AudioServer.get_bus_index("Master")
+		_check(master_index >= 0 and AudioServer.is_bus_mute(master_index), "master mute is applied to AudioServer")
 
 		var bus_count_before := AudioServer.get_bus_count()
 		var restarted_manager := Node.new()
@@ -77,6 +85,7 @@ func _run() -> void:
 		restarted_manager.free()
 
 		manager.call("set_muted", false)
+		_check(not AudioServer.is_bus_mute(master_index), "master mute is removed from AudioServer")
 		manager.call("set_master_volume", 1.0)
 		manager.call("set_music_volume", 0.8)
 		manager.call("set_sfx_volume", 1.0)
@@ -85,6 +94,14 @@ func _run() -> void:
 		manager.call("stop_all")
 	print("[audio-smoke] files: %d; failures: %d" % [SOUND_PATHS.size(), _failures])
 	quit(1 if _failures > 0 else 0)
+
+
+func _bus_volume_matches(bus_name: String, linear_value: float) -> bool:
+	var bus_index := AudioServer.get_bus_index(bus_name)
+	if bus_index < 0:
+		return false
+	var expected_db := linear_to_db(maxf(linear_value, 0.0001))
+	return is_equal_approx(AudioServer.get_bus_volume_db(bus_index), expected_db)
 
 
 func _check(condition: bool, description: String) -> void:
