@@ -42,6 +42,12 @@ func configure(definition: Resource, initial_stamina: float = 100.0) -> bool:
 	return true
 
 
+func restore_stamina(amount: float) -> void:
+	if not is_finite(amount) or amount <= 0.0:
+		return
+	stamina = minf(stamina_max, stamina + amount)
+
+
 func can_start_attack() -> bool:
 	if weapon == null or not is_instance_valid(weapon):
 		return false
@@ -98,7 +104,10 @@ func advance(delta: float) -> void:
 func _duration_for_phase(current: StringName) -> float:
 	match current:
 		PHASE_WINDUP:
-			return maxf(0.0, float(weapon.get("windup_seconds")))
+			var windup := maxf(0.0, float(weapon.get("windup_seconds")))
+			if StringName(weapon.get("category")) == &"charged":
+				windup = maxf(windup, float(weapon.get("charge_seconds")))
+			return windup
 		PHASE_ACTIVE:
 			return maxf(0.001, float(weapon.get("active_seconds")))
 		PHASE_RECOVERY:
