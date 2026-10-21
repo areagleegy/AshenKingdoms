@@ -172,9 +172,59 @@ func _validate_payload(data: Dictionary) -> bool:
 		return false
 	if not _is_number(data["experience"]) or not is_finite(float(data["experience"])) or float(data["experience"]) < 0.0:
 		return false
-	if not data["inventory"] is Array:
+	if not data["inventory"] is Array or not _validate_inventory(data["inventory"]):
 		return false
-	if not data["quest"] is Dictionary or not data["dialogue"] is Dictionary:
+	if not data["quest"] is Dictionary or not _validate_quest(data["quest"]):
+		return false
+	if not data["dialogue"] is Dictionary:
+		return false
+	return true
+
+
+func _validate_inventory(inventory: Array) -> bool:
+	# Inventory currently supports 24 slots by default and up to 80 configurable slots.
+	if inventory.size() > 80:
+		return false
+	for entry in inventory:
+		if entry == null:
+			continue
+		if not entry is Dictionary:
+			return false
+		var item_data: Dictionary = entry
+		if not item_data.has("id") or not item_data["id"] is String:
+			return false
+		var item_id: String = item_data["id"]
+		if item_id.is_empty() or item_id.length() > 96:
+			return false
+		if not item_data.has("amount") or not _is_number(item_data["amount"]):
+			return false
+		var amount_value: float = float(item_data["amount"])
+		if not is_finite(amount_value) or amount_value != float(int(amount_value)):
+			return false
+		if int(amount_value) < 1 or int(amount_value) > 9999:
+			return false
+	return true
+
+
+func _validate_quest(quest_data: Dictionary) -> bool:
+	# Older saves may contain only active/progress, so optional legacy fields stay optional.
+	if quest_data.has("id") and not quest_data["id"] is String:
+		return false
+	if quest_data.has("title") and not quest_data["title"] is String:
+		return false
+	if quest_data.has("active") and typeof(quest_data["active"]) != TYPE_BOOL:
+		return false
+	if quest_data.has("progress"):
+		if not _is_number(quest_data["progress"]):
+			return false
+		var progress_value: float = float(quest_data["progress"])
+		if not is_finite(progress_value) or progress_value != float(int(progress_value)):
+			return false
+		if int(progress_value) < 0 or int(progress_value) > 100000:
+			return false
+	if quest_data.has("id") and str(quest_data["id"]).length() > 96:
+		return false
+	if quest_data.has("title") and str(quest_data["title"]).length() > 512:
 		return false
 	return true
 
