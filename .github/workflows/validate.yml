@@ -46,6 +46,7 @@ jobs:
           test -f export_presets.cfg
           test -f scenes/boot/Main.tscn
           test -f scripts/core/main.gd
+          test -f scripts/world/ashen_arena.gd
           test -f scripts/core/server.gd
           test -f README.md
           test -f LICENSE
@@ -98,6 +99,7 @@ jobs:
           test -f assets/characters/enemies/ash_wraith.glb
           test -f tests/player_character_smoke_test.gd
           test -f tests/combat_hit_effect_smoke_test.gd
+          test -f tests/ashen_arena_smoke_test.gd
           test -f scenes/vfx/CombatHitEffect.tscn
           test -f scripts/vfx/combat_hit_effect.gd
           test -f docs/PLUGIN_INTEGRATION_AR.md
@@ -210,6 +212,17 @@ jobs:
         run: |
           set -o pipefail
           godot --headless --path . --script res://tests/combat_hit_effect_smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/combat-vfx-tests.log"
+
+      - name: Run Ashen Ruins environment smoke tests
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -o pipefail
+          godot --headless --path . --script res://tests/ashen_arena_smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/ashen-arena-tests.log"
+          if grep -E 'SCRIPT ERROR:|ERROR: Failed to load script|ERROR: Failed to create an autoload' "$RUNNER_TEMP/ashen-arena-tests.log"; then
+            echo "Ashen Ruins smoke log contains script/autoload errors; failing validation." >&2
+            exit 1
+          fi
 
       - name: Run network combat smoke tests
         env:
