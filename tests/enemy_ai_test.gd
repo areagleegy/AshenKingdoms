@@ -58,6 +58,7 @@ func _test_local_enemy_behavior() -> void:
 	enemy.velocity = Vector3(2.0, 0.0, 2.0)
 	enemy.set_physics_process(true)
 	await get_tree().physics_frame
+	await get_tree().physics_frame
 	enemy.set_physics_process(false)
 	_check(is_zero_approx(enemy.velocity.x) and is_zero_approx(enemy.velocity.z), "local enemy stops horizontal motion without a target")
 
@@ -65,6 +66,7 @@ func _test_local_enemy_behavior() -> void:
 	enemy.set("player", target)
 	enemy.velocity = Vector3.ZERO
 	enemy.set_physics_process(true)
+	await get_tree().physics_frame
 	await get_tree().physics_frame
 	enemy.set_physics_process(false)
 	_check(enemy.velocity.z < -0.1, "local enemy chases a target inside detection range")
@@ -74,11 +76,13 @@ func _test_local_enemy_behavior() -> void:
 	var damage_before := float(target.get("damage_received"))
 	enemy.set_physics_process(true)
 	await get_tree().physics_frame
+	await get_tree().physics_frame
 	enemy.set_physics_process(false)
 	var damage_after := float(target.get("damage_received"))
 	_check(damage_after > damage_before, "local enemy damages a target inside attack range")
 
 	enemy.set_physics_process(true)
+	await get_tree().physics_frame
 	await get_tree().physics_frame
 	enemy.set_physics_process(false)
 	_check(
@@ -89,6 +93,7 @@ func _test_local_enemy_behavior() -> void:
 	target.global_position = enemy.global_position + Vector3(0.0, 0.0, -20.0)
 	enemy.velocity = Vector3.ZERO
 	enemy.set_physics_process(true)
+	await get_tree().physics_frame
 	await get_tree().physics_frame
 	enemy.set_physics_process(false)
 	_check(absf(enemy.velocity.x) < 0.1 and absf(enemy.velocity.z) < 0.1, "local enemy does not chase a target outside detection range")
@@ -134,6 +139,7 @@ func _test_network_enemy_state_machine() -> void:
 	farther_player.global_position = enemy.global_position + Vector3(0.0, 0.0, -8.0)
 
 	enemy.set_physics_process(true)
+	await get_tree().physics_frame
 	await get_tree().physics_frame
 	enemy.set_physics_process(false)
 	_check(int(enemy.get("ai_state")) == AI_CHASE, "network enemy enters chase state for a target in detection range")
@@ -194,6 +200,7 @@ func _test_network_enemy_state_machine() -> void:
 	var home_position: Vector3 = leash_enemy.global_position
 	leash_enemy.global_position = home_position + Vector3(30.0, 0.0, 0.0)
 	leash_enemy.set_physics_process(true)
+	await get_tree().physics_frame
 	await get_tree().physics_frame
 	leash_enemy.set_physics_process(false)
 	_check(int(leash_enemy.get("ai_state")) == AI_RETURN_HOME, "network enemy returns home after exceeding its leash radius")
