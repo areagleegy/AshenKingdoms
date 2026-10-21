@@ -62,6 +62,8 @@ func _run() -> void:
 	_check(bool(combat.call("configure", weapon, 20.0)), "limited-ammo weapon configures")
 	_check(bool(combat.call("start_attack")), "limited-ammo weapon can fire with ammo")
 	_check(int(combat.get("ammunition")) == 0, "limited-ammo weapon consumes one round on start")
+	combat.call("advance", 2.0)
+	_check(StringName(combat.get("phase")) == &"ready", "limited-ammo attack completes its phases")
 	_check(not bool(combat.call("can_start_attack")), "empty limited-ammo weapon cannot fire again")
 
 	print("[combat-runtime] failures: %d" % _failures)
