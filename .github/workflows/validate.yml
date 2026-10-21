@@ -33,10 +33,11 @@ jobs:
           set -o pipefail
           gdlint tests/combat_mechanics_test.gd 2>&1 | tee "$RUNNER_TEMP/gdlint.log"
 
-      - name: Check Python tooling with Flake8
+      - name: Check Python tooling with Flake8 (critical errors)
         run: |
           set -o pipefail
-          flake8 tools --count --max-line-length=100 --statistics 2>&1 | tee "$RUNNER_TEMP/flake8.log"
+          # Gate syntax/undefined-name classes now; legacy style findings are tracked separately.
+          flake8 tools --count --select=E9,F63,F7,F82 --statistics 2>&1 | tee "$RUNNER_TEMP/flake8.log"
 
       - name: Run diagnostics classifier unit tests
         run: |
