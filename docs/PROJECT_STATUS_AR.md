@@ -42,14 +42,16 @@
 
 ## آخر أدلة CI تمت مراجعتها
 
-**آخر رأس تنفيذ مُتحقق منه يتضمن shader الأرضية واختباره:** `0cdee924b82c1fe473bf0fa95852929707be4bf3`.
+**آخر رأس اجتاز التحقق والتصدير، ويضم خامة أرضية إجرائية:** `44d08334daf891a6c2d34465fa322d3797dfa38c`.
 
-- [Validate Godot Project #397](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527764980): **نجاح**؛ شمل استيراد المشروع، فحوص الأصول والسكربتات، اختبار مرشح اللاعب، اختبار shader الأرضية/الخرائب، واللعب والشبكة.
-- [Build Android and Web #315](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527765031): **نجاح** لتصدير Android APK وWeb.
-- [تقرير تدقيق الأصول #397](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527764980/artifacts/12313929414) و[مرشح اللاعب للمعاينة #397](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527764980/artifacts/12313014880).
-- Android APK الاختباري: **28,068,644 بايت**؛ SHA-256: `ade8ced10097d5dac70f5171c9d9ad9ca7990fa3fa1d4b851bfed157caa7c45f`. لا يعني هذا أنه إصدار إنتاج موقّع للنشر العام.
-- [Artifact Android](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527765031/artifacts/12313538934) و[Artifact Web](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527765031/artifacts/12313404824).
-- الأدلة أعلاه تخص الرأس المذكور. تعديلات الوثائق التي تلي هذا التحديث لا تغير الكود أو shader، لكنها تشغّل CI من جديد؛ افحص أحدث حالة للرأس النهائي قبل الدمج.
+- [Validate Godot Project #398](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527986769): **نجاح**؛ شمل استيراد Godot، والتحقق من الموارد، واختبار shader الأرضية/الخرائب، ومرشح اللاعب، واللعب والشبكة.
+- [Build Android and Web #316](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527986921): **نجاح**؛ نجح تصدير APK وWeb.
+- [تقرير تدقيق الأصول #398](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527986769/artifacts/12314235157) و[مرشح اللاعب للمعاينة #398](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527986769/artifacts/12313849468).
+- APK Android الاختباري: **28,068,644 بايت**؛ SHA-256: `697edbe253a227d4508dd878bf4c293bc9d4e92668a2579e8e7a6121c08eab16`. ليس هذا إصدار إنتاج موقّع للنشر العام.
+- [Artifact Android #316](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527986921/artifacts/12314315284) و[Artifact Web #316](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527986921/artifacts/12314070383).
+- لا يوجد اختبار على هاتف Android فعلي أو قياس مقارن لتكلفة shader مقابل خامة نقطية؛ يظل الأداء البصري بحاجة إلى قياس ميداني.
+
+هذه الأدلة تخص الرأس المذكور. تحديث الوثائق نفسه ينشئ رأسًا جديدًا وتشغيل CI جديدًا، فراجع نتيجة الرأس النهائي قبل الدمج.
 
 
 ## ما لم يُختبر يدويًا
