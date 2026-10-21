@@ -11,7 +11,7 @@
 - تحميل السكربتات والمشاهد، واختبارات اللعب الأساسية والانحدار وبطل اللاعب. ويتحقق اختبار تحميل الموارد أيضًا من مسارات عقد مشهد `TouchControls.tscn` مقابل العقد الموجودة فعليًا، لمنع عودة مراجع `$NodePath` المكسورة.
 - اختبارات قتال الشبكة، واتصال ENet loopback بين عمليتين محليتين.
 - اختبارات فهرس حزم المحتوى ومثبتها، واختبارات Python لبناء الحزم وتوقيع الفهرس.
-- فحص سجل الأصول والرخص والروابط المحلية في Markdown، واختبارات الجرد الجنائي للأصول، ومدققي GLB وإعادة توليد نموذج اللاعب وشبح الرماد، واختبارات دخان للصوتيات وواجهة المستخدم والعدو والمؤثرات البصرية.
+- فحص سجل الأصول والرخص والروابط المحلية في Markdown، واختبارات الجرد الجنائي للأصول، ومدققي GLB وإعادة توليد نموذج اللاعب وشبح الرماد، واختبارات دخان للصوتيات وواجهة المستخدم والعدو والمؤثرات البصرية والبيئة الإجرائية للخرائب.
 - تشغّل `.github/workflows/build.yml` تصدير Android وWeb بصورة مستقلة وترفع المخرجات كـ Artifacts.
 
 راجع [تعريف التحقق](../.github/workflows/validate.yml) و[تعريف البناء](../.github/workflows/build.yml) إذا تغيرت قائمة الخطوات؛ هذان الملفان هما المصدر التنفيذي النهائي، وليس هذه القائمة المختصرة.
@@ -27,6 +27,7 @@ godot --headless --path . --script res://tests/script_load_smoke_test.gd
 godot --headless --path . --script res://tests/gameplay_smoke_test.gd
 godot --headless --path . --script res://tests/gameplay_regression_test.gd
 godot --headless --path . --script res://tests/player_character_smoke_test.gd
+godot --headless --path . --script res://tests/ashen_arena_smoke_test.gd
 timeout 45s godot --headless --path . res://tests/network_combat_smoke_test.tscn
 bash tools/test-network-loopback.sh
 godot --headless --path . --script res://tests/content_catalog_smoke_test.gd
