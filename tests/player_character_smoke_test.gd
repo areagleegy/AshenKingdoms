@@ -16,6 +16,7 @@ func _initialize() -> void:
 func _run() -> void:
 	_test_model_loader_and_placeholder()
 	_test_player_without_animations()
+	_test_sprint_stamina()
 	_test_player_animation_aliases()
 	print("[player-smoke] failures: %d" % _failures)
 	quit(1 if _failures > 0 else 0)
@@ -74,6 +75,26 @@ func _test_player_without_animations() -> void:
 	player.call("reset_after_death", Vector3.ZERO)
 	_check(not bool(player.get("is_dead")), "player can respawn without animations")
 
+	player.free()
+
+
+func _test_sprint_stamina() -> void:
+	var player := _make_player()
+	player.set("max_stamina", 100.0)
+	player.set("current_stamina", 50.0)
+	player.set("sprint_stamina_cost_per_second", 12.0)
+	player.set("stamina_regen_delay", 0.65)
+	player.call("_drain_sprint_stamina", 0.5)
+	_check(is_equal_approx(float(player.get("current_stamina")), 44.0), "sprinting drains stamina at the configured rate")
+	_check(is_equal_approx(float(player.get("_stamina_regen_wait")), 0.65), "sprinting resets stamina regeneration delay")
+
+	player.set("current_stamina", 1.0)
+	player.call("_drain_sprint_stamina", 2.0)
+	_check(is_equal_approx(float(player.get("current_stamina")), 0.0), "sprint stamina never falls below zero")
+
+	player.set("current_stamina", 150.0)
+	player.call("_drain_sprint_stamina", 0.0)
+	_check(is_equal_approx(float(player.get("current_stamina")), 100.0), "sprint stamina is clamped to max stamina")
 	player.free()
 
 
