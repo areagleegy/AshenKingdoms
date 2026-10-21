@@ -17,6 +17,8 @@
       "asset_licenses",
       "content_python",
       "godot_import",
+      "web_export",
+      "android_export",
       "script_load",
       "gameplay_smoke",
       "gameplay_regression",
@@ -178,6 +180,22 @@
       "command": null,
       "purpose": "مراجعة توقيع إصدار Android وإصدار التطبيق والنسخ الاحتياطية وملاحظات الإصدار.",
       "acceptance": "مفتاح التوقيع خارج Git، والتحقق من checksum ونسخة احتياطية وخطة رجوع."
+    },
+    {
+      "id": "web_export",
+      "area": "Build and export",
+      "kind": "automated",
+      "command": "web_export",
+      "purpose": "تصدير نسخة Web والتحقق من وجود ملف HTML غير فارغ.",
+      "acceptance": "Godot export-release Web ينتهي بنجاح وينتج index.html."
+    },
+    {
+      "id": "android_export",
+      "area": "Build and export",
+      "kind": "automated",
+      "command": "android_export",
+      "purpose": "تصدير APK تجريبي والتحقق من وجود الملف.",
+      "acceptance": "Godot export-debug Android ينتهي بنجاح وينتج APK؛ هذا لا يثبت التثبيت على هاتف."
     }
   ]
 }
