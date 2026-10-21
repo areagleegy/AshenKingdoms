@@ -5,6 +5,7 @@ const HEALTH_SCRIPT: Script = preload("res://scripts/components/health.gd")
 const PLAYER_SCRIPT: Script = preload("res://scripts/player/player.gd")
 const PLAYER_MODEL_PATH: String = "res://assets/characters/player/player.glb"
 const ENEMY_MODEL_PATH: String = "res://assets/characters/enemies/ash_wraith.glb"
+const ASHEN_ARENA_SCRIPT: Script = preload("res://scripts/world/ashen_arena.gd")
 const CAMERA_SCRIPT: Script = preload("res://scripts/player/player_camera.gd")
 const ENEMY_SCRIPT: Script = preload("res://scripts/enemies/enemy.gd")
 const INVENTORY_SCRIPT: Script = preload("res://scripts/components/inventory.gd")
@@ -139,6 +140,11 @@ func _create_world() -> void:
 	ground_material.roughness = 1.0
 	ground_mesh_node.material_override = ground_material
 	world.add_child(ground_mesh_node)
+
+	var arena_dressing := Node3D.new()
+	arena_dressing.name = "AshenArenaDressing"
+	arena_dressing.set_script(ASHEN_ARENA_SCRIPT)
+	world.add_child(arena_dressing)
 
 
 func _create_managers() -> void:
