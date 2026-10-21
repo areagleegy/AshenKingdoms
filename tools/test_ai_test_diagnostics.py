@@ -32,14 +32,14 @@ class DiagnosticsClassifierTests(unittest.TestCase):
 
     def test_clean_enemy_ai_log_has_no_findings(self):
         log = (
-            "[PASS] local enemy chases a target inside detection range\\n"
+            "[PASS] local enemy chases a target inside detection range\n"
             "[enemy-ai] checks: 31, failures: 0"
         )
         self.assertEqual(classify_text(log), [])
 
     def test_pass_assertions_do_not_trigger_missing_asset_diagnostics(self):
         log = (
-            "player-character-tests.log: [PASS] missing player.glb selects the documented placeholder path\\n"
+            "player-character-tests.log: [PASS] missing player.glb selects the documented placeholder path\n"
             "player-character-tests.log: [PASS] player tolerates missing AnimationPlayer"
         )
         self.assertEqual(classify_text(log), [])
