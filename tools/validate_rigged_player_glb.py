@@ -94,6 +94,37 @@ def accessor_values(document, binary, accessor_index, expected_type=None, expect
     return rows, acc
 
 
+
+def position_key(point):
+    return tuple(round(float(value), 5) for value in point)
+
+def connected_face_components(positions, indices):
+    face_count = len(indices) // 3
+    parents = list(range(face_count))
+    def find(item):
+        while parents[item] != item:
+            parents[item] = parents[parents[item]]
+            item = parents[item]
+        return item
+    def union(left, right):
+        lroot, rroot = find(left), find(right)
+        if lroot != rroot:
+            parents[rroot] = lroot
+    edge_faces = {}
+    for face_index in range(face_count):
+        face = indices[face_index * 3:face_index * 3 + 3]
+        keys = [position_key(positions[index]) for index in face]
+        for edge in ((keys[0], keys[1]), (keys[1], keys[2]), (keys[2], keys[0])):
+            edge_key = tuple(sorted(edge))
+            if edge_key in edge_faces:
+                union(face_index, edge_faces[edge_key])
+            else:
+                edge_faces[edge_key] = face_index
+    components = {}
+    for face_index in range(face_count):
+        components.setdefault(find(face_index), []).append(face_index)
+    return list(components.values())
+
 def validate(path: Path):
     document, binary, size_bytes = read_glb(path)
     nodes = document.get("nodes", [])
@@ -127,6 +158,7 @@ def validate(path: Path):
     primitive_count = 0
     vertex_count = 0
     weighted_vertices = 0
+    connected_component_count = 0
     for mesh in meshes:
         for primitive in mesh.get("primitives", []):
             primitive_count += 1
@@ -150,6 +182,20 @@ def validate(path: Path):
                 if abs(total - 1.0) > 1e-4:
                     raise InvalidGLB(f"vertex {row_index} weights sum to {total}, not 1")
                 weighted_vertices += 1
+            indices_flat = None
+            if "indices" not in primitive:
+                raise InvalidGLB("skinned primitive must have indices")
+            index_rows, _ = accessor_values(document, binary, primitive["indices"], "SCALAR", UNSIGNED_SHORT)
+            indices_flat = [row[0] for row in index_rows]
+            if len(indices_flat) % 3 or (indices_flat and max(indices_flat) >= len(positions)):
+                raise InvalidGLB("primitive index accessor is not a valid triangle list")
+            components = connected_face_components(positions, indices_flat)
+            connected_component_count += len(components)
+            for component in components:
+                component_vertices = {indices_flat[face * 3 + corner] for face in component for corner in range(3)}
+                component_joints = {joint for vertex in component_vertices for joint, weight in zip(joint_rows[vertex], weight_rows[vertex]) if weight > 1e-5}
+                if len(component_joints) != 1:
+                    raise InvalidGLB("connected mesh component uses multiple joints; rigid prototype may show deformation spikes")
             vertex_count += len(positions)
     if primitive_count < 7 or vertex_count == 0 or weighted_vertices != vertex_count:
         raise InvalidGLB("mesh/vertex counts do not satisfy candidate requirements")
@@ -193,11 +239,12 @@ def validate(path: Path):
         "bone_count": len(joints),
         "primitive_count": primitive_count,
         "skinned_vertex_count": vertex_count,
+        "connected_rigid_components": connected_component_count,
         "animation_count": len(animations),
         "animations": sorted(animation_names),
         "animation_channel_count": channel_count,
         "result": "PASS",
-        "limitation": "spatially assigned first-pass weights; visual deformation review required",
+        "limitation": "one joint per connected low-poly component; visual deformation review required",
     }
     return report
 
