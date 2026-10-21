@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from validate_rigged_player_glb import InvalidGLB, validate, read_glb
+from validate_rigged_player_glb import InvalidGLB, validate, read_glb, accessor_values
 from generate_rigged_player_glb import connected_face_components
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -46,6 +46,16 @@ class RiggedPlayerCandidateTests(unittest.TestCase):
         self.assertGreater(report["skinned_vertex_count"], 0)
         self.assertGreater(report["animation_channel_count"], 10)
         self.assertGreater(report["connected_rigid_components"], 0)
+        document, binary, _ = read_glb(self.rigged)
+        hand_node = next(i for i, node in enumerate(document["nodes"]) if node.get("name") == "Hand_R")
+        attack = next(anim for anim in document["animations"] if anim.get("name") == "HeavyAttack")
+        hand_channel = next(
+            channel for channel in attack["channels"]
+            if channel["target"].get("node") == hand_node and channel["target"].get("path") == "rotation"
+        )
+        sampler = attack["samplers"][hand_channel["sampler"]]
+        rotations, _ = accessor_values(document, binary, sampler["output"], "VEC4", 5126)
+        self.assertGreaterEqual(len({tuple(round(v, 4) for v in rotation) for rotation in rotations}), 3)
 
     def test_edge_connected_triangles_share_one_component_even_with_split_vertices(self):
         positions = [
