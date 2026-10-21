@@ -192,15 +192,16 @@
 
 ### نتيجة التحقق الموثقة
 
-**آخر رأس تنفيذ مُتحقق منه يتضمن shader الأرضية واختباره:** `0cdee924b82c1fe473bf0fa95852929707be4bf3`.
+**آخر رأس اجتاز التحقق والتصدير مع shader الأرضية واختبارها:** `44d08334daf891a6c2d34465fa322d3797dfa38c`.
 
-- [Validate Godot Project #397](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527764980): **نجاح**؛ اجتازت فحوص استيراد Godot، والأصول/الترخيص، ومرشح اللاعب المهيكل، واللعب والعدو والمؤثرات والخرائب، بما فيها اختبار ربط shader الأرضية وإعداداته.
-- [Build Android and Web #315](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527765031): **نجاح**؛ تصدير Web وAndroid APK اجتازا التشغيل.
-- [Artifact تدقيق الأصول #397](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527764980/artifacts/12313929414) و[مرشح اللاعب للمراجعة #397](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527764980/artifacts/12313014880).
-- سجل بناء Android يثبت أن ملف APK الاختباري حجمه **28,068,644 بايت**، وبصمته SHA-256 هي `ade8ced10097d5dac70f5171c9d9ad9ca7990fa3fa1d4b851bfed157caa7c45f`. هذا APK اختباري موقّع ضمن CI، وليس إصدار متجر نهائيًا.
-- [Artifact Android APK](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527765031/artifacts/12313538934) و[Artifact Web](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527765031/artifacts/12313404824).
-- هذه الأدلة تخص رأس التنفيذ المذكور. التعديلات التالية في هذه الوثيقة وصفية فقط؛ شُغّل CI مجددًا لها ويجب مراجعة رأس PR الأخير قبل الدمج.
-- لا تثبت هذه النتائج القبول البصري/السمعي اليدوي أو الأداء الحراري/الذاكرة على هاتف Android. على وجه الخصوص، لم تُقارن كلفة shader بخامة نقطية على جهاز فعلي.
+- [Validate Godot Project #398](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527986769): **نجاح**؛ اجتازت فحوص Godot والأصول، مرشح اللاعب المهيكل، واختبار الخرائب وshader الأرضية، واللعب والشبكة.
+- [Build Android and Web #316](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527986921): **نجاح**؛ اجتاز تصدير Web وAndroid APK.
+- [Artifact تدقيق الأصول #398](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527986769/artifacts/12314235157) و[مرشح اللاعب للمراجعة #398](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527986769/artifacts/12313849468).
+- APK Android الاختباري الناتج عن #316 حجمه **28,068,644 بايت**، وبصمته SHA-256 هي `697edbe253a227d4508dd878bf4c293bc9d4e92668a2579e8e7a6121c08eab16`. هذا بناء اختبار من CI، وليس إصدار متجر نهائيًا.
+- [Artifact Android APK #316](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527986921/artifacts/12314315284) و[Artifact Web #316](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527986921/artifacts/12314070383).
+- لم تُجر مراجعة بصرية على هاتف فعلي أو مقارنة أداء GPU مع خامة نقطية بديلة؛ shader ما زال خيارًا تجريبيًا حتى قياس Android.
+
+هذه الأدلة تخص الرأس أعلاه. أي تحديثات وثائقية جديدة تُنشئ رأسًا آخر وتعيد CI، لذلك تحقّق من نتيجة الرأس النهائي قبل الدمج.
 
 
 ### ترتيب دمج الصوت والمرئيات
