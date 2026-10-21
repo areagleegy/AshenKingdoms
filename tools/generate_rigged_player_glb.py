@@ -123,27 +123,34 @@ def get_accessor_payload(document, binary, accessor_index):
     return [struct.unpack_from("<fff", binary, start + i * stride) for i in range(count)]
 
 
-def triangle_bone(a, b, c):
+def triangle_bone(a, b, c, material_index):
     x = (a[0] + b[0] + c[0]) / 3.0
     y = (a[1] + b[1] + c[1]) / 3.0
     z = (a[2] + b[2] + c[2]) / 3.0
     ax = abs(x)
 
-    # The source generator emits independent triangle vertices. Assigning each complete
-    # triangle to one joint avoids tearing a triangle across spatial classification bands.
-    if z >= 0.19 and y < 1.48 and (ax > 0.12 or y < 0.88):
+    # Use source material groups where they identify the cape, greaves and leg underlayer.
+    # This reduces skirt and waist triangles being accidentally attached to leg joints.
+    if material_index == 7:
         return BONE_INDEX["Cape"]
-    if y >= 1.42:
+    if material_index == 5 or y >= 1.42:
         return BONE_INDEX["Head"]
-    if y < 0.72 and ax >= 0.035:
-        side = "L" if x < 0 else "R"
-        if y < 0.22 and z < 0.08:
-            return BONE_INDEX[f"Foot_{side}"]
-        if y < 0.43:
+
+    side = "L" if x < 0 else "R"
+    if material_index == 2 and y < 0.56 and ax < 0.27:
+        return BONE_INDEX[f"LowerLeg_{side}"]
+    if material_index == 6 and y < 0.70 and ax < 0.27:
+        if y < 0.37:
             return BONE_INDEX[f"LowerLeg_{side}"]
         return BONE_INDEX[f"UpperLeg_{side}"]
+    if material_index == 1 and y < 0.22 and 0.035 < ax < 0.25:
+        return BONE_INDEX[f"Foot_{side}"]
+
+    # The lower diagonal section of the right-hand weapon follows the right hand.
+    if material_index == 1 and ax >= 0.25 and z > 0.08 and 0.30 <= y < 0.86:
+        return BONE_INDEX["Hand_R"]
+
     if ax >= 0.25 and y >= 0.86:
-        side = "L" if x < 0 else "R"
         if ax >= 0.45 or y < 1.04:
             return BONE_INDEX[f"Hand_{side}"]
         if ax >= 0.36:
@@ -154,7 +161,6 @@ def triangle_bone(a, b, c):
     if y < 0.99:
         return BONE_INDEX["Spine"]
     return BONE_INDEX["Chest"]
-
 
 def add_skin_attributes(document, binary, primitive):
     attrs = primitive.get("attributes", {})
@@ -176,7 +182,8 @@ def add_skin_attributes(document, binary, primitive):
     vertex_joint = [None] * len(positions)
     for face_offset in range(0, len(indices), 3):
         tri = indices[face_offset:face_offset + 3]
-        joint = triangle_bone(*(positions[v] for v in tri))
+        triangle_points = [positions[v] for v in tri]
+        joint = triangle_bone(triangle_points[0], triangle_points[1], triangle_points[2], primitive.get("material", -1))
         for vertex in tri:
             previous = vertex_joint[vertex]
             if previous is not None and previous != joint:
