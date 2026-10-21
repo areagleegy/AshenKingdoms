@@ -11,6 +11,9 @@ signal died(player: Node)
 @export var attack_cooldown: float = 0.55
 @export var equipped_weapon_id: StringName = &"ash_dagger"
 @export var equipped_armor_id: StringName = &""
+@export var max_stamina: float = 100.0
+@export var stamina_regen_per_second: float = 18.0
+@export var stamina_regen_delay: float = 0.65
 
 @onready var health: Health = $Health
 @onready var inventory: Inventory = $Inventory
@@ -31,11 +34,14 @@ var is_dead: bool = false
 var _animation_player: AnimationPlayer
 var _resolved_animations: Dictionary = {}
 var _is_attacking: bool = false
+var current_stamina: float = 100.0
+var _stamina_regen_wait: float = 0.0
 
 
 func _ready() -> void:
 	add_to_group("player")
 	health.died.connect(_on_health_died)
+	current_stamina = max_stamina
 	_find_animation_player()
 	_play_animation(&"idle")
 
@@ -66,7 +72,13 @@ func _physics_process(delta: float) -> void:
 	else:
 		direction = Vector3(input_vector.x, 0.0, -input_vector.y).normalized()
 
+	if _stamina_regen_wait > 0.0:
+		_stamina_regen_wait = maxf(0.0, _stamina_regen_wait - delta)
+	elif not _is_attacking:
+		current_stamina = minf(max_stamina, current_stamina + stamina_regen_per_second * delta)
+
 	var current_speed := sprint_speed if Input.is_action_pressed("sprint") else speed
+	current_speed *= _get_equipment_movement_multiplier()
 	velocity.x = direction.x * current_speed
 	velocity.z = direction.z * current_speed
 
@@ -111,6 +123,13 @@ func _attack() -> void:
 	_is_attacking = true
 	_play_animation(&"attack")
 	var weapon_profile := _get_equipped_weapon_profile()
+	var stamina_cost := maxf(0.0, float(weapon_profile.get("stamina_cost", 0.0)))
+	if current_stamina < stamina_cost:
+		_can_attack = true
+		_is_attacking = false
+		return
+	current_stamina = maxf(0.0, current_stamina - stamina_cost)
+	_stamina_regen_wait = stamina_regen_delay
 	var damage := float(weapon_profile.get("damage", attack_damage))
 	var weapon_range := float(weapon_profile.get("range", attack_range))
 	var windup := maxf(0.0, float(weapon_profile.get("windup_seconds", 0.0)))
@@ -137,6 +156,63 @@ func _attack() -> void:
 		await get_tree().create_timer(remaining_time).timeout
 	_can_attack = true
 	_is_attacking = false
+
+
+func equip_weapon(item_id: String) -> bool:
+	var catalog := get_node_or_null("/root/CombatCatalog")
+	if catalog == null or not catalog.has_method("get_weapon"):
+		return false
+	var profile: Dictionary = catalog.call("get_weapon", item_id)
+	if profile.is_empty():
+		return false
+	equipped_weapon_id = StringName(item_id)
+	return true
+
+
+func equip_armor(item_id: String) -> bool:
+	if item_id.is_empty():
+		equipped_armor_id = &""
+		return true
+	var catalog := get_node_or_null("/root/CombatCatalog")
+	if catalog == null or not catalog.has_method("get_armor"):
+		return false
+	var profile: Dictionary = catalog.call("get_armor", item_id)
+	if profile.is_empty():
+		return false
+	equipped_armor_id = StringName(item_id)
+	return true
+
+
+func get_equipment_weight() -> float:
+	var weapon_profile := _get_equipped_weapon_profile()
+	var armor_profile := _get_equipped_armor_profile()
+	return maxf(0.0, float(weapon_profile.get("weight", 0.0))) + maxf(0.0, float(armor_profile.get("weight", 0.0)))
+
+
+func _get_equipped_armor_profile() -> Dictionary:
+	var catalog := get_node_or_null("/root/CombatCatalog")
+	if catalog == null or not catalog.has_method("get_armor"):
+		return {}
+	return catalog.call("get_armor", String(equipped_armor_id))
+
+
+func _get_equipment_movement_multiplier() -> float:
+	var multiplier := 1.0
+	var armor_profile := _get_equipped_armor_profile()
+	if not armor_profile.is_empty():
+		multiplier *= clampf(float(armor_profile.get("movement_speed_multiplier", 1.0)), 0.5, 1.25)
+	var catalog := get_node_or_null("/root/CombatCatalog")
+	var max_carry := 30.0
+	if catalog != null and catalog.has_method("get_max_carry_weight"):
+		max_carry = maxf(1.0, float(catalog.call("get_max_carry_weight")))
+	var load_ratio := get_equipment_weight() / max_carry
+	if load_ratio > 1.0:
+		multiplier *= 0.65
+	elif load_ratio > 0.8:
+		multiplier *= 0.82
+	elif load_ratio > 0.5:
+		multiplier *= 0.93
+	return multiplier
 
 
 func _get_equipped_weapon_profile() -> Dictionary:
