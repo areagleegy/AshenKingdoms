@@ -47,6 +47,7 @@ jobs:
           test -f scenes/boot/Main.tscn
           test -f scripts/core/main.gd
           test -f scripts/world/ashen_arena.gd
+          test -f shaders/world/ashen_ground.gdshader
           test -f scripts/core/server.gd
           test -f README.md
           test -f LICENSE
