@@ -29,6 +29,11 @@ func get_weapon_ids() -> PackedStringArray:
 	return ids
 
 
+func get_max_carry_weight() -> float:
+	var armor_data := _read_json_object(ARMOR_PATH)
+	return maxf(1.0, float(armor_data.get("max_carry_weight", 30.0)))
+
+
 func get_armor_ids() -> PackedStringArray:
 	var ids := PackedStringArray()
 	for item_id in _armor.keys():
