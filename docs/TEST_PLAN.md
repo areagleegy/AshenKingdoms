@@ -26,6 +26,7 @@ godot --headless --path . --editor --quit
 godot --headless --path . --script res://tests/script_load_smoke_test.gd
 godot --headless --path . --script res://tests/gameplay_smoke_test.gd
 godot --headless --path . --script res://tests/gameplay_regression_test.gd
+godot --headless --path . --script res://tests/save_and_input_hardening_test.gd
 godot --headless --path . --script res://tests/player_character_smoke_test.gd
 timeout 45s godot --headless --path . res://tests/network_combat_smoke_test.tscn
 bash tools/test-network-loopback.sh
@@ -107,7 +108,7 @@ godot --headless --path . --script res://tests/gameplay_smoke_test.gd
 godot --headless --path . --script res://tests/save_and_input_hardening_test.gd
 ```
 
-يتحقق `tests/save_and_input_hardening_test.gd` من كتابة الحفظ عبر ملف مؤقت والتحقق منه قبل الاستبدال، واستبدال النسخ الاحتياطية عبر ثلاث عمليات حفظ متتابعة، واستعادة آخر نسخة احتياطية سليمة عند تلف الملف الأساسي، وأولوية ملف JSON فارغ لكنه صالح، وتجاهل الملفات المؤقتة القديمة، والتنظيف. كما يمرر اتجاهات `NaN` و`Infinity` والاتجاه الصحيح إلى مسار تنقية الإدخال ويتحقق من بقاء متجهات الفيزياء منتهية.
+يتحقق `tests/save_and_input_hardening_test.gd` من كتابة الحفظ عبر ملف مؤقت والتحقق منه قبل الاستبدال، واستبدال النسخ الاحتياطية عبر ثلاث عمليات حفظ متتابعة، واستعادة الملف الأساسي إذا فشل استبداله، وتنظيف ملف التجهيز القديم، واستعادة آخر نسخة احتياطية سليمة عند تلف الملف الأساسي، وأولوية ملف JSON فارغ لكنه صالح، وتجاهل الملفات المؤقتة القديمة، والتنظيف. كما يمرر اتجاهات `NaN` و`Infinity` والاتجاه الصحيح إلى مسار تنقية الإدخال ويتحقق من بقاء متجهات الفيزياء منتهية.
 
 الاختبار الأخير يستدعي دالة التنقية مباشرة؛ لا يُعد اختبار RPC عدائيًا عبر اتصال شبكي حقيقي. كذلك لا يثبت اختبار الملف المؤقت وحده مقاومة انقطاع الطاقة على جميع أنظمة الملفات. قبل الإصدار، اختبر الحفظ على الأنظمة المستهدفة، بما في ذلك تعذر الكتابة، وانقطاع العملية، واستعادة النسخة الاحتياطية، واختبار RPC من عميل غير مالك.
 
