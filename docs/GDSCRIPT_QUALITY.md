@@ -9,7 +9,8 @@ The repository uses `gdtoolkit` for GDScript linting and formatting:
 - CI currently enforces linting on the newly added combat regression test while the existing
   repository-wide lint baseline is triaged. The first full-repository run reported 202 findings,
   including existing ordering, line-length, unused-argument, and argument-count violations.
-- Python tools are checked with Flake8 under Python 3.10.
+- Python tools are checked with Flake8 under Python 3.10. CI currently gates critical syntax and
+  undefined-name classes (`E9,F63,F7,F82`); existing formatting/style debt is not a blocking gate.
 
 ## Commands
 
@@ -19,7 +20,7 @@ Install the tools in a Python 3.10 virtual environment:
 python -m pip install "gdtoolkit>=4.3,<5" flake8
 gdlint scripts/ tests/ scenes/
 gdformat --check scripts/ tests/ scenes/
-flake8 tools --count --max-line-length=100 --statistics
+flake8 tools --count --select=E9,F63,F7,F82 --statistics
 ```
 
 The full-repository GDScript command is an audit command until the existing baseline is remediated;
