@@ -43,6 +43,15 @@ func _run() -> void:
 		_check(is_equal_approx(float(manager.get("master_volume_linear")), 0.75), "master volume setting is clamped and stored")
 		manager.call("set_muted", true)
 		_check(bool(manager.get("muted")), "master mute can be enabled")
+
+		var restarted_manager := Node.new()
+		restarted_manager.name = "AudioManagerPersistenceTest"
+		restarted_manager.set_script(load("res://scripts/audio/audio_manager.gd"))
+		root.add_child(restarted_manager)
+		_check(is_equal_approx(float(restarted_manager.get("master_volume_linear")), 0.75), "master volume is restored from user settings")
+		_check(bool(restarted_manager.get("muted")), "mute state is restored from user settings")
+		restarted_manager.free()
+
 		manager.call("set_muted", false)
 		_check(not bool(manager.get("muted")), "master mute can be disabled")
 		manager.call("set_master_volume", 1.0)
