@@ -37,6 +37,7 @@
 - [توليد بطل اللاعب بالذكاء الاصطناعي](AI_PLAYER_CHARACTER_PIPELINE_AR.md): مسار مرجعي، وليس إثباتًا على وجود نموذج نهائي.
 - [الدليل الفني المرئي](ART_BIBLE_AR.md): الهوية البصرية ومواصفات الشخصيات والبيئات وقيود Android.
 - [الدليل الصوتي](AUDIO_BIBLE_AR.md): ملفات SFX والبيئات والموسيقى والحوار والمكساج ومعايير الاستماع.
+- [خط إنتاج التحريك الهيكلي](CHARACTER_ANIMATION_PIPELINE_AR.md): حالة GLB الثابت الحالي، عقد الهيكل، مقاطع الحركة، الربط باللعب وبوابات القبول الآلية واليدوية.
 - [ربط أدوات الأصول الإضافية](PLUGIN_INTEGRATION_AR.md): إضافة المحرر وأداة التوليد الخارجية وشروطها.
 - [سجل الأصول والتراخيص](ASSET_CREDITS.md): بيانات المصدر والرخصة والإسناد.
 - [الجرد الفعلي](VISUAL_AUDIO_ASSET_INVENTORY_AR.md) و[توزيع الوكلاء](ASSET_AGENT_ASSIGNMENT_AR.md): الحقيقة الحالية ومسؤوليات الإكمال، مع حالة حزمة SVG/WAV في PR #49.
@@ -71,24 +72,20 @@ python3 tools/validate_free_assets.py
 
 شغّل فحص الأصول عند تعديل ملفات الأصول أو سجل التراخيص. يجب أن تجتاز الوثائق فحوص الروابط في CI، وأن تصف حدود المنتج دون مبالغة في وصف حالة التنفيذ.
 
-
 ## تحديث الواجهة
 
 - تمت إضافة رمز التفاعل `assets/ui/icons/interact.svg` إلى زر «تحدّث»، ورمز `assets/ui/icons/quest_complete.svg` إلى حالة اكتمال المهمة. راجع `docs/ASSET_CREDITS.md` لسجل الأصول.
 
-
 ## مؤثرات القتال
 
 - تأثير وميض/شظايا أولي مرتبط بإصابة السيف: `scenes/vfx/CombatHitEffect.tscn`، مع اختبار ذاتي في `tests/combat_hit_effect_smoke_test.gd`.
-
 
 ## نموذج اللاعب
 
 - النموذج الحالي ملف GLB ثابت بُني إجرائيًا: `assets/characters/player/player.glb`.
 - إعادة الإنشاء: `python3 tools/generate_procedural_player_glb.py`.
 - التحقق البنيوي: `python3 tools/validate_player_glb.py assets/characters/player/player.glb`.
-- لا توجد حركات أو Skeleton مضمّنة حتى الآن.
-
+- لا توجد حركات أو Skeleton مضمّنة حتى الآن؛ راجع [خط إنتاج التحريك](CHARACTER_ANIMATION_PIPELINE_AR.md) للمتطلبات والخطوات قبل استبدال الأصل.
 
 ## عدو شبح الرماد
 
