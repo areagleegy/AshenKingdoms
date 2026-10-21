@@ -42,6 +42,11 @@ func _run() -> void:
 	enemy.call("apply_damage_from_server", -10.0, 1)
 	_check(is_equal_approx(float(enemy.get("current_health")), 65.0), "negative damage is ignored")
 
+	enemy.call("apply_damage_from_server", NAN, 1)
+	_check(is_equal_approx(float(enemy.get("current_health")), 65.0), "NaN damage is ignored")
+	enemy.call("apply_damage_from_server", INF, 1)
+	_check(is_equal_approx(float(enemy.get("current_health")), 65.0), "infinite damage is ignored")
+
 	enemy.call("apply_damage_from_server", 999.0, 7)
 	_check(
 		is_equal_approx(float(enemy.get("current_health")), 0.0),
