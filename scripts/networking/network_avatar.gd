@@ -2,6 +2,9 @@ extends CharacterBody3D
 
 const INPUT_SEND_INTERVAL: float = 0.05
 const INPUT_TIMEOUT_MSEC: int = 350
+const RPC_INPUT_RATE: float = 30.0
+const RPC_INPUT_BURST: float = 60.0
+const MAX_INPUT_DIRECTION_LENGTH: float = 1.5
 const MAX_LEVEL: int = 50
 const QUEST_TARGET: int = 3
 const QUEST_REWARD_XP: int = 75
@@ -38,6 +41,8 @@ var _last_input_msec: int = 0
 var _next_attack_msec: int = 0
 var _death_generation: int = 0
 var _input_send_accumulator: float = 0.0
+var _input_tokens: float = RPC_INPUT_BURST
+var _input_token_updated_msec: int = 0
 var _base_color: Color = Color.WHITE
 
 
@@ -104,7 +109,9 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 	var sender_id := multiplayer.get_remote_sender_id()
 	if sender_id != owner_peer_id or sender_id <= 1 or is_dead:
 		return
-	if not is_finite(direction.x) or not is_finite(direction.y) or not is_finite(direction.z):
+	if not _is_valid_input_direction(direction):
+		return
+	if not _consume_input_token(Time.get_ticks_msec()):
 		return
 
 	var safe_direction := Vector3(direction.x, 0.0, direction.z)
@@ -112,6 +119,28 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 		safe_direction = safe_direction.normalized()
 	_set_requested_input(safe_direction, jump_down, sprint_down, attack_down)
 	_last_input_msec = Time.get_ticks_msec()
+
+
+func _is_valid_input_direction(direction: Vector3) -> bool:
+	if not is_finite(direction.x) or not is_finite(direction.y) or not is_finite(direction.z):
+		return false
+	return Vector3(direction.x, 0.0, direction.z).length_squared() <= MAX_INPUT_DIRECTION_LENGTH * MAX_INPUT_DIRECTION_LENGTH
+
+
+func _consume_input_token(now_msec: int) -> bool:
+	if _input_token_updated_msec == 0:
+		_input_token_updated_msec = now_msec
+	else:
+		var elapsed_msec := maxi(0, now_msec - _input_token_updated_msec)
+		_input_tokens = minf(
+			RPC_INPUT_BURST,
+			_input_tokens + float(elapsed_msec) * RPC_INPUT_RATE / 1000.0
+		)
+		_input_token_updated_msec = now_msec
+	if _input_tokens < 1.0:
+		return false
+	_input_tokens -= 1.0
+	return true
 
 
 func _set_requested_input(direction: Vector3, jump_down: bool, sprint_down: bool, attack_down: bool) -> void:
