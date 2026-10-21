@@ -10,6 +10,8 @@
 - `data/combat/armor.json`: وزن الدرع وتقليل الضرر ومضاعفات الحركة والمراوغة ومقاومة الترنح والمتانة وحد الحمل ونسب الحمل.
 - `tools/validate_combat_catalog.py`: مدقق محلي يعتمد مكتبات Python القياسية فقط.
 - `tools/test_combat_catalog.py`: اختبارات وحدة لحالات صحيحة وغير صحيحة.
+- `scripts/combat/combat_catalog.gd`: قارئ وقت التشغيل مسجل كـ Autoload؛ يعيد نسخ ملفات العناصر، ويعرض معرفاتها، ويوفر حسابًا أوليًا لتقليل الضرر.
+- `tests/combat_catalog_smoke_test.gd`: اختبار Godot لتحميل البيانات وسلامة القراءة وحساب تقليل الضرر.
 
 ## قواعد البيانات
 
@@ -29,9 +31,10 @@
 python3 -m py_compile tools/validate_combat_catalog.py tools/test_combat_catalog.py
 python3 tools/validate_combat_catalog.py
 python3 -m unittest discover -s tools -p 'test_combat_catalog.py' -v
+godot --headless --path . --script res://tests/combat_catalog_smoke_test.gd
 ~~~
 
-نجاح هذه الأوامر يثبت صحة بنية البيانات والقواعد التي يغطيها المدقق فقط؛ لا يثبت أن القتال أو العتاد موصولان باللعبة، ولا يغني عن اختبارات Godot أو Android.
+نجاح هذه الأوامر يثبت صحة بنية البيانات، وتحميلها وقت التشغيل، وحساب تقليل الضرر الأولي فقط؛ لا يثبت أن آلة هجوم اللاعب أو واجهة اختيار العتاد أو متانة المعدات موصولة باللعب بعد، ولا يغني عن اختبار Android فعلي.
 
 ## الخطوة التالية قبل الاستخدام داخل اللعبة
 
