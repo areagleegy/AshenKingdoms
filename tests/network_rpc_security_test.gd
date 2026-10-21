@@ -57,8 +57,9 @@ func _test_input_token_bucket() -> void:
 			accepted += 1
 	_check(accepted == 60, "input token bucket permits its configured initial burst")
 	_check(not bool(avatar.call("_consume_input_token")), "input token bucket rejects requests beyond burst capacity")
-	await create_timer(0.05).timeout
-	_check(bool(avatar.call("_consume_input_token")), "input token bucket refills after elapsed time")
+	avatar.set("_input_bucket_tokens", 0.0)
+	avatar.set("_input_bucket_last_usec", Time.get_ticks_usec() - 100_000)
+	_check(bool(avatar.call("_consume_input_token")), "input token bucket refills after 100 ms of elapsed time")
 	avatar.free()
 
 
