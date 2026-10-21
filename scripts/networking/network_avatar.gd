@@ -37,6 +37,7 @@ var _attack_requested: bool = false
 var _last_jump_down: bool = false
 var _last_attack_down: bool = false
 var _last_input_msec: int = 0
+var _last_input_rpc_msec: int = 0
 var _next_attack_msec: int = 0
 var _death_generation: int = 0
 var _input_send_accumulator: float = 0.0
@@ -106,11 +107,14 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 	var sender_id := multiplayer.get_remote_sender_id()
 	if sender_id != owner_peer_id or sender_id <= 1 or is_dead:
 		return
-	if not _is_valid_input_direction(direction):
-		return
 
+	# Consume a request slot before inspecting the payload, so malformed requests
+	# are also rate-limited. Keep this timestamp separate from accepted input:
+	# invalid packets must not refresh the movement timeout.
 	var now := Time.get_ticks_msec()
-	if _last_input_msec > 0 and now - _last_input_msec < MIN_INPUT_INTERVAL_MSEC:
+	if not _accept_input_request_slot(now):
+		return
+	if not _is_valid_input_direction(direction):
 		return
 
 	var safe_direction := Vector3(direction.x, 0.0, direction.z)
@@ -118,6 +122,13 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 		safe_direction = safe_direction.normalized()
 	_set_requested_input(safe_direction, jump_down, sprint_down, attack_down)
 	_last_input_msec = now
+
+
+func _accept_input_request_slot(now_msec: int) -> bool:
+	if _last_input_rpc_msec > 0 and now_msec - _last_input_rpc_msec < MIN_INPUT_INTERVAL_MSEC:
+		return false
+	_last_input_rpc_msec = now_msec
+	return true
 
 
 func _is_valid_input_direction(direction: Vector3) -> bool:
