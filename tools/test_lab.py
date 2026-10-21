@@ -15,6 +15,8 @@ COMMANDS: dict[str, list[str]] = {
     "asset_licenses": [sys.executable, "tools/validate_free_assets.py"],
     "content_python": [sys.executable, "-m", "unittest", "tools.test_package_content", "tools.test_sign_content_catalog", "-v"],
     "godot_import": ["godot", "--headless", "--path", ".", "--editor", "--quit"],
+    "web_export": ["bash", "tools/test_lab_export.sh", "web"],
+    "android_export": ["bash", "tools/test_lab_export.sh", "android"],
     "script_load": ["godot", "--headless", "--path", ".", "--script", "res://tests/script_load_smoke_test.gd"],
     "gameplay_smoke": ["godot", "--headless", "--path", ".", "--script", "res://tests/gameplay_smoke_test.gd"],
     "gameplay_regression": ["godot", "--headless", "--path", ".", "--script", "res://tests/gameplay_regression_test.gd"],
@@ -105,12 +107,22 @@ def make_report(catalog: dict[str, Any], profile: str, results: list[dict[str, A
     failed = counts["failed"] + counts["timeout"] + counts["error"]
     result_ids = [r.get("id") for r in results]
     complete = len(results) == len(selected) and len(result_ids) == len(set(result_ids)) and set(result_ids) == set(selected)
+    diagnostic_lines = []
+    for item in results:
+        if item["status"] != "passed":
+            diagnostic_lines.extend(str(item.get("summary", "")).splitlines())
+    try:
+        from ai_test_diagnostics import classify_text
+        ai_diagnostics = classify_text("\\n".join(diagnostic_lines)) if diagnostic_lines else []
+    except Exception as exc:
+        ai_diagnostics = [{"category": "diagnostics_unavailable", "severity": "low", "reason": type(exc).__name__}]
     return {
         "schema_version": 1, "project": catalog.get("project", "unknown"),
         "profile": profile, "generated_at": datetime.now(timezone.utc).isoformat(),
         "overall_status": "passed" if failed == 0 and complete else "failed",
         "counts": {**counts, "automated_total": len(results), "manual_not_run": len(manual)},
         "results": results,
+        "ai_diagnostics": ai_diagnostics,
         "manual_scenarios_not_run": [
             {"id": s["id"], "area": s["area"], "purpose": s["purpose"], "acceptance": s["acceptance"]}
             for s in manual
@@ -134,6 +146,10 @@ def render_markdown(report: dict[str, Any]) -> str:
     ]
     for r in report["results"]:
         lines.append(f"| {r['id']} | {r['area']} | **{r['status']}** | {r.get('duration_seconds', 0):.3f} |")
+    if report.get("ai_diagnostics"):
+        lines.extend(["", "## AI-assisted local diagnostics (advisory)", ""])
+        for finding in report["ai_diagnostics"][:8]:
+            lines.append(f"- {finding.get('title', finding.get('category', 'diagnostic'))} — {finding.get('severity', 'unknown')}: {finding.get('recommended_action', finding.get('reason', ''))}")
     if any(r["status"] != "passed" for r in report["results"]):
         lines.extend(["", "## Failed or incomplete checks", ""])
         for r in report["results"]:
