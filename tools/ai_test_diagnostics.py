@@ -101,6 +101,9 @@ def classify_text(text: str) -> list[dict[str, Any]]:
                 r"ERROR:\s*Parse JSON failed", line, re.IGNORECASE
             ):
                 continue
+            # Passing assertions can mention absent optional assets without indicating a failure.
+            if re.search(r"\[PASS\]", line, re.IGNORECASE):
+                continue
             # This is the Android Debug Bridge daemon, not the game's ENet peer.
             if rule["category"] == "network" and re.search(
                 r"cannot connect to daemon at tcp:5037", line, re.IGNORECASE
