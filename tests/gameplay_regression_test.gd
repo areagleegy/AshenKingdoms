@@ -14,6 +14,10 @@ const DialogueChoiceScript: Script = preload("res://scripts/dialogue/dialogue_ch
 const MainScript: Script = preload("res://scripts/core/main.gd")
 
 const SAVE_PATH := "user://savegame.json"
+const TEMP_SAVE_PATH := "user://savegame.json.tmp"
+const BACKUP_SAVE_PATH := "user://savegame.json.bak"
+
+var _original_aux_files: Dictionary = {}
 const POTION_PATH := "res://resources/items/health_potion.tres"
 
 var _failures := 0
@@ -35,6 +39,10 @@ func _run() -> void:
 			return
 		original_save = original_file.get_as_text()
 		original_file.close()
+
+	for path in [TEMP_SAVE_PATH, BACKUP_SAVE_PATH]:
+		var exists := FileAccess.file_exists(path)
+		_original_aux_files[path] = {"exists": exists, "text": FileAccess.get_file_as_string(path) if exists else ""}
 
 	_test_player_and_health()
 	_test_inventory_and_potions()
@@ -133,15 +141,26 @@ func _test_save_and_load(had_original_save: bool, original_save: String) -> void
 	var save_system: Node = SaveSystemScript.new()
 	root.add_child(save_system)
 
-	_check(bool(save_system.call("save_game", {"level": 4, "health": 61.5, "flags": {"intro_seen": true}})), "save system writes structured data")
+	var sample_data: Dictionary = {
+		"version": 1,
+		"player_position": {"x": 1.0, "y": 0.92, "z": -2.0},
+		"player_health": 61.5,
+		"level": 4,
+		"experience": 12,
+		"inventory": [],
+		"quest": {},
+		"dialogue": {"flags": {"intro_seen": true}},
+	}
+	_check(bool(save_system.call("save_game", sample_data)), "save system writes schema-valid structured data")
 	var loaded = save_system.call("load_game")
 	_check(loaded is Dictionary, "save system returns a dictionary for valid JSON")
 	if loaded is Dictionary:
 		_check(int(loaded.get("level", 0)) == 4, "saved progression values load correctly")
-		_check(is_equal_approx(float(loaded.get("health", 0.0)), 61.5), "saved floating-point health loads correctly")
-		var flags = loaded.get("flags", {})
+		_check(is_equal_approx(float(loaded.get("player_health", 0.0)), 61.5), "saved floating-point health loads correctly")
+		var flags = loaded.get("dialogue", {}).get("flags", {})
 		_check(flags is Dictionary and bool(flags.get("intro_seen", false)), "nested dialogue flags survive save/load")
 
+	_remove_if_exists(BACKUP_SAVE_PATH)
 	var malformed := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if malformed == null:
 		_check(false, "test can create malformed JSON fixture")
@@ -166,6 +185,22 @@ func _restore_original_save(had_original_save: bool, original_save: String, save
 		file.close()
 	else:
 		_check(bool(save_system.call("delete_save")), "temporary save file is removed after test")
+
+	for path in _original_aux_files.keys():
+		_remove_if_exists(path)
+		var original: Dictionary = _original_aux_files[path]
+		if bool(original["exists"]):
+			var restore_aux := FileAccess.open(path, FileAccess.WRITE)
+			if restore_aux == null:
+				_check(false, "original auxiliary save file can be restored: %s" % path)
+			else:
+				restore_aux.store_string(str(original["text"]))
+				restore_aux.close()
+
+
+func _remove_if_exists(path: String) -> void:
+	if FileAccess.file_exists(path):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
 
 func _test_dialogue_and_quests() -> void:
