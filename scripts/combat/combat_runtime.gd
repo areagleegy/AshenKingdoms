@@ -37,6 +37,7 @@ func configure(definition: Resource, initial_stamina: float = 100.0) -> bool:
 	ammunition = int(weapon.get("ammo_capacity"))
 	charges = int(weapon.get("charges"))
 	_cooldown_remaining = 0.0
+	_phase_elapsed = 0.0
 	_set_phase(PHASE_READY)
 	return true
 
@@ -77,8 +78,8 @@ func start_attack() -> bool:
 func advance(delta: float) -> void:
 	if not is_finite(delta) or delta <= 0.0 or weapon == null:
 		return
-	_cooldown_remaining = maxf(0.0, _cooldown_remaining - delta)
 	if phase == PHASE_READY:
+		_cooldown_remaining = maxf(0.0, _cooldown_remaining - delta)
 		return
 	var remaining := delta
 	var guard := 0
@@ -103,7 +104,7 @@ func _duration_for_phase(current: StringName) -> float:
 		PHASE_RECOVERY:
 			return maxf(0.0, float(weapon.get("recovery_seconds")))
 		PHASE_COOLDOWN:
-			return 0.0
+			return maxf(0.0, _cooldown_remaining)
 		_:
 			return 0.0
 
@@ -125,6 +126,7 @@ func _transition_phase() -> void:
 			else:
 				_finish_attack()
 		PHASE_COOLDOWN:
+			_cooldown_remaining = 0.0
 			_finish_attack()
 
 
