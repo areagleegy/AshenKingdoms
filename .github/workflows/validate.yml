@@ -47,6 +47,7 @@ jobs:
           test -f docs/README.md
           test -f docs/TECHNICAL_ARCHITECTURE.md
           test -f docs/TEST_PLAN.md
+          test -f docs/AI_TESTING_PLAN_AR.md
           test -f tools/validate_docs.py
           test -f tests/gameplay_smoke_test.gd
           test -f tests/gameplay_regression_test.gd
@@ -83,6 +84,9 @@ jobs:
           test -f tools/test-network-loopback.sh
           test -f tools/generate_player_glb.py
           test -f tests/player_character_smoke_test.gd
+          test -f tests/enemy_ai_test.gd
+          test -f tests/enemy_ai_test.tscn
+          test -f tests/fixtures/ai_test_target.gd
           test -f docs/PLUGIN_INTEGRATION_AR.md
           test -f docs/FREE_ASSET_PIPELINE_AR.md
           test -f docs/AI_PLAYER_CHARACTER_PIPELINE_AR.md
@@ -148,6 +152,13 @@ jobs:
           set -o pipefail
           godot --headless --path . --script res://tests/player_character_smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/player-character-tests.log"
 
+      - name: Run enemy AI behavior tests
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -o pipefail
+          timeout 45s godot --headless --path . res://tests/enemy_ai_test.tscn 2>&1 | tee "$RUNNER_TEMP/enemy-ai-tests.log"
+
       - name: Run network combat smoke tests
         env:
           GODOT_SILENCE_ROOT_WARNING: "1"
@@ -181,7 +192,7 @@ jobs:
           ASHEN_AI_ENDPOINT: ${{ secrets.ASHEN_AI_ENDPOINT }}
           ASHEN_AI_API_KEY: ${{ secrets.ASHEN_AI_API_KEY }}
           ASHEN_AI_MODEL: ${{ vars.ASHEN_AI_MODEL }}
-        run: python3 tools/ai_test_diagnostics.py --log "$RUNNER_TEMP/diagnostics-unit-tests.log" --log "$RUNNER_TEMP/diagnostic-benchmark.log" --log "$RUNNER_TEMP/godot-setup.log" --log "$RUNNER_TEMP/godot-import.log" --log "$RUNNER_TEMP/gameplay-tests.log" --log "$RUNNER_TEMP/gameplay-regression.log" --log "$RUNNER_TEMP/content-tests.log" --log "$RUNNER_TEMP/python-tests.log" --log "$RUNNER_TEMP/player-character-tests.log" --log "$RUNNER_TEMP/resource-smoke.log" --log "$RUNNER_TEMP/network-combat.log" --log "$RUNNER_TEMP/network-loopback.log" --output "$RUNNER_TEMP/ashen-test-diagnostics.json"
+        run: python3 tools/ai_test_diagnostics.py --log "$RUNNER_TEMP/diagnostics-unit-tests.log" --log "$RUNNER_TEMP/diagnostic-benchmark.log" --log "$RUNNER_TEMP/godot-setup.log" --log "$RUNNER_TEMP/godot-import.log" --log "$RUNNER_TEMP/gameplay-tests.log" --log "$RUNNER_TEMP/gameplay-regression.log" --log "$RUNNER_TEMP/content-tests.log" --log "$RUNNER_TEMP/python-tests.log" --log "$RUNNER_TEMP/player-character-tests.log" --log "$RUNNER_TEMP/enemy-ai-tests.log" --log "$RUNNER_TEMP/resource-smoke.log" --log "$RUNNER_TEMP/network-combat.log" --log "$RUNNER_TEMP/network-loopback.log" --output "$RUNNER_TEMP/ashen-test-diagnostics.json"
 
       - name: Upload diagnostic report
         if: always()

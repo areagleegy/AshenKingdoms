@@ -25,6 +25,25 @@ class DiagnosticsClassifierTests(unittest.TestCase):
         self.assertEqual(findings[0]["category"], "network")
         self.assertIn("المنفذ", findings[0]["recommended_action"])
 
+    def test_enemy_ai_behavior_failure_has_actionable_category(self):
+        findings = classify_text("ERROR: [FAIL] network enemy enters chase state for a target in detection range")
+        self.assertEqual(findings[0]["category"], "enemy_ai_behavior")
+        self.assertIn("نطاق الكشف", findings[0]["recommended_action"])
+
+    def test_clean_enemy_ai_log_has_no_findings(self):
+        log = (
+            "[PASS] local enemy chases a target inside detection range\n"
+            "[enemy-ai] checks: 31, failures: 0"
+        )
+        self.assertEqual(classify_text(log), [])
+
+    def test_pass_assertions_do_not_trigger_missing_asset_diagnostics(self):
+        log = (
+            "player-character-tests.log: [PASS] missing player.glb selects the documented placeholder path\n"
+            "player-character-tests.log: [PASS] player tolerates missing AnimationPlayer"
+        )
+        self.assertEqual(classify_text(log), [])
+
     def test_benign_success_logs_do_not_create_findings(self):
         log = "Godot Engine v4.6; renderer: headless\nENet peer initialized\nLoaded res://assets/hero/player.glb\nAndroid SDK configured\nReimport complete: .godot/imported/hero.glb\n"
         self.assertEqual(classify_text(log), [])
