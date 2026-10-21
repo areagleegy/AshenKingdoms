@@ -9,7 +9,10 @@ var current: float = 100.0
 
 
 func _ready() -> void:
-	max_health = maxf(max_health, 1.0)
+	if not is_finite(max_health):
+		max_health = 100.0
+	else:
+		max_health = clampf(max_health, 1.0, 10000.0)
 	current = max_health
 	health_changed.emit(current, max_health)
 
@@ -42,7 +45,7 @@ func set_current_health(value: float) -> void:
 
 
 func increase_max_health(amount: float, heal_by_amount: bool = true) -> void:
-	if not is_finite(amount) or amount <= 0.0:
+	if not is_finite(amount) or amount <= 0.0 or amount > 10000.0 - max_health:
 		return
 	max_health += amount
 	if heal_by_amount:
