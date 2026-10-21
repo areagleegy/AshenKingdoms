@@ -39,8 +39,27 @@ func _run() -> void:
 		"_ready_peers.erase(peer_id)",
 	], "arena-ready RPC guards and disconnect cleanup")
 
+	await _test_input_token_bucket()
+
 	print("[network-rpc-security] checks: %d, failures: %d" % [_checks, _failures])
 	quit(1 if _failures > 0 else 0)
+
+
+func _test_input_token_bucket() -> void:
+	var avatar_script: Script = load(AVATAR_PATH)
+	_check(avatar_script != null, "avatar script loads for token bucket runtime test")
+	if avatar_script == null:
+		return
+	var avatar: Object = avatar_script.new()
+	var accepted := 0
+	for _i in range(60):
+		if bool(avatar.call("_consume_input_token")):
+			accepted += 1
+	_check(accepted == 60, "input token bucket permits its configured initial burst")
+	_check(not bool(avatar.call("_consume_input_token")), "input token bucket rejects requests beyond burst capacity")
+	await create_timer(0.05).timeout
+	_check(bool(avatar.call("_consume_input_token")), "input token bucket refills after elapsed time")
+	avatar.free()
 
 
 func _check_source_contains(path: String, required_fragments: Array[String], label: String) -> void:
