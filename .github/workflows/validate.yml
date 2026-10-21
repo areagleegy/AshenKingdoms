@@ -47,6 +47,7 @@ jobs:
           test -f docs/README.md
           test -f docs/TECHNICAL_ARCHITECTURE.md
           test -f docs/TEST_PLAN.md
+          test -f docs/AI_TESTING_PLAN_AR.md
           test -f tools/validate_docs.py
           test -f tests/gameplay_smoke_test.gd
           test -f tests/gameplay_regression_test.gd
