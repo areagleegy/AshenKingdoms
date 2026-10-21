@@ -128,7 +128,7 @@ func _setup_combat_runtime() -> void:
 	add_child(_combat_runtime)
 	_combat_runtime.connect("hit_window_opened", Callable(self, "_on_combat_hit_window_opened"))
 	_combat_runtime.connect("attack_finished", Callable(self, "_on_combat_attack_finished"))
-	_combat_runtime.call("configure", _combat_weapon, 100.0)
+	_combat_runtime.call("configure", _combat_weapon, maxf(0.0, stamina_max))
 
 
 func _attack() -> void:
