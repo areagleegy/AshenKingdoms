@@ -10,6 +10,7 @@ signal died(player: Node)
 @export var attack_range: float = 2.6
 @export var attack_cooldown: float = 0.55
 @export var equipped_weapon_id: StringName = &"ash_dagger"
+@export var equipped_armor_id: StringName = &""
 
 @onready var health: Health = $Health
 @onready var inventory: Inventory = $Inventory
@@ -83,8 +84,16 @@ func _physics_process(delta: float) -> void:
 
 
 func take_damage(amount: float) -> void:
-	if not is_dead:
-		health.take_damage(amount)
+	if is_dead or amount <= 0.0:
+		return
+	var final_damage := amount
+	if not equipped_armor_id.is_empty():
+		var catalog := get_node_or_null("/root/CombatCatalog")
+		if catalog != null and catalog.has_method("calculate_damage_after_armor"):
+			final_damage = float(catalog.call(
+				"calculate_damage_after_armor", amount, String(equipped_armor_id)
+			))
+	health.take_damage(final_damage)
 
 
 func reset_after_death(spawn_position: Vector3) -> void:
