@@ -215,59 +215,6 @@ func _get_equipment_movement_multiplier() -> float:
 	return multiplier
 
 
-func equip_weapon(item_id: String) -> bool:
-	var catalog := get_node_or_null("/root/CombatCatalog")
-	if catalog == null or not catalog.has_method("get_weapon"):
-		return false
-	var profile: Dictionary = catalog.call("get_weapon", item_id)
-	if profile.is_empty():
-		return false
-	equipped_weapon_id = StringName(item_id)
-	return true
-
-
-func equip_armor(item_id: String) -> bool:
-	if item_id.is_empty():
-		equipped_armor_id = &""
-		return true
-	var catalog := get_node_or_null("/root/CombatCatalog")
-	if catalog == null or not catalog.has_method("get_armor"):
-		return false
-	var profile: Dictionary = catalog.call("get_armor", item_id)
-	if profile.is_empty():
-		return false
-	equipped_armor_id = StringName(item_id)
-	return true
-
-
-func get_equipment_weight() -> float:
-	return maxf(0.0, float(_get_equipped_weapon_profile().get("weight", 0.0))) + maxf(0.0, float(_get_equipped_armor_profile().get("weight", 0.0)))
-
-
-func _get_equipped_armor_profile() -> Dictionary:
-	var catalog := get_node_or_null("/root/CombatCatalog")
-	if catalog == null or not catalog.has_method("get_armor"):
-		return {}
-	return catalog.call("get_armor", String(equipped_armor_id))
-
-
-func _get_equipment_movement_multiplier() -> float:
-	var armor_profile := _get_equipped_armor_profile()
-	var multiplier := clampf(float(armor_profile.get("movement_speed_multiplier", 1.0)), 0.5, 1.25)
-	var catalog := get_node_or_null("/root/CombatCatalog")
-	var max_carry := 30.0
-	if catalog != null and catalog.has_method("get_max_carry_weight"):
-		max_carry = maxf(1.0, float(catalog.call("get_max_carry_weight")))
-	var load_ratio := get_equipment_weight() / max_carry
-	if load_ratio > 1.0:
-		multiplier *= 0.65
-	elif load_ratio > 0.8:
-		multiplier *= 0.82
-	elif load_ratio > 0.5:
-		multiplier *= 0.93
-	return multiplier
-
-
 func _get_equipped_weapon_profile() -> Dictionary:
 	var catalog := get_node_or_null("/root/CombatCatalog")
 	if catalog == null or not catalog.has_method("get_weapon"):
