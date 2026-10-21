@@ -84,7 +84,7 @@ func _run() -> void:
 		"level": 2,
 		"experience": 7,
 		"inventory": [],
-		"quest": {},
+		"quest": {"active": false, "progress": 0},
 		"dialogue": {"smoke_test_marker": "ashen-kingdoms", "nested": {"value": 7}}
 	}
 	_check(bool(save_system.call("save_game", sample_data)), "save system writes JSON data")
