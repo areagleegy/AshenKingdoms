@@ -50,6 +50,9 @@ func _test_local_enemy_behavior() -> void:
 
 	_check(enemy.is_in_group("enemies"), "local enemy registers in the enemies group")
 	_check(is_equal_approx(float(health.get("current")), float(health.get("max_health"))), "local enemy health initializes")
+	var local_health_before_invalid_damage := float(health.get("current"))
+	enemy.call("take_damage", -10.0)
+	_check(is_equal_approx(float(health.get("current")), local_health_before_invalid_damage), "local enemy ignores negative damage")
 
 	enemy.set("player", null)
 	enemy.velocity = Vector3(2.0, 0.0, 2.0)
