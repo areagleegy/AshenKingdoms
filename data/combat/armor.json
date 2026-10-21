@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "balance_status": "prototype",
+  "max_carry_weight": 30.0,
+  "encumbrance_thresholds_percent": [50, 80, 100],
+  "armor": [
+    {
+      "id": "ash_leather",
+      "name_ar": "جلد الرماد",
+      "weight": 4.0,
+      "damage_reduction": 0.1,
+      "movement_speed_multiplier": 1.0,
+      "dodge_distance_multiplier": 1.0,
+      "poise_resistance": 2.0,
+      "durability_max": 70
+    },
+    {
+      "id": "patched_mail",
+      "name_ar": "درع الحلقات المركب",
+      "weight": 11.0,
+      "damage_reduction": 0.24,
+      "movement_speed_multiplier": 0.94,
+      "dodge_distance_multiplier": 0.95,
+      "poise_resistance": 8.0,
+      "durability_max": 120
+    },
+    {
+      "id": "cinder_plate",
+      "name_ar": "صفائح الجمر",
+      "weight": 24.0,
+      "damage_reduction": 0.4,
+      "movement_speed_multiplier": 0.82,
+      "dodge_distance_multiplier": 0.78,
+      "poise_resistance": 18.0,
+      "durability_max": 180
+    },
+    {
+      "id": "iron_buckler",
+      "name_ar": "ترس الحديد",
+      "weight": 6.0,
+      "damage_reduction": 0.2,
+      "movement_speed_multiplier": 0.96,
+      "dodge_distance_multiplier": 0.9,
+      "poise_resistance": 10.0,
+      "durability_max": 110
+    }
+  ]
+}
