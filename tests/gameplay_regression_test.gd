@@ -160,9 +160,32 @@ func _test_save_and_load(had_original_save: bool, original_save: String) -> void
 	else:
 		backup_fixture.store_string(JSON.stringify({"recovered_level": 7}))
 		backup_fixture.close()
+		_check(bool(save_system.call("has_save")), "has_save recognizes a backup-only save")
 		var recovered = save_system.call("load_game")
 		_check(recovered is Dictionary and int(recovered.get("recovered_level", 0)) == 7, "load_game restores a backup when the primary save is missing")
 		_check(FileAccess.file_exists(SAVE_PATH), "backup recovery restores the primary save path")
+
+
+		# A corrupt primary must not prevent recovery of a valid backup.
+		var corrupt_primary := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+		var valid_backup := FileAccess.open("user://savegame.json.bak", FileAccess.WRITE)
+		if corrupt_primary == null or valid_backup == null:
+			_check(false, "test can create corrupt-primary and valid-backup fixtures")
+			if corrupt_primary != null:
+				corrupt_primary.close()
+			if valid_backup != null:
+				valid_backup.close()
+		else:
+			corrupt_primary.store_string("{broken primary")
+			corrupt_primary.close()
+			valid_backup.store_string(JSON.stringify({"recovered_level": 12}))
+			valid_backup.close()
+			var recovered_corrupt = save_system.call("load_game")
+			_check(
+				recovered_corrupt is Dictionary and int(recovered_corrupt.get("recovered_level", 0)) == 12,
+				"load_game recovers valid backup when primary JSON is corrupt"
+			)
+			_check(FileAccess.file_exists(SAVE_PATH), "corrupt-primary recovery restores the primary save path")
 
 	_restore_original_save(had_original_save, original_save, save_system)
 	_check(not bool(save_system.call("has_save")) if not had_original_save else bool(save_system.call("has_save")), "save fixture is cleaned up or original save is restored")
