@@ -37,6 +37,10 @@ def _number(record: dict[str, Any], key: str, prefix: str, errors: list[str],
         errors.append(f"{prefix}.{key} must be in range {bound}.")
 
 
+def _positive_number(value: Any) -> bool:
+    return not isinstance(value, bool) and isinstance(value, (int, float)) and math.isfinite(value) and value > 0
+
+
 def _integer(record: dict[str, Any], key: str, prefix: str, errors: list[str]) -> None:
     value = record.get(key)
     if isinstance(value, bool) or not isinstance(value, int) or value < 0:
@@ -77,7 +81,7 @@ def _catalog(path: Path, collection: str, errors: list[str]) -> dict[str, Any] |
             errors.append(f"{prefix}.name_ar must be a non-empty string.")
         if collection == "weapons":
             category = record.get("category")
-            if category not in WEAPON_CATEGORIES:
+            if not isinstance(category, str) or category not in WEAPON_CATEGORIES:
                 errors.append(f"{prefix}.category is unsupported.")
             for key in WEAPON_NUMBERS:
                 _number(record, key, prefix, errors)
@@ -88,11 +92,11 @@ def _catalog(path: Path, collection: str, errors: list[str]) -> dict[str, Any] |
             if isinstance(record.get("active_seconds"), (int, float)) and not isinstance(record.get("active_seconds"), bool) and record["active_seconds"] <= 0:
                 errors.append(f"{prefix}.active_seconds must be greater than zero.")
             if category == "charged_skill":
-                if record.get("charges", 0) < 1 or record.get("charge_seconds", 0) <= 0 or record.get("cooldown_seconds", 0) <= 0:
+                if not _positive_number(record.get("charges")) or not _positive_number(record.get("charge_seconds")) or not _positive_number(record.get("cooldown_seconds")):
                     errors.append(f"{prefix}: charged_skill requires charges, charge time, and cooldown.")
-            if category in {"ranged", "limited_throw"} and record.get("ammo_capacity", 0) < 1:
+            if category in {"ranged", "limited_throw"} and not _positive_number(record.get("ammo_capacity")):
                 errors.append(f"{prefix}: ranged/limited_throw requires positive ammo_capacity.")
-            if record.get("durability_max", 0) < 1:
+            if not _positive_number(record.get("durability_max")):
                 errors.append(f"{prefix}.durability_max must be at least 1.")
         else:
             for key in ARMOR_NUMBERS:
