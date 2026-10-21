@@ -150,6 +150,20 @@ func _test_save_and_load(had_original_save: bool, original_save: String) -> void
 		var corrupt = save_system.call("load_game")
 		_check(corrupt is Dictionary and corrupt.is_empty(), "malformed JSON safely returns an empty dictionary")
 
+	# Simulate a crash after the old save was moved to the backup but before the
+	# temporary save replaced it. Loading should recover the backup immediately.
+	if FileAccess.file_exists(SAVE_PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+	var backup_fixture := FileAccess.open("user://savegame.json.bak", FileAccess.WRITE)
+	if backup_fixture == null:
+		_check(false, "test can create a backup-only recovery fixture")
+	else:
+		backup_fixture.store_string(JSON.stringify({"recovered_level": 7}))
+		backup_fixture.close()
+		var recovered = save_system.call("load_game")
+		_check(recovered is Dictionary and int(recovered.get("recovered_level", 0)) == 7, "load_game restores a backup when the primary save is missing")
+		_check(FileAccess.file_exists(SAVE_PATH), "backup recovery restores the primary save path")
+
 	_restore_original_save(had_original_save, original_save, save_system)
 	_check(not bool(save_system.call("has_save")) if not had_original_save else bool(save_system.call("has_save")), "save fixture is cleaned up or original save is restored")
 	save_system.queue_free()
