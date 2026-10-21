@@ -19,7 +19,7 @@ COMMANDS: dict[str, list[str]] = {
     "gameplay_smoke": ["godot", "--headless", "--path", ".", "--script", "res://tests/gameplay_smoke_test.gd"],
     "gameplay_regression": ["godot", "--headless", "--path", ".", "--script", "res://tests/gameplay_regression_test.gd"],
     "player_smoke": ["godot", "--headless", "--path", ".", "--script", "res://tests/player_character_smoke_test.gd"],
-    "network_combat": ["godot", "--headless", "--path", ".", "res://tests/network_combat_smoke_test.tscn"],
+    "network_combat": ["timeout", "45s", "godot", "--headless", "--path", ".", "res://tests/network_combat_smoke_test.tscn"],
     "enet_loopback": ["bash", "tools/test-network-loopback.sh"],
     "content_catalog": ["godot", "--headless", "--path", ".", "--script", "res://tests/content_catalog_smoke_test.gd"],
 }
@@ -103,10 +103,12 @@ def make_report(catalog: dict[str, Any], profile: str, results: list[dict[str, A
     manual = [s for s in catalog["scenarios"] if s["kind"] == "manual"]
     counts = {state: sum(r["status"] == state for r in results) for state in ("passed", "failed", "timeout", "error")}
     failed = counts["failed"] + counts["timeout"] + counts["error"]
+    result_ids = [r.get("id") for r in results]
+    complete = len(results) == len(selected) and len(result_ids) == len(set(result_ids)) and set(result_ids) == set(selected)
     return {
         "schema_version": 1, "project": catalog.get("project", "unknown"),
         "profile": profile, "generated_at": datetime.now(timezone.utc).isoformat(),
-        "overall_status": "passed" if failed == 0 and len(results) == len(selected) else "failed",
+        "overall_status": "passed" if failed == 0 and complete else "failed",
         "counts": {**counts, "automated_total": len(results), "manual_not_run": len(manual)},
         "results": results,
         "manual_scenarios_not_run": [
