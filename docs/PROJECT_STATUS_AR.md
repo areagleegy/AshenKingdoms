@@ -42,12 +42,14 @@
 
 ## آخر أدلة CI تمت مراجعتها
 
-**آخر رأس اجتاز كامل التحقق والتصدير قبل إضافة shader الأرضية:** `608566ee3259e0ae71610e0b0efed3ec78c50d60`.
+**آخر رأس تنفيذ مُتحقق منه يتضمن shader الأرضية واختباره:** `0cdee924b82c1fe473bf0fa95852929707be4bf3`.
 
-- [Validate Godot Project #390](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527298482): **نجاح**؛ شمل اختبار البيئة الإجرائية ومرشح اللاعب المهيكل وفحوص اللعب والشبكة.
-- [Build Android and Web #308](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527298519): **نجاح**؛ نجح تصدير Android APK وWeb.
-- [تقرير تدقيق الأصول #390](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527298482/artifacts/12313883653) و[مرشح اللاعب للمعاينة #390](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527298482/artifacts/12313089153).
-- أُضيف بعد ذلك `shaders/world/ashen_ground.gdshader` وتحديث اختبار ربط الأرضية. نتائج #390/#308 تخص الرأس السابق ولا تثبت نجاح التعديلات الأحدث؛ يجب فحص CI الخاص بالرأس الجديد قبل الدمج.
+- [Validate Godot Project #397](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527764980): **نجاح**؛ شمل استيراد المشروع، فحوص الأصول والسكربتات، اختبار مرشح اللاعب، اختبار shader الأرضية/الخرائب، واللعب والشبكة.
+- [Build Android and Web #315](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527765031): **نجاح** لتصدير Android APK وWeb.
+- [تقرير تدقيق الأصول #397](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527764980/artifacts/12313929414) و[مرشح اللاعب للمعاينة #397](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527764980/artifacts/12313014880).
+- Android APK الاختباري: **28,068,644 بايت**؛ SHA-256: `ade8ced10097d5dac70f5171c9d9ad9ca7990fa3fa1d4b851bfed157caa7c45f`. لا يعني هذا أنه إصدار إنتاج موقّع للنشر العام.
+- [Artifact Android](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527765031/artifacts/12313538934) و[Artifact Web](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527765031/artifacts/12313404824).
+- الأدلة أعلاه تخص الرأس المذكور. تعديلات الوثائق التي تلي هذا التحديث لا تغير الكود أو shader، لكنها تشغّل CI من جديد؛ افحص أحدث حالة للرأس النهائي قبل الدمج.
 
 
 ## ما لم يُختبر يدويًا
