@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
 import struct
 import sys
 import wave
@@ -13,6 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "assets" / "asset_manifest.json"
 AUDIO_ROOT = ROOT / "assets" / "audio"
+AUDIO_DOC = ROOT / "docs" / "AUDIO_ASSET_PACK_AR.md"
 FIELDS = (
     "codec", "duration_seconds", "sample_rate_hz", "channels",
     "bit_depth", "file_size_bytes", "sha256", "peak_fraction", "rms_fraction",
@@ -64,6 +66,20 @@ def main() -> int:
     paths = sorted(AUDIO_ROOT.rglob("*.wav"))
     errors: list[str] = []
     reports: list[dict[str, object]] = []
+    try:
+        audio_doc_lines = AUDIO_DOC.read_text(encoding="utf-8").splitlines()
+    except OSError as exc:
+        audio_doc_lines = []
+        errors.append(f"cannot read audio asset documentation: {exc}")
+
+    found_paths = {path.relative_to(ROOT).as_posix() for path in paths}
+    manifest_audio_paths = {
+        path for path in entries
+        if isinstance(path, str) and path.startswith("assets/audio/")
+    }
+    for missing_path in sorted(manifest_audio_paths - found_paths):
+        errors.append(f"{missing_path}: manifest entry has no corresponding WAV file")
+
     for path in paths:
         relative = path.relative_to(ROOT).as_posix()
         entry = entries.get(relative)
@@ -75,6 +91,21 @@ def main() -> int:
         except (OSError, wave.Error, ValueError, struct.error) as exc:
             errors.append(f"{relative}: cannot inspect WAV: {exc}")
             continue
+        table_row = next(
+            (line for line in audio_doc_lines if line.startswith(f"| `{path.name}` |")),
+            None,
+        )
+        if table_row is None:
+            errors.append(f"{relative}: missing row in {AUDIO_DOC.relative_to(ROOT)}")
+        else:
+            documented_hashes = re.findall(r"\b[a-f0-9]{64}\b", table_row)
+            if not documented_hashes:
+                errors.append(f"{relative}: documentation row has no SHA-256 value")
+            elif documented_hashes[-1] != actual["sha256"]:
+                errors.append(
+                    f"{relative}: documented SHA-256 mismatch: "
+                    f"{documented_hashes[-1]} != {actual['sha256']}"
+                )
         if not 0.05 <= float(actual["_duration"]) <= 10.0:
             errors.append(f"{relative}: duration is outside 0.05–10 seconds")
         if actual["sample_rate_hz"] != 22050:
