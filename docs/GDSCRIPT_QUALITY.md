@@ -6,7 +6,9 @@ The repository uses `gdtoolkit` for GDScript linting and formatting:
 
 - `.gdlintrc`: lint rules, maximum line length 100, maximum five function arguments.
 - `gdformatrc`: formatter line length aligned to 100.
-- CI runs linting on `scripts/`, `tests/`, and `scenes/` before gameplay smoke tests.
+- CI currently enforces linting on the newly added combat regression test while the existing
+  repository-wide lint baseline is triaged. The first full-repository run reported 202 findings,
+  including existing ordering, line-length, unused-argument, and argument-count violations.
 - Python tools are checked with Flake8 under Python 3.10.
 
 ## Commands
@@ -20,16 +22,18 @@ gdformat --check scripts/ tests/ scenes/
 flake8 tools --count --max-line-length=100 --statistics
 ```
 
-To format deliberately, review the working tree first, then run `gdformat scripts/ tests/ scenes/`
-and inspect `git diff`. Do not auto-format unrelated files in a review-sensitive change.
+The full-repository GDScript command is an audit command until the existing baseline is remediated;
+it is not the current CI gate. To format deliberately, review the working tree first, then run
+`gdformat scripts/ tests/ scenes/` and inspect `git diff`. Do not auto-format unrelated files in
+a review-sensitive change.
 
 ## Rule accuracy and limits
 
-The supported gdlint rule is `function-arguments-number`, not
-`max-function-arguments`. gdtoolkit does not provide a general unused-local-variable rule or
-an `unreachable-code` rule in its standard gdlint configuration. It does provide
-`unused-argument`. Do not claim those unsupported checks are enforced by gdlint; use Godot's
-parser/static diagnostics or a separate analyzer if those checks become a requirement.
+The supported gdlint rule is `function-arguments-number`, not `max-function-arguments`.
+gdtoolkit does not provide a general unused-local-variable rule or an `unreachable-code` rule in
+its standard gdlint configuration. It does provide `unused-argument`. Do not claim those
+unsupported checks are enforced by gdlint; use Godot's parser/static diagnostics or a separate
+analyzer if those checks become a requirement.
 
 The `disable` list is intentionally empty. Test code is not exempted from correctness rules.
 If test-specific complexity exceptions are later needed, use a separately validated configuration
