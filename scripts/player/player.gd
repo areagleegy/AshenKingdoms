@@ -12,6 +12,8 @@ const CombatRuntimeScript: Script = preload("res://scripts/combat/combat_runtime
 @export var attack_damage: float = 20.0
 @export var attack_range: float = 2.6
 @export var attack_cooldown: float = 0.55
+@export var stamina_max: float = 100.0
+@export var stamina_regen_per_second: float = 18.0
 
 @onready var health: Health = $Health
 @onready var inventory: Inventory = $Inventory
@@ -50,6 +52,9 @@ func _physics_process(delta: float) -> void:
 
 	if _combat_runtime != null and is_instance_valid(_combat_runtime):
 		_combat_runtime.call("advance", delta)
+		var phase := StringName(_combat_runtime.get("phase"))
+		if phase != &"windup" and phase != &"active":
+			_combat_runtime.call("restore_stamina", maxf(0.0, stamina_regen_per_second) * delta)
 
 	if not is_on_floor():
 		velocity.y -= _gravity * delta
@@ -102,7 +107,7 @@ func reset_after_death(spawn_position: Vector3) -> void:
 	is_dead = false
 	_is_attacking = false
 	if _combat_runtime != null and _combat_weapon != null:
-		_combat_runtime.call("configure", _combat_weapon, 100.0)
+		_combat_runtime.call("configure", _combat_weapon, maxf(0.0, stamina_max))
 	_play_animation(&"idle")
 
 
@@ -116,7 +121,7 @@ func _setup_combat_runtime() -> void:
 	_combat_weapon.set("active_seconds", 0.1)
 	_combat_weapon.set("recovery_seconds", 0.15)
 	_combat_weapon.set("cooldown_seconds", maxf(0.0, attack_cooldown - 0.37))
-	_combat_weapon.set("stamina_cost", 0.0)
+	_combat_weapon.set("stamina_cost", 12.0)
 
 	_combat_runtime = CombatRuntimeScript.new()
 	_combat_runtime.name = "CombatRuntime"
