@@ -10,13 +10,28 @@ func save_game(data: Dictionary) -> bool:
 	var temp_absolute := ProjectSettings.globalize_path(TEMP_SAVE_PATH)
 	var backup_absolute := ProjectSettings.globalize_path(BACKUP_SAVE_PATH)
 
-	# Recover the previous save if the app stopped during a replacement.
+	# Recover a valid backup before any new save can discard it.
 	if not FileAccess.file_exists(SAVE_PATH) and FileAccess.file_exists(BACKUP_SAVE_PATH):
 		if DirAccess.rename_absolute(backup_absolute, save_absolute) != OK:
 			push_error("Could not recover backup save file.")
 			return false
 	elif FileAccess.file_exists(SAVE_PATH) and FileAccess.file_exists(BACKUP_SAVE_PATH):
-		DirAccess.remove_absolute(backup_absolute)
+		var primary_data: Variant = _read_save_file(SAVE_PATH)
+		if primary_data is Dictionary:
+			if DirAccess.remove_absolute(backup_absolute) != OK:
+				push_error("Could not remove stale backup save file.")
+				return false
+		else:
+			var backup_data: Variant = _read_save_file(BACKUP_SAVE_PATH)
+			if not backup_data is Dictionary:
+				push_error("Both primary and backup save files are invalid; refusing to discard either file.")
+				return false
+			if DirAccess.remove_absolute(save_absolute) != OK:
+				push_error("Could not remove invalid primary save file.")
+				return false
+			if DirAccess.rename_absolute(backup_absolute, save_absolute) != OK:
+				push_error("Could not restore valid backup save file.")
+				return false
 
 	if FileAccess.file_exists(TEMP_SAVE_PATH):
 		if DirAccess.remove_absolute(temp_absolute) != OK:
