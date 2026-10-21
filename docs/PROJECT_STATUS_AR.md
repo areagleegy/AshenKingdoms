@@ -42,17 +42,16 @@
 
 ## آخر أدلة CI تمت مراجعتها
 
-**رأس الكود الذي اختُبر في دورة التحقق الأخيرة:** `233edacf0be20f5a6ab37b71ffe793cc44a0beff`.
+**رأس الكود المكتمل التحقق قبل تحديث هذا السجل:** `2c7c5b568adc918ef32f11fc470d4ab23d375175`.
 
-- [Validate Godot Project #407](https://github.com/areagleegy/AshenKingdoms/actions/runs/39533678232): **نجاح**؛ شمل اختبارات مولّد المرشح، سلامة مكونات الوزن المتصلة، واختبار استيراد Godot ومقاطع الحركة.
-- [Build Android and Web #325](https://github.com/areagleegy/AshenKingdoms/actions/runs/39533678326): تصدير Web وAndroid **نجحا**.
-- [حزمة APK الاختبارية](https://github.com/areagleegy/AshenKingdoms/actions/runs/39533678326/artifacts/12316492097): `AshenKingdoms.apk`، الحجم `28,068,644` بايت، SHA-256: `aa9d37a7d7373205cd4852c108818c4c12bdf5286ce0a5c7416ea2048f5a2ebf`. هذا APK للاختبار (Debug)، وليس بناء إصدار موقّعًا للنشر.
-- [حزمة Web](https://github.com/areagleegy/AshenKingdoms/actions/runs/39533678326/artifacts/12316482058) متاحة للتنزيل والاختبار؛ نجاح التصدير لا يثبت اختبار المتصفح يدويًا.
-- [أثر مرشح اللاعب #407](https://github.com/areagleegy/AshenKingdoms/actions/runs/39533678232/artifacts/12315829963) و[تقرير تدقيق الأصول #407](https://github.com/areagleegy/AshenKingdoms/actions/runs/39533678232/artifacts/12317030248).
-- المعاينة المرجعية للمرشح تُظهر تحسنًا آليًا في توزيع الأجزاء أثناء المشي وتأرجح اليد أثناء الهجوم. هذه مراجعة هندسية من ملف GLB وليست قبولًا فنيًا داخل Godot أو على Android.
-- لا يوجد اختبار على هاتف Android فعلي أو قياس مقارن لتكلفة shader مقابل خامة نقطية؛ يظل الأداء والجودة البصرية بحاجة إلى قياس ميداني.
+- [Validate Godot Project #409](https://github.com/areagleegy/AshenKingdoms/actions/runs/39533893255): **نجاح**؛ شمل فحوص GLB، مرشح التحريك، اتساق أوزان المكونات المتصلة، واختبار استيراد Godot والحركات.
+- [Build Android and Web #327](https://github.com/areagleegy/AshenKingdoms/actions/runs/39533893275): **نجاح** في تصدير Android وWeb.
+- [أثر مرشح اللاعب #409](https://github.com/areagleegy/AshenKingdoms/actions/runs/39533893255/artifacts/12317030670) و[تقرير تدقيق الأصول #409](https://github.com/areagleegy/AshenKingdoms/actions/runs/39533893255/artifacts/12317275270).
+- [APK Debug #327](https://github.com/areagleegy/AshenKingdoms/actions/runs/39533893275/artifacts/12316651508): `AshenKingdoms.apk` بحجم `28,068,644` بايت، SHA-256: `888d70c2c950e4a1d1b9f541b6e92074ed56fdcca01f0358a6296bdfb6983b67`. هذا بناء اختبار وليس APK موقّعًا للنشر العام.
+- [حزمة Web #327](https://github.com/areagleegy/AshenKingdoms/actions/runs/39533893275/artifacts/12316646517): رفع التصدير نجح؛ يجب اختبار التشغيل يدويًا عبر HTTP/HTTPS في المتصفحات المستهدفة.
+- معاينة GLB الحسابية تُظهر تحسن المشي وتأرجح السيف من دون الاستطالات الحادة السابقة؛ لا تعتبر هذه معاينة Godot أو قبول Android فعليًا.
 
-تخص الأدلة SHA المذكور أعلاه، لا أي SHA أحدث تلقائيًا. بعد تحديث الوثيقة قد يبدأ CI جديدًا بسبب تغير commit؛ راجع نتائج الرأس الجديد قبل الدمج.
+الأدلة تخص SHA المذكور. تغيّر الوثيقة نفسها رأس الفرع مرة أخرى؛ يجب التأكد من تشغيل CI على الرأس الناتج عن هذا التعديل قبل الدمج. لم يُنفذ اختبار هاتف فعلي أو قياس الأداء/الحرارة/الذاكرة.
 
 ## ما لم يُختبر يدويًا
 
