@@ -63,7 +63,7 @@ func _run() -> void:
 		else:
 			restore_file.store_string(original_text)
 			restore_file.close()
-		_check(bool(save_system.call("delete_save")) if false else true, "original save fixture is retained")
+		_check(FileAccess.file_exists(SAVE_PATH), "original save fixture is retained")
 	else:
 		_check(bool(save_system.call("delete_save")), "test save and recovery files are removed")
 
