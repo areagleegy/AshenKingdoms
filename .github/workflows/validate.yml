@@ -31,7 +31,7 @@ jobs:
       - name: Lint new combat regression test
         run: |
           set -o pipefail
-          gdlint tests/combat_mechanics_test.gd 2>&1 | tee "$RUNNER_TEMP/gdlint.log"
+          gdlint tests/combat_mechanics_test.gd tests/health_numeric_safety_test.gd 2>&1 | tee "$RUNNER_TEMP/gdlint.log"
 
       - name: Check Python tooling with Flake8 (critical errors)
         run: |
