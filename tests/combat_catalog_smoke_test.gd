@@ -17,7 +17,6 @@ func _run() -> void:
 		catalog.name = "CombatCatalogSmokeTest"
 		root.add_child(catalog)
 	else:
-		catalog = catalog.duplicate() if false else catalog
 		_check(bool(catalog.call("reload_catalogs")), "autoload reloads combat JSON catalogs")
 	_check(String(catalog.call("get_load_error")).is_empty(), "valid catalog has no load error")
 	var weapon_ids: PackedStringArray = catalog.call("get_weapon_ids")
