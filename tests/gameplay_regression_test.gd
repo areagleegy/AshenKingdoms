@@ -40,6 +40,7 @@ func _run() -> void:
 	_test_inventory_and_potions()
 	_test_save_and_load(had_original_save, original_save)
 	_test_dialogue_and_quests()
+	_test_quest_reward_idempotency()
 	_test_android_configuration()
 	_test_runtime_input_registration()
 
@@ -230,6 +231,44 @@ func _test_dialogue_and_quests() -> void:
 	quests.queue_free()
 	progression.queue_free()
 	player.queue_free()
+
+
+func _test_quest_reward_idempotency() -> void:
+	var progression_before: Node = ProgressionScript.new()
+	progression_before.name = "QuestRewardProgressionBefore"
+	root.add_child(progression_before)
+	var quests_before: Node = QuestManagerScript.new()
+	quests_before.name = "QuestRewardManagerBefore"
+	quests_before.set("progression", progression_before)
+	root.add_child(quests_before)
+
+	_check(bool(quests_before.call("start_quest", &"ash_trail")), "reward idempotency fixture starts the known quest")
+	var completion_events: Array = []
+	quests_before.connect("quest_completed", func(_title: String, _reward_xp: int) -> void: completion_events.append(true))
+	for _kill in range(3):
+		quests_before.call("on_enemy_defeated", &"ash_wraith")
+	_check(int(progression_before.get("experience")) == 75, "quest grants its configured reward exactly once on completion")
+	_check(completion_events.size() == 1, "quest completion signal fires once")
+	var saved_quest: Dictionary = quests_before.call("to_save_data")
+
+	var progression_after: Node = ProgressionScript.new()
+	progression_after.name = "QuestRewardProgressionAfter"
+	root.add_child(progression_after)
+	progression_after.call("restore_state", int(progression_before.get("level")), int(progression_before.get("experience")))
+	var quests_after: Node = QuestManagerScript.new()
+	quests_after.name = "QuestRewardManagerAfter"
+	quests_after.set("progression", progression_after)
+	root.add_child(quests_after)
+	quests_after.call("load_state", saved_quest)
+	quests_after.call("on_enemy_defeated", &"ash_wraith")
+	_check(int(progression_after.get("experience")) == 75, "completed quest cannot grant its reward again after save/reload")
+	_check(not bool(quests_after.call("start_quest", &"ash_trail")), "completed quest cannot be restarted to farm its reward")
+	_check(int(quests_after.get("progress")) == 3 and not bool(quests_after.get("active")), "completed quest state remains completed after reload")
+
+	quests_after.free()
+	progression_after.free()
+	quests_before.free()
+	progression_before.free()
 
 
 func _test_android_configuration() -> void:
