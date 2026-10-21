@@ -135,9 +135,23 @@ func _create_world() -> void:
 	ground_mesh.size = Vector2(80.0, 80.0)
 	ground_mesh_node.mesh = ground_mesh
 	ground_mesh_node.position.y = -0.015
-	var ground_material := StandardMaterial3D.new()
-	ground_material.albedo_color = Color(0.12, 0.15, 0.17, 1.0)
-	ground_material.roughness = 1.0
+	var ground_shader := load("res://shaders/world/ashen_ground.gdshader") as Shader
+	var ground_material: Material
+	if ground_shader != null:
+		var procedural_material := ShaderMaterial.new()
+		procedural_material.shader = ground_shader
+		procedural_material.set_shader_parameter("stone_color", Color(0.12, 0.145, 0.16, 1.0))
+		procedural_material.set_shader_parameter("seam_color", Color(0.052, 0.060, 0.066, 1.0))
+		procedural_material.set_shader_parameter("tile_scale", 0.72)
+		procedural_material.set_shader_parameter("seam_width", 0.035)
+		procedural_material.set_shader_parameter("variation_strength", 0.12)
+		ground_material = procedural_material
+	else:
+		# Keep the playable scene readable if a future shader import fails.
+		var fallback_material := StandardMaterial3D.new()
+		fallback_material.albedo_color = Color(0.12, 0.15, 0.17, 1.0)
+		fallback_material.roughness = 1.0
+		ground_material = fallback_material
 	ground_mesh_node.material_override = ground_material
 	world.add_child(ground_mesh_node)
 
