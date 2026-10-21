@@ -50,6 +50,7 @@ jobs:
           test -f tools/validate_docs.py
           test -f tests/gameplay_smoke_test.gd
           test -f tests/gameplay_regression_test.gd
+          test -f tests/save_system_atomic_test.gd
           test -f tests/content_catalog_smoke_test.gd
           test -f scripts/content/content_catalog.gd
           test -f scripts/content/content_package_installer.gd
@@ -140,6 +141,13 @@ jobs:
         run: |
           set -o pipefail
           godot --headless --path . --script res://tests/gameplay_regression_test.gd 2>&1 | tee "$RUNNER_TEMP/gameplay-regression.log"
+
+      - name: Run atomic save system tests
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -o pipefail
+          godot --headless --path . --script res://tests/save_system_atomic_test.gd 2>&1 | tee "$RUNNER_TEMP/save-system-atomic.log"
 
       - name: Run player character smoke tests
         env:
