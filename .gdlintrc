@@ -5,4 +5,3 @@ disable:
   - max-line-length
   - class-definitions-order
   - max-returns
-  - unused-argument
