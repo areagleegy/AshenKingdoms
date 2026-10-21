@@ -35,6 +35,7 @@ var is_dead: bool = false
 var _animation_player: AnimationPlayer
 var _resolved_animations: Dictionary = {}
 var _is_attacking: bool = false
+var _hit_targets_this_swing: Dictionary = {}
 
 
 func _ready() -> void:
@@ -134,24 +135,49 @@ func _setup_combat_runtime() -> void:
 func _attack() -> void:
 	if _combat_runtime == null or not bool(_combat_runtime.call("start_attack")):
 		return
+	_hit_targets_this_swing.clear()
 	_is_attacking = true
 	_play_animation(&"attack")
 
 
 func _on_combat_hit_window_opened(_weapon_id: StringName) -> void:
-	if is_dead or not is_inside_tree():
+	if is_dead or not is_inside_tree() or attack_range <= 0.0:
 		return
-	var from := global_position + Vector3.UP * 0.65
-	var to := from - global_transform.basis.z * maxf(0.1, attack_range)
-	var query := PhysicsRayQueryParameters3D.create(from, to)
+
+	# Query a compact volume in front of the player so one swing can hit
+	# several enemies while still resolving each target at most once.
+	var forward := -global_transform.basis.z
+	var hit_center := global_position + Vector3.UP * 0.65 + forward * (attack_range * 0.65)
+	var hit_shape := SphereShape3D.new()
+	hit_shape.radius = clampf(attack_range * 0.3, 0.45, 1.0)
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = hit_shape
+	query.transform = Transform3D(Basis.IDENTITY, hit_center)
 	query.exclude = [get_rid()]
 	query.collide_with_areas = false
-	var hit := get_world_3d().direct_space_state.intersect_ray(query)
-	if hit.is_empty():
-		return
-	var collider: Object = hit.get("collider")
-	if collider is Node and collider.has_method("take_damage"):
-		collider.call("take_damage", maxf(0.0, attack_damage))
+	query.collide_with_bodies = true
+	var hits := get_world_3d().direct_space_state.intersect_shape(query, 16)
+	for hit in hits:
+		var collider: Object = hit.get("collider")
+		if not collider is Node:
+			continue
+		var target := _find_damageable_target(collider as Node)
+		if target == null or target == self:
+			continue
+		var target_id := target.get_instance_id()
+		if _hit_targets_this_swing.has(target_id):
+			continue
+		_hit_targets_this_swing[target_id] = true
+		target.call("take_damage", maxf(0.0, attack_damage))
+
+
+func _find_damageable_target(candidate: Node) -> Node:
+	var current: Node = candidate
+	while current != null and current != self:
+		if current.is_in_group("enemies") and current.has_method("take_damage"):
+			return current
+		current = current.get_parent()
+	return null
 
 
 func _on_combat_attack_finished(_weapon_id: StringName) -> void:
