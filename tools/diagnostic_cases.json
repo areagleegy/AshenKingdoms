@@ -61,6 +61,21 @@
       "id": "successful-test-name-is-not-error",
       "expected_category": null,
       "log": "test_parse_error_is_ranked_first (DiagnosticsClassifierTests) ... ok"
+    },
+    {
+      "id": "enemy-ai-state-failure",
+      "expected_category": "enemy_ai_behavior",
+      "log": "ERROR: [FAIL] network enemy enters chase state for a target in detection range"
+    },
+    {
+      "id": "enemy-ai-clean-log",
+      "expected_category": null,
+      "log": "[PASS] local enemy chases a target inside detection range\n[enemy-ai] checks: 31, failures: 0"
+    },
+    {
+      "id": "enemy-ai-script-parse",
+      "expected_category": "gdscript_parse",
+      "log": "SCRIPT ERROR: Parse Error: Unexpected token at res://tests/enemy_ai_test.gd:21"
     }
   ]
 }
