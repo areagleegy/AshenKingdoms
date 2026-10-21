@@ -17,7 +17,7 @@ func _run() -> void:
 	_test_physics_configuration()
 	_test_motion_invariants()
 	_test_damage_and_combat_invariants()
-	_test_mounting_feature_status()
+	print("[INFO] Vehicle and companion mounting are not implemented; no boarding acceptance test is claimed.")
 	print("[physics-combat] checks: %d, failures: %d" % [_checks, _failures])
 	quit(1 if _failures > 0 else 0)
 
@@ -82,6 +82,7 @@ func _test_damage_and_combat_invariants() -> void:
 	_check(is_equal_approx(player_health.current, initial_health - 10.0), "negative damage cannot heal the player")
 	player.call("take_damage", INF)
 	_check(is_finite(player_health.current), "non-finite damage cannot corrupt player health")
+	_check(is_equal_approx(player_health.current, initial_health - 10.0), "non-finite damage is rejected without changing health")
 	_check(player_health.current >= 0.0, "player health never falls below zero")
 
 	player.call("take_damage", 100000.0)
@@ -102,13 +103,6 @@ func _test_damage_and_combat_invariants() -> void:
 		enemy.call("take_damage", -3.0)
 		_check(is_equal_approx(enemy_health.current, enemy_initial_health - 12.0), "negative damage cannot heal the enemy")
 	enemy.free()
-
-
-func _test_mounting_feature_status() -> void:
-	var player_script := PLAYER_SCRIPT
-	var has_mount_api := player_script.has_method("mount") or player_script.has_method("enter_vehicle")
-	_check(not has_mount_api, "mounting is not falsely assumed implemented; vehicle/companion boarding requires a dedicated feature")
-	print("[INFO] Vehicle mounting, dismounting, companion riding, seat ownership, and network replication are not implemented by this test. Add gameplay code before enabling acceptance tests.")
 
 
 func _make_actor(actor_script: Script, actor_name: String) -> CharacterBody3D:
