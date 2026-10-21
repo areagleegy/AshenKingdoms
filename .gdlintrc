@@ -1,0 +1,9 @@
+# Transitional policy for the existing AshenKingdoms codebase.
+# These legacy style findings are tracked for gradual cleanup; syntax and
+# other enabled gdlint rules remain enforced in CI.
+disable:
+  - max-line-length
+  - class-definitions-order
+  - max-returns
+  - unused-argument
+  - constant-name
