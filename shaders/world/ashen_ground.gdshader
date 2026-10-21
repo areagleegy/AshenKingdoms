@@ -20,18 +20,6 @@ float hash21(vec2 p) {
 }
 
 
-float value_noise(vec2 p) {
-	vec2 cell = floor(p);
-	vec2 local = fract(p);
-	local = local * local * (3.0 - 2.0 * local);
-	float a = hash21(cell);
-	float b = hash21(cell + vec2(1.0, 0.0));
-	float c = hash21(cell + vec2(0.0, 1.0));
-	float d = hash21(cell + vec2(1.0, 1.0));
-	return mix(mix(a, b, local.x), mix(c, d, local.x), local.y);
-}
-
-
 void vertex() {
 	world_position = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 }
@@ -49,9 +37,10 @@ void fragment() {
 		min(local.y, 1.0 - local.y)
 	);
 	float stone_mask = smoothstep(seam_width, seam_width + 0.025, edge_distance);
+	// One hash per tile gives each stone a slightly different tint without sampling
+	// textures or layering a multi-octave noise function per fragment.
 	float tile_variation = (hash21(tile_id) - 0.5) * variation_strength;
-	float surface_variation = (value_noise(world_position.xz * 0.37) - 0.5) * variation_strength * 0.45;
-	vec3 stone = stone_color.rgb * (1.0 + tile_variation + surface_variation);
+	vec3 stone = stone_color.rgb * (1.0 + tile_variation);
 
 	ALBEDO = mix(seam_color.rgb, stone, stone_mask);
 	ROUGHNESS = 0.98;
