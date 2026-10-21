@@ -19,15 +19,23 @@ func _run() -> void:
 
 	add_child(enemy)
 	await get_tree().process_frame
-	_check(is_equal_approx(float(enemy.get("current_health")), 85.0), "enemy starts at configured HP")
+	_check(
+		is_equal_approx(float(enemy.get("current_health")), 85.0),
+		"enemy starts at configured HP"
+	)
 
 	var death_events: Array[int] = []
-	enemy.connect("died", func(_dead_enemy: Node, attacker_peer_id: int) -> void:
-		death_events.append(attacker_peer_id)
+	enemy.connect(
+		"died",
+		func(_dead_enemy: Node, attacker_peer_id: int) -> void:
+			death_events.append(attacker_peer_id)
 	)
 
 	enemy.call("apply_damage_from_server", 20.0, 1)
-	_check(is_equal_approx(float(enemy.get("current_health")), 65.0), "normal damage subtracts from HP")
+	_check(
+		is_equal_approx(float(enemy.get("current_health")), 65.0),
+		"normal damage subtracts from HP"
+	)
 
 	enemy.call("apply_damage_from_server", 0.0, 1)
 	_check(is_equal_approx(float(enemy.get("current_health")), 65.0), "zero damage is ignored")
@@ -38,7 +46,10 @@ func _run() -> void:
 	_check(is_equal_approx(float(enemy.get("current_health")), 0.0), "lethal damage clamps HP at zero")
 	_check(bool(enemy.get("is_dead")), "lethal damage marks the enemy dead")
 	_check(death_events.size() == 1, "lethal damage emits exactly one death event")
-	_check(death_events.size() == 1 and death_events[0] == 7, "death event preserves attacker peer ID")
+	_check(
+		death_events.size() == 1 and death_events[0] == 7,
+		"death event preserves attacker peer ID"
+	)
 
 	enemy.call("apply_damage_from_server", 10.0, 8)
 	_check(is_equal_approx(float(enemy.get("current_health")), 0.0), "damage after death cannot change HP")
