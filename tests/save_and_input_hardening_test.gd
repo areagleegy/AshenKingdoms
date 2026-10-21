@@ -2,6 +2,7 @@ extends SceneTree
 
 const SaveSystemScript: Script = preload("res://scripts/core/save_system.gd")
 const AVATAR_SCENE: PackedScene = preload("res://scenes/network/NetworkAvatar.tscn")
+const NetworkAvatarScript: GDScript = preload("res://scripts/networking/network_avatar.gd")
 const TEST_SAVE: String = "user://hardening_test_save.json"
 
 var failures: int = 0
@@ -13,6 +14,7 @@ func _initialize() -> void:
 
 func _run() -> void:
 	_test_atomic_save()
+	_test_network_rate_limit()
 	await _test_hostile_input()
 	print("[hardening] failures: %d" % failures)
 	quit(1 if failures > 0 else 0)
@@ -70,6 +72,16 @@ func _test_atomic_save() -> void:
 	_check(not bool(save.call("has_save")), "delete_save removes primary and backup")
 	_check(not FileAccess.file_exists(TEST_SAVE + ".tmp"), "delete_save removes temporary files")
 	save.free()
+
+
+func _test_network_rate_limit() -> void:
+	_check(NetworkAvatarScript.is_valid_network_input_direction(Vector3.ZERO), "zero movement direction is valid")
+	_check(NetworkAvatarScript.is_valid_network_input_direction(Vector3(1.0, 0.0, -1.0)), "finite movement direction is valid")
+	_check(not NetworkAvatarScript.is_valid_network_input_direction(Vector3(NAN, 0.0, 0.0)), "NaN movement direction is rejected")
+	_check(not NetworkAvatarScript.is_valid_network_input_direction(Vector3(INF, 0.0, 0.0)), "infinite movement direction is rejected")
+	_check(not NetworkAvatarScript.is_network_input_rate_limited(100, -1), "first movement packet is allowed")
+	_check(NetworkAvatarScript.is_network_input_rate_limited(124, 100), "movement packets under 25 ms are rate-limited")
+	_check(not NetworkAvatarScript.is_network_input_rate_limited(125, 100), "movement packet at 25 ms is allowed")
 
 
 func _test_hostile_input() -> void:
