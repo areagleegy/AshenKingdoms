@@ -16,6 +16,7 @@ func _initialize() -> void:
 func _run() -> void:
 	_test_physics_configuration()
 	_test_motion_invariants()
+	await _test_engine_physics_scene()
 	_test_health_numeric_boundaries()
 	_test_damage_and_combat_invariants()
 	print("[INFO] Vehicle and companion mounting are not implemented; no boarding acceptance test is claimed.")
@@ -62,10 +63,73 @@ func _test_motion_invariants() -> void:
 	_check(is_finite(airborne_velocity) and airborne_velocity < jump_velocity, "gravity reduces upward velocity after a jump")
 	_check(jump_velocity > 0.0, "jump impulse starts upward under the project's positive-Y convention")
 
-	var walk_speed := 6.0
-	var sprint_speed := 9.0
-	_check(is_equal_approx(diagonal.length() * walk_speed, walk_speed), "diagonal walking speed equals cardinal walking speed")
-	_check(is_equal_approx(diagonal.length() * sprint_speed, sprint_speed), "diagonal sprint speed equals cardinal sprint speed")
+	_check(is_equal_approx(diagonal.length() * 6.0, 6.0), "diagonal walking speed equals cardinal walking speed")
+	_check(is_equal_approx(diagonal.length() * 9.0, 9.0), "diagonal sprint speed equals cardinal sprint speed")
+
+
+func _test_engine_physics_scene() -> void:
+	var world := Node3D.new()
+	world.name = "PhysicsRegressionWorld"
+	root.add_child(world)
+
+	var floor_body := StaticBody3D.new()
+	floor_body.name = "Floor"
+	floor_body.position = Vector3(0.0, -0.5, 0.0)
+	var floor_shape := CollisionShape3D.new()
+	var floor_box := BoxShape3D.new()
+	floor_box.size = Vector3(20.0, 1.0, 20.0)
+	floor_shape.shape = floor_box
+	floor_body.add_child(floor_shape)
+	world.add_child(floor_body)
+
+	var wall := StaticBody3D.new()
+	wall.name = "Wall"
+	wall.position = Vector3(2.0, 1.0, 0.0)
+	var wall_collision := CollisionShape3D.new()
+	var wall_box := BoxShape3D.new()
+	wall_box.size = Vector3(0.5, 2.0, 4.0)
+	wall_collision.shape = wall_box
+	wall.add_child(wall_collision)
+	world.add_child(wall)
+
+	var body := CharacterBody3D.new()
+	body.name = "PhysicsRegressionBody"
+	body.position = Vector3(0.0, 4.0, 0.0)
+	var body_collision := CollisionShape3D.new()
+	var capsule := CapsuleShape3D.new()
+	capsule.radius = 0.35
+	capsule.height = 1.8
+	body_collision.shape = capsule
+	body.add_child(body_collision)
+	world.add_child(body)
+
+	# Wait for the physics server to register the bodies before moving the character.
+	for frame in range(2):
+		await physics_frame
+
+	var gravity: float = float(ProjectSettings.get_setting("physics/3d/default_gravity"))
+	for frame in range(180):
+		if not body.is_on_floor():
+			body.velocity.y -= gravity / 60.0
+		elif body.velocity.y < 0.0:
+			body.velocity.y = 0.0
+		body.move_and_slide()
+		await physics_frame
+
+	_check(body.is_on_floor(), "real CharacterBody3D settles on the StaticBody3D floor")
+	_check(absf(body.global_position.y - 0.9) < 0.15, "floor collision prevents falling through the platform")
+	_check(body.get_slide_collision_count() >= 0, "physics step completes without invalid collision state")
+
+	# Drive the body toward the wall using the engine's collision solver.
+	body.velocity = Vector3(4.0, 0.0, 0.0)
+	for frame in range(60):
+		body.move_and_slide()
+		await physics_frame
+	_check(body.global_position.x < 1.7, "CharacterBody3D cannot pass through the StaticBody3D wall")
+	_check(body.global_position.x > 0.5, "CharacterBody3D advances until the wall blocks it")
+
+	world.queue_free()
+	await process_frame
 
 
 func _test_health_numeric_boundaries() -> void:
