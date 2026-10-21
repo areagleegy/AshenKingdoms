@@ -57,7 +57,13 @@ func save_game(data: Dictionary) -> bool:
 
 func load_game() -> Dictionary:
 	if not FileAccess.file_exists(SAVE_PATH):
-		return {}
+		if not FileAccess.file_exists(BACKUP_SAVE_PATH):
+			return {}
+		var backup_absolute := ProjectSettings.globalize_path(BACKUP_SAVE_PATH)
+		var save_absolute := ProjectSettings.globalize_path(SAVE_PATH)
+		if DirAccess.rename_absolute(backup_absolute, save_absolute) != OK:
+			push_error("Could not recover backup save before loading.")
+			return {}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
 	if file == null:
 		push_error("Could not open save file for reading: %s" % FileAccess.get_open_error())
