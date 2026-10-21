@@ -18,6 +18,7 @@ const STREAM_PATHS: Dictionary = {
 }
 const LOOP_IDS: Array[StringName] = [&"ash_wind_loop", &"ashen_exploration_loop"]
 const SFX_POOL_SIZE: int = 8
+const SETTINGS_PATH: String = "user://audio_settings.cfg"
 
 var master_volume_linear: float = 1.0
 var muted: bool = false
@@ -33,6 +34,7 @@ func _ready() -> void:
 		player.name = "SFXPlayer%d" % index
 		add_child(player)
 		_players.append(player)
+	_load_settings()
 
 
 func play_sfx(sound_id: StringName, volume_db: float = 0.0) -> bool:
@@ -73,16 +75,42 @@ func play_loop(sound_id: StringName, volume_db: float = -16.0) -> bool:
 
 func set_master_volume(value: float) -> void:
 	master_volume_linear = clampf(value, 0.0, 1.0)
-	var bus_index := AudioServer.get_bus_index("Master")
-	if bus_index >= 0:
-		AudioServer.set_bus_volume_db(bus_index, linear_to_db(maxf(master_volume_linear, 0.0001)))
+	_apply_master_settings()
+	_save_settings()
 
 
 func set_muted(value: bool) -> void:
 	muted = value
+	_apply_master_settings()
+	_save_settings()
+
+
+func _load_settings() -> void:
+	var config := ConfigFile.new()
+	var result: Error = config.load(SETTINGS_PATH)
+	if result == OK:
+		master_volume_linear = clampf(float(config.get_value("audio", "master_volume_linear", 1.0)), 0.0, 1.0)
+		muted = bool(config.get_value("audio", "muted", false))
+	elif result != ERR_FILE_NOT_FOUND:
+		push_warning("Could not load audio settings: %s" % error_string(result))
+	_apply_master_settings()
+
+
+func _save_settings() -> void:
+	var config := ConfigFile.new()
+	config.set_value("audio", "master_volume_linear", master_volume_linear)
+	config.set_value("audio", "muted", muted)
+	var result: Error = config.save(SETTINGS_PATH)
+	if result != OK:
+		push_warning("Could not save audio settings: %s" % error_string(result))
+
+
+func _apply_master_settings() -> void:
 	var bus_index := AudioServer.get_bus_index("Master")
-	if bus_index >= 0:
-		AudioServer.set_bus_mute(bus_index, muted)
+	if bus_index < 0:
+		return
+	AudioServer.set_bus_volume_db(bus_index, linear_to_db(maxf(master_volume_linear, 0.0001)))
+	AudioServer.set_bus_mute(bus_index, muted)
 
 
 func stop_loop(sound_id: StringName) -> void:
