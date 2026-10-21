@@ -68,14 +68,14 @@ def main() -> int:
     reports: list[dict[str, object]] = []
     try:
         audio_doc_lines = AUDIO_DOC.read_text(encoding="utf-8").splitlines()
-    except OSError as exc:
+    except (OSError, UnicodeError) as exc:
         audio_doc_lines = []
         errors.append(f"cannot read audio asset documentation: {exc}")
 
     found_paths = {path.relative_to(ROOT).as_posix() for path in paths}
     manifest_audio_paths = {
         path for path in entries
-        if isinstance(path, str) and path.startswith("assets/audio/")
+        if isinstance(path, str) and path.startswith("assets/audio/") and path.lower().endswith(".wav")
     }
     for missing_path in sorted(manifest_audio_paths - found_paths):
         errors.append(f"{missing_path}: manifest entry has no corresponding WAV file")
