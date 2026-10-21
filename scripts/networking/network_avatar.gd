@@ -109,9 +109,9 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 	var sender_id := multiplayer.get_remote_sender_id()
 	if sender_id != owner_peer_id or sender_id <= 1 or is_dead:
 		return
-	if not _is_valid_input_direction(direction):
-		return
 	if not _consume_input_token(Time.get_ticks_msec()):
+		return
+	if not _is_valid_input_direction(direction):
 		return
 
 	var safe_direction := Vector3(direction.x, 0.0, direction.z)
