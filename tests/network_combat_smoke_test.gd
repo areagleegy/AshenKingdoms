@@ -26,6 +26,13 @@ func _run() -> void:
 	_check(bool(avatar.call("_is_valid_input_direction", Vector3(1.0, 0.0, -1.0))), "network input accepts finite bounded directions")
 	_check(not bool(avatar.call("_is_valid_input_direction", Vector3(3.0, 0.0, 0.0))), "network input rejects out-of-range direction components")
 	_check(not bool(avatar.call("_is_valid_input_direction", Vector3(INF, 0.0, 0.0))), "network input rejects infinite direction components")
+	avatar.set("_input_bucket_tokens", 0.0)
+	avatar.set("_input_bucket_last_usec", Time.get_ticks_usec())
+	_check(not bool(avatar.call("_consume_input_token")), "network input token bucket rejects exhausted input budget")
+	avatar.set("_input_bucket_tokens", 1.0)
+	avatar.set("_input_bucket_last_usec", Time.get_ticks_usec())
+	_check(bool(avatar.call("_consume_input_token")), "network input token bucket accepts a request when budget is available")
+	_check(float(avatar.get("_input_bucket_tokens")) < 1.0, "accepted network input consumes one rate-limit token")
 	_check(bool(multiplayer.is_server()), "offline smoke harness is allowed to exercise server logic")
 
 	avatar.call("server_grant_experience", 100)
