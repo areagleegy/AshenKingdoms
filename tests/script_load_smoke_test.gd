@@ -86,9 +86,9 @@ func _test_touch_controls() -> void:
 
 
 func _test_touch_controls_scene() -> void:
-	const scene_path := "res://scenes/ui/TouchControls.tscn"
-	const script_path := "res://scripts/ui/touch_controls.gd"
-	var packed_scene := ResourceLoader.load(scene_path) as PackedScene
+	const SCENE_PATH := "res://scenes/ui/TouchControls.tscn"
+	const SCRIPT_PATH := "res://scripts/ui/touch_controls.gd"
+	var packed_scene := ResourceLoader.load(SCENE_PATH) as PackedScene
 	_check(packed_scene != null, "touch controls scene loads")
 	if packed_scene == null:
 		return
@@ -109,7 +109,7 @@ func _test_touch_controls_scene() -> void:
 	]:
 		_check(instance.has_node(node_path), "touch controls node exists: %s" % node_path)
 
-	var script_text := FileAccess.get_file_as_string(script_path)
+	var script_text := FileAccess.get_file_as_string(SCRIPT_PATH)
 	var node_path_regex := RegEx.new()
 	var compile_result := node_path_regex.compile("\\$([A-Za-z0-9_./]+)")
 	_check(compile_result == OK, "touch controls node-path checker compiles")
