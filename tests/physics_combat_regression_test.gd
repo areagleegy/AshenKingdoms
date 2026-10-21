@@ -16,6 +16,7 @@ func _initialize() -> void:
 func _run() -> void:
 	_test_physics_configuration()
 	_test_motion_invariants()
+	_test_health_numeric_boundaries()
 	_test_damage_and_combat_invariants()
 	print("[INFO] Vehicle and companion mounting are not implemented; no boarding acceptance test is claimed.")
 	print("[physics-combat] checks: %d, failures: %d" % [_checks, _failures])
@@ -67,6 +68,33 @@ func _test_motion_invariants() -> void:
 	_check(is_equal_approx(diagonal.length() * sprint_speed, sprint_speed), "diagonal sprint speed equals cardinal sprint speed")
 
 
+func _test_health_numeric_boundaries() -> void:
+	var health := Node.new()
+	health.set_script(HEALTH_SCRIPT)
+	health.name = "HealthNumericBoundaryTest"
+	root.add_child(health)
+	var component := health as Health
+	_check(component != null, "health numeric-boundary fixture initializes")
+	if component == null:
+		health.free()
+		return
+
+	var initial_max := component.max_health
+	var initial_current := component.current
+	component.heal(INF)
+	_check(is_equal_approx(component.current, initial_current), "infinite healing is rejected")
+	component.set_current_health(INF)
+	_check(is_equal_approx(component.current, initial_current), "infinite health assignment is rejected")
+	component.increase_max_health(INF)
+	_check(is_equal_approx(component.max_health, initial_max), "infinite maximum-health increase is rejected")
+	component.increase_max_health(1.0e30)
+	_check(is_equal_approx(component.max_health, initial_max), "finite but excessive maximum-health increase is rejected")
+	component.increase_max_health(25.0)
+	_check(is_equal_approx(component.max_health, initial_max + 25.0), "valid maximum-health increase remains supported")
+	_check(is_finite(component.max_health) and component.max_health <= 10000.0, "maximum health remains finite and within its hard cap")
+	health.free()
+
+
 func _test_damage_and_combat_invariants() -> void:
 	var player := _make_actor(PLAYER_SCRIPT, "CombatTestPlayer")
 	var player_health: Health = player.get_node("Health") as Health
@@ -99,7 +127,7 @@ func _test_damage_and_combat_invariants() -> void:
 	if enemy_health != null:
 		var enemy_initial_health: float = enemy_health.current
 		enemy.call("take_damage", 12.0)
-		_check(is_equal_approx(enemy_health.current, enemy_initial_health - 12.0), "player-style combat damage reduces enemy health")
+		_check(is_equal_approx(enemy_health.current, enemy_initial_health - 12.0), "valid combat damage reduces enemy health")
 		enemy.call("take_damage", -3.0)
 		_check(is_equal_approx(enemy_health.current, enemy_initial_health - 12.0), "negative damage cannot heal the enemy")
 	enemy.free()
