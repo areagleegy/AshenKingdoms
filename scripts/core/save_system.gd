@@ -56,34 +56,49 @@ func save_game(data: Dictionary) -> bool:
 
 
 func load_game() -> Dictionary:
-	if not FileAccess.file_exists(SAVE_PATH):
-		if not FileAccess.file_exists(BACKUP_SAVE_PATH):
-			return {}
-		var backup_absolute := ProjectSettings.globalize_path(BACKUP_SAVE_PATH)
-		var save_absolute := ProjectSettings.globalize_path(SAVE_PATH)
-		if DirAccess.rename_absolute(backup_absolute, save_absolute) != OK:
-			push_error("Could not recover backup save before loading.")
-			return {}
-	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
-	if file == null:
-		push_error("Could not open save file for reading: %s" % FileAccess.get_open_error())
+	var primary_data: Variant = _read_save_file(SAVE_PATH)
+	if primary_data is Dictionary:
+		return primary_data
+
+	# A present but malformed primary file must not hide a valid backup.
+	var backup_data: Variant = _read_save_file(BACKUP_SAVE_PATH)
+	if not backup_data is Dictionary:
 		return {}
+
+	var save_absolute := ProjectSettings.globalize_path(SAVE_PATH)
+	var backup_absolute := ProjectSettings.globalize_path(BACKUP_SAVE_PATH)
+	if FileAccess.file_exists(SAVE_PATH):
+		if DirAccess.remove_absolute(save_absolute) != OK:
+			push_warning("Could not remove invalid primary save; using backup data in memory.")
+			return backup_data
+	if DirAccess.rename_absolute(backup_absolute, save_absolute) != OK:
+		push_warning("Could not restore backup save file; using backup data in memory.")
+	return backup_data
+
+
+func _read_save_file(path: String) -> Variant:
+	if not FileAccess.file_exists(path):
+		return null
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		push_warning("Could not open save file for reading: %s" % path)
+		return null
 
 	var parser := JSON.new()
 	var parse_result: Error = parser.parse(file.get_as_text())
 	file.close()
 	if parse_result != OK:
-		push_warning("Save file contains invalid JSON; returning an empty save.")
-		return {}
+		push_warning("Save file contains invalid JSON: %s" % path)
+		return null
 	var parsed: Variant = parser.data
 	if not parsed is Dictionary:
-		push_warning("Save file root is not a Dictionary; returning an empty save.")
-		return {}
+		push_warning("Save file root is not a Dictionary: %s" % path)
+		return null
 	return parsed
 
 
 func has_save() -> bool:
-	return FileAccess.file_exists(SAVE_PATH)
+	return FileAccess.file_exists(SAVE_PATH) or FileAccess.file_exists(BACKUP_SAVE_PATH)
 
 
 func delete_save() -> bool:
