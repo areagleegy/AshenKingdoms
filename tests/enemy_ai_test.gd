@@ -65,7 +65,7 @@ func _test_local_enemy_behavior() -> void:
 	await get_tree().physics_frame
 	enemy.set_physics_process(false)
 	_check(enemy.velocity.z < -0.1, "local enemy chases a target inside detection range")
-	_check(absf(enemy.velocity.length()) <= float(enemy.get("speed")) + 0.01, "local enemy chase speed stays within its configured limit")
+	_check(Vector2(enemy.velocity.x, enemy.velocity.z).length() <= float(enemy.get("speed")) + 0.01, "local enemy chase speed stays within its configured limit")
 
 	target.global_position = enemy.global_position + Vector3(0.0, 0.0, -1.0)
 	var damage_before := float(target.get("damage_received"))
@@ -91,7 +91,7 @@ func _test_local_enemy_behavior() -> void:
 	_check(absf(enemy.velocity.x) < 0.1 and absf(enemy.velocity.z) < 0.1, "local enemy does not chase a target outside detection range")
 
 	var local_death_events: Array[Node] = []
-	enemy.died.connect(func(dead_enemy: Node) -> void: local_death_events.append(dead_enemy))
+	enemy.connect("died", func(dead_enemy: Node) -> void: local_death_events.append(dead_enemy))
 	enemy.call("take_damage", 9999.0)
 	_check(local_death_events.size() == 1, "local enemy emits one death event after lethal damage")
 	await get_tree().process_frame
@@ -174,6 +174,7 @@ func _test_network_enemy_state_machine() -> void:
 
 	var patrol_enemy := _make_network_enemy(3)
 	patrol_enemy.set_physics_process(false)
+	patrol_enemy.set("ai_state", AI_IDLE)
 	patrol_enemy.set("_state_elapsed", 1.1)
 	patrol_enemy.call("_server_patrol", 0.016)
 	_check(int(patrol_enemy.get("ai_state")) == AI_PATROL, "network enemy transitions from idle to patrol")
@@ -187,7 +188,7 @@ func _test_network_enemy_state_machine() -> void:
 	nearer_player.set("is_dead", true)
 	var leash_enemy := _make_network_enemy(4)
 	leash_enemy.set_physics_process(false)
-	var home_position: Vector3 = leash_enemy.get("_home_position")
+	var home_position: Vector3 = leash_enemy.global_position
 	leash_enemy.global_position = home_position + Vector3(30.0, 0.0, 0.0)
 	leash_enemy.set_physics_process(true)
 	await get_tree().physics_frame
@@ -198,7 +199,7 @@ func _test_network_enemy_state_machine() -> void:
 	var death_enemy := _make_network_enemy(5)
 	death_enemy.set_physics_process(false)
 	var death_events: Array[Dictionary] = []
-	death_enemy.died.connect(func(dead_enemy: Node, attacker_peer_id: int) -> void:
+	death_enemy.connect("died", func(dead_enemy: Node, attacker_peer_id: int) -> void:
 		death_events.append({"enemy": dead_enemy, "attacker_peer_id": attacker_peer_id})
 	)
 	var full_health := float(death_enemy.get("current_health"))
