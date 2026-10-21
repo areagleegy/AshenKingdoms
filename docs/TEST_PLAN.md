@@ -11,7 +11,7 @@
 - تحميل السكربتات والمشاهد، واختبارات اللعب الأساسية والانحدار وبطل اللاعب. ويتحقق اختبار تحميل الموارد أيضًا من مسارات عقد مشهد `TouchControls.tscn` مقابل العقد الموجودة فعليًا، لمنع عودة مراجع `$NodePath` المكسورة.
 - اختبارات قتال الشبكة، واتصال ENet loopback بين عمليتين محليتين.
 - اختبارات فهرس حزم المحتوى ومثبتها، واختبارات Python لبناء الحزم وتوقيع الفهرس.
-- فحص سجل الأصول والرخص والروابط المحلية في Markdown، واختبارات الجرد الجنائي للأصول، ومدققي GLB وإعادة توليد نموذج اللاعب وشبح الرماد، واختبارات دخان للصوتيات وواجهة المستخدم والعدو والمؤثرات البصرية والبيئة الإجرائية للخرائب.
+- فحص سجل الأصول والرخص والروابط المحلية في Markdown، واختبارات الجرد الجنائي للأصول، ومدققي GLB وإعادة توليد نموذج اللاعب وشبح الرماد، واختبارات دخان للصوتيات وواجهة المستخدم والعدو والمؤثرات البصرية والبيئة الإجرائية للخرائب والتحريك الهيكلي للمرشح.
 - تشغّل `.github/workflows/build.yml` تصدير Android وWeb بصورة مستقلة وترفع المخرجات كـ Artifacts.
 
 راجع [تعريف التحقق](../.github/workflows/validate.yml) و[تعريف البناء](../.github/workflows/build.yml) إذا تغيرت قائمة الخطوات؛ هذان الملفان هما المصدر التنفيذي النهائي، وليس هذه القائمة المختصرة.
@@ -155,6 +155,23 @@ godot --headless --path . --script res://tests/player_character_smoke_test.gd
 ```
 
 تتحقق الاختبارات من تحميل أدوات Python، وصحة بيانات ترخيص الأصول، ومسار تحميل `player.glb` عند وجوده، والرجوع الآمن إلى شكل بطل مؤقت عند غياب النموذج، وفصل التصادم عن المجسم البصري، وسلوك اللاعب عندما لا تتوفر الحركات أو تختلف أسماء مقاطعها. الموجود حاليًا نموذج لاعب ثابت منخفض التفاصيل بلا Skeleton أو أنيميشن؛ أما ملفات WAV وSVG ومجسم شبح الرماد وتأثير الإصابة فهي أصول تأسيسية وليست اعتمادًا فنيًا نهائيًا. يلزم الاستيراد والمعاينة المرئية والاستماع واختبار Android فعلي قبل القبول.
+
+
+## اختبار مرشح التحريك الهيكلي
+
+ينشئ سير التحقق مرشحًا مؤقتًا من الشكل الثابت دون استبدال `player.glb` المستخدم في اللعبة. للتحقق يدويًا بعد تثبيت Python 3 وGodot 4.6:
+
+~~~bash
+python3 -m py_compile tools/generate_rigged_player_glb.py tools/validate_rigged_player_glb.py tools/test_rigged_player_glb.py
+python3 -m unittest discover -s tools -p 'test_rigged_player_glb.py' -v
+python3 tools/generate_rigged_player_glb.py --source assets/characters/player/player.glb --output assets/characters/player/player_rigged_candidate_ci.glb
+python3 tools/validate_rigged_player_glb.py assets/characters/player/player_rigged_candidate_ci.glb
+godot --headless --path . --editor --quit
+godot --headless --path . --script res://tests/rigged_player_candidate_smoke_test.gd
+~~~
+
+المرشح الأولي ينشئ 17 مفصلًا ومقاطع `Idle_01`, `Walking`, `Running`, `Jump`, `HeavyAttack`, `Hit`, و`Death`. الأوزان تُسند مكانيًا على المثلثات المنفصلة في النموذج منخفض التفاصيل؛ لذلك قد لا تكون الانتقالات التشريحية سلسة. نجاح الفحص البنيوي واستيراد Godot لا يثبت جودة التشوه أو التوقيت أو موضع السيف. يجب معاينة GLB في Godot قبل اعتماده، ويجب حذف المرشح المؤقت بعد الفحص إذا أُنشئ يدويًا.
+
 
 
 ## اختبار GLB والمؤثرات المرئية والصوتية
