@@ -9,6 +9,7 @@ signal died(player: Node)
 @export var attack_damage: float = 20.0
 @export var attack_range: float = 2.6
 @export var attack_cooldown: float = 0.55
+@export var equipped_weapon_id: StringName = &"ash_dagger"
 
 @onready var health: Health = $Health
 @onready var inventory: Inventory = $Inventory
@@ -92,6 +93,7 @@ func reset_after_death(spawn_position: Vector3) -> void:
 	health.set_current_health(health.max_health)
 	is_dead = false
 	_is_attacking = false
+	_can_attack = true
 	_play_animation(&"idle")
 
 
@@ -99,8 +101,19 @@ func _attack() -> void:
 	_can_attack = false
 	_is_attacking = true
 	_play_animation(&"attack")
+	var weapon_profile := _get_equipped_weapon_profile()
+	var damage := float(weapon_profile.get("damage", attack_damage))
+	var weapon_range := float(weapon_profile.get("range", attack_range))
+	var windup := maxf(0.0, float(weapon_profile.get("windup_seconds", 0.0)))
+	var active_time := maxf(0.0, float(weapon_profile.get("active_seconds", 0.0)))
+	var recovery := maxf(0.0, float(weapon_profile.get("recovery_seconds", attack_cooldown)))
+	if windup > 0.0:
+		await get_tree().create_timer(windup).timeout
+	if is_dead or not is_inside_tree():
+		_is_attacking = false
+		return
 	var from := global_position + Vector3.UP * 0.65
-	var to := from - global_transform.basis.z * attack_range
+	var to := from - global_transform.basis.z * weapon_range
 	var query := PhysicsRayQueryParameters3D.create(from, to)
 	query.exclude = [get_rid()]
 	query.collide_with_areas = false
@@ -108,11 +121,20 @@ func _attack() -> void:
 	if not hit.is_empty():
 		var collider: Object = hit.get("collider")
 		if collider is Node and collider.has_method("take_damage"):
-			collider.call("take_damage", attack_damage)
+			collider.call("take_damage", damage)
 
-	await get_tree().create_timer(attack_cooldown).timeout
+	var remaining_time := active_time + recovery
+	if remaining_time > 0.0:
+		await get_tree().create_timer(remaining_time).timeout
 	_can_attack = true
 	_is_attacking = false
+
+
+func _get_equipped_weapon_profile() -> Dictionary:
+	var catalog := get_node_or_null("/root/CombatCatalog")
+	if catalog == null or not catalog.has_method("get_weapon"):
+		return {}
+	return catalog.call("get_weapon", String(equipped_weapon_id))
 
 
 func _find_animation_player() -> void:
