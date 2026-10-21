@@ -17,7 +17,11 @@ func _run() -> void:
 		"sender_id != owner_peer_id",
 		"sender_id <= 1",
 		"_is_valid_input_direction(direction)",
-		"MIN_INPUT_PACKET_INTERVAL_MSEC",
+		"INPUT_RATE_PER_SECOND",
+		"INPUT_BURST_CAPACITY",
+		"MAX_INPUT_PAYLOAD_BYTES",
+		"var_to_bytes([direction, jump_down, sprint_down, attack_down])",
+		"_consume_input_token()",
 		"is_finite(direction.x)",
 		"is_finite(direction.y)",
 		"is_finite(direction.z)",
@@ -28,6 +32,10 @@ func _run() -> void:
 		"sender_id <= 1",
 		"not multiplayer.get_peers().has(sender_id)",
 		"_ready_peers.has(sender_id)",
+		"RPC_RATE_PER_SECOND",
+		"RPC_BURST_CAPACITY",
+		"_consume_rpc_token(sender_id)",
+		"_rpc_rate_limits.erase(peer_id)",
 		"_ready_peers.erase(peer_id)",
 	], "arena-ready RPC guards and disconnect cleanup")
 
