@@ -14,9 +14,6 @@ signal died(player: Node)
 @export var max_stamina: float = 100.0
 @export var stamina_regen_per_second: float = 18.0
 @export var stamina_regen_delay: float = 0.65
-@export var max_stamina: float = 100.0
-@export var stamina_regen_per_second: float = 18.0
-@export var stamina_regen_delay: float = 0.65
 
 @onready var health: Health = $Health
 @onready var inventory: Inventory = $Inventory
@@ -39,14 +36,11 @@ var _resolved_animations: Dictionary = {}
 var _is_attacking: bool = false
 var current_stamina: float = 100.0
 var _stamina_regen_wait: float = 0.0
-var current_stamina: float = 100.0
-var _stamina_regen_wait: float = 0.0
 
 
 func _ready() -> void:
 	add_to_group("player")
 	health.died.connect(_on_health_died)
-	current_stamina = max_stamina
 	current_stamina = max_stamina
 	_find_animation_player()
 	_play_animation(&"idle")
