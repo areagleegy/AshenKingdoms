@@ -2,6 +2,8 @@ extends CharacterBody3D
 
 const INPUT_SEND_INTERVAL: float = 0.05
 const INPUT_TIMEOUT_MSEC: int = 350
+const MIN_INPUT_INTERVAL_MSEC: int = 25
+const MAX_INPUT_COMPONENT: float = 1.05
 const MAX_LEVEL: int = 50
 const QUEST_TARGET: int = 3
 const QUEST_REWARD_XP: int = 75
@@ -104,12 +106,26 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 	var sender_id := multiplayer.get_remote_sender_id()
 	if sender_id != owner_peer_id or sender_id <= 1 or is_dead:
 		return
+	if not _is_valid_input_direction(direction):
+		return
+
+	var now := Time.get_ticks_msec()
+	if _last_input_msec > 0 and now - _last_input_msec < MIN_INPUT_INTERVAL_MSEC:
+		return
 
 	var safe_direction := Vector3(direction.x, 0.0, direction.z)
 	if safe_direction.length_squared() > 1.0:
 		safe_direction = safe_direction.normalized()
 	_set_requested_input(safe_direction, jump_down, sprint_down, attack_down)
-	_last_input_msec = Time.get_ticks_msec()
+	_last_input_msec = now
+
+
+func _is_valid_input_direction(direction: Vector3) -> bool:
+	if not is_finite(direction.x) or not is_finite(direction.y) or not is_finite(direction.z):
+		return false
+	if absf(direction.x) > MAX_INPUT_COMPONENT or absf(direction.y) > MAX_INPUT_COMPONENT or absf(direction.z) > MAX_INPUT_COMPONENT:
+		return false
+	return direction.length_squared() <= 1.1
 
 
 func _set_requested_input(direction: Vector3, jump_down: bool, sprint_down: bool, attack_down: bool) -> void:
