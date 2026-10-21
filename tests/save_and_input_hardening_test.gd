@@ -50,6 +50,7 @@ func _test_atomic_save() -> void:
 	_check(not FileAccess.file_exists(TEST_SAVE + ".old.tmp"), "replacement staging file is removed after success")
 	# Force temp-file creation to fail by occupying its path with a directory.
 	var temp_dir_path := ProjectSettings.globalize_path(TEST_SAVE + ".tmp")
+	DirAccess.remove_absolute(temp_dir_path) # Clean up a directory left by an interrupted prior run.
 	var mkdir_error := DirAccess.make_dir_absolute(temp_dir_path)
 	_check(mkdir_error == OK, "failure-injection fixture directory is created")
 	if mkdir_error == OK:
