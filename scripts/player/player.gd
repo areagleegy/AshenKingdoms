@@ -232,7 +232,8 @@ func equip_weapon(item_id: String) -> bool:
 	var catalog := get_node_or_null("/root/CombatCatalog")
 	if catalog == null or not catalog.has_method("get_weapon"):
 		return false
-	if (catalog.call("get_weapon", item_id) as Dictionary).is_empty():
+	var profile: Dictionary = catalog.call("get_weapon", item_id)
+	if profile.is_empty():
 		return false
 	equipped_weapon_id = StringName(item_id)
 	return true
@@ -245,7 +246,8 @@ func equip_armor(item_id: String) -> bool:
 	var catalog := get_node_or_null("/root/CombatCatalog")
 	if catalog == null or not catalog.has_method("get_armor"):
 		return false
-	if (catalog.call("get_armor", item_id) as Dictionary).is_empty():
+	var profile: Dictionary = catalog.call("get_armor", item_id)
+	if profile.is_empty():
 		return false
 	equipped_armor_id = StringName(item_id)
 	return true
