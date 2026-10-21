@@ -48,6 +48,14 @@ func _test_atomic_save() -> void:
 	_check(bool(save.call("save_game", {"level": 3})), "third save replaces an existing backup")
 	_check(int(save.call("load_game").get("level", 0)) == 3, "load returns newest save after backup replacement")
 	_check(not FileAccess.file_exists(TEST_SAVE + ".old.tmp"), "replacement staging file is removed after success")
+	# Force temp-file creation to fail by occupying its path with a directory.
+	var temp_dir_path := ProjectSettings.globalize_path(TEST_SAVE + ".tmp")
+	var mkdir_error := DirAccess.make_dir_absolute(temp_dir_path)
+	_check(mkdir_error == OK, "failure-injection fixture directory is created")
+	if mkdir_error == OK:
+		_check(not bool(save.call("save_game", {"level": 4})), "save reports failure when temp creation is blocked")
+		_check(int(save.call("load_game").get("level", 0)) == 3, "failed temp creation preserves the previous primary")
+		_check(DirAccess.remove_absolute(temp_dir_path) == OK, "failure-injection fixture is removed")
 	_write_raw(TEST_SAVE, "{corrupt")
 	_check(int(save.call("load_game").get("level", 0)) == 2, "corrupt primary falls back to most recent backup")
 	_write_raw(TEST_SAVE, "{}")
