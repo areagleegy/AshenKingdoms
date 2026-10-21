@@ -8,6 +8,7 @@ import unittest
 from pathlib import Path
 
 from validate_rigged_player_glb import InvalidGLB, validate, read_glb
+from generate_rigged_player_glb import connected_face_components
 
 ROOT = Path(__file__).resolve().parents[1]
 STATIC_GENERATOR = ROOT / "tools" / "generate_procedural_player_glb.py"
@@ -44,6 +45,17 @@ class RiggedPlayerCandidateTests(unittest.TestCase):
         )
         self.assertGreater(report["skinned_vertex_count"], 0)
         self.assertGreater(report["animation_channel_count"], 10)
+        self.assertGreater(report["connected_rigid_components"], 0)
+
+    def test_edge_connected_triangles_share_one_component_even_with_split_vertices(self):
+        positions = [
+            (0.0, 0.0, 0.0), (1.0, 0.0, 0.0), (1.0, 1.0, 0.0),
+            (1.0, 0.0, 0.0), (1.0, 1.0, 0.0), (0.0, 1.0, 0.0),
+            (3.0, 0.0, 0.0), (4.0, 0.0, 0.0), (3.0, 1.0, 0.0),
+        ]
+        components = connected_face_components(positions, list(range(9)))
+        self.assertEqual(len(components), 2)
+        self.assertTrue(any(set(component) == {0, 1} for component in components))
 
     def test_generation_is_deterministic(self):
         other = self.temp / "rigged_player_second.glb"
