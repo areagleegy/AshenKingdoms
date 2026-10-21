@@ -6,4 +6,3 @@ disable:
   - class-definitions-order
   - max-returns
   - unused-argument
-  - constant-name
