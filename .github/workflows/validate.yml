@@ -50,6 +50,7 @@ jobs:
           test -f tools/validate_docs.py
           test -f tests/gameplay_smoke_test.gd
           test -f tests/gameplay_regression_test.gd
+          test -f tests/save_and_input_hardening_test.gd
           test -f tests/content_catalog_smoke_test.gd
           test -f scripts/content/content_catalog.gd
           test -f scripts/content/content_package_installer.gd
