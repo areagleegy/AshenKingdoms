@@ -123,33 +123,24 @@ def get_accessor_payload(document, binary, accessor_index):
     return [struct.unpack_from("<fff", binary, start + i * stride) for i in range(count)]
 
 
-def triangle_bone(a, b, c, material_index):
-    x = (a[0] + b[0] + c[0]) / 3.0
-    y = (a[1] + b[1] + c[1]) / 3.0
-    z = (a[2] + b[2] + c[2]) / 3.0
+def component_bone(center, material_index):
+    x, y, z = center
     ax = abs(x)
-
-    # Use source material groups where they identify the cape, greaves and leg underlayer.
-    # This reduces skirt and waist triangles being accidentally attached to leg joints.
+    # Assign an entire edge-connected mesh component to one pivot. This model is
+    # composed of disconnected low-poly parts; per-triangle weights caused visible spikes.
     if material_index == 7:
         return BONE_INDEX["Cape"]
     if material_index == 5 or y >= 1.42:
         return BONE_INDEX["Head"]
-
     side = "L" if x < 0 else "R"
     if material_index == 2 and y < 0.56 and ax < 0.27:
         return BONE_INDEX[f"LowerLeg_{side}"]
     if material_index == 6 and y < 0.70 and ax < 0.27:
-        if y < 0.37:
-            return BONE_INDEX[f"LowerLeg_{side}"]
-        return BONE_INDEX[f"UpperLeg_{side}"]
+        return BONE_INDEX[f"LowerLeg_{side}"] if y < 0.42 else BONE_INDEX[f"UpperLeg_{side}"]
     if material_index == 1 and y < 0.22 and 0.035 < ax < 0.25:
         return BONE_INDEX[f"Foot_{side}"]
-
-    # The lower diagonal section of the right-hand weapon follows the right hand.
     if material_index == 1 and ax >= 0.25 and z > 0.08 and 0.30 <= y < 0.86:
         return BONE_INDEX["Hand_R"]
-
     if ax >= 0.25 and y >= 0.86:
         if ax >= 0.45 or y < 1.04:
             return BONE_INDEX[f"Hand_{side}"]
@@ -161,6 +152,36 @@ def triangle_bone(a, b, c, material_index):
     if y < 0.99:
         return BONE_INDEX["Spine"]
     return BONE_INDEX["Chest"]
+
+def position_key(point):
+    return tuple(round(float(value), 5) for value in point)
+
+def connected_face_components(positions, indices):
+    face_count = len(indices) // 3
+    parents = list(range(face_count))
+    def find(item):
+        while parents[item] != item:
+            parents[item] = parents[parents[item]]
+            item = parents[item]
+        return item
+    def union(left, right):
+        lroot, rroot = find(left), find(right)
+        if lroot != rroot:
+            parents[rroot] = lroot
+    edge_faces = {}
+    for face_index in range(face_count):
+        face = indices[face_index * 3:face_index * 3 + 3]
+        keys = [position_key(positions[index]) for index in face]
+        for edge in ((keys[0], keys[1]), (keys[1], keys[2]), (keys[2], keys[0])):
+            edge_key = tuple(sorted(edge))
+            if edge_key in edge_faces:
+                union(face_index, edge_faces[edge_key])
+            else:
+                edge_faces[edge_key] = face_index
+    components = {}
+    for face_index in range(face_count):
+        components.setdefault(find(face_index), []).append(face_index)
+    return list(components.values())
 
 def add_skin_attributes(document, binary, primitive):
     attrs = primitive.get("attributes", {})
@@ -180,14 +201,15 @@ def add_skin_attributes(document, binary, primitive):
         raise ValueError("index references vertex outside POSITION accessor")
 
     vertex_joint = [None] * len(positions)
-    for face_offset in range(0, len(indices), 3):
-        tri = indices[face_offset:face_offset + 3]
-        triangle_points = [positions[v] for v in tri]
-        joint = triangle_bone(triangle_points[0], triangle_points[1], triangle_points[2], primitive.get("material", -1))
-        for vertex in tri:
+    material_index = primitive.get("material", -1)
+    for faces in connected_face_components(positions, indices):
+        component_vertices = sorted({indices[face * 3 + corner] for face in faces for corner in range(3)})
+        center = tuple(sum(positions[index][axis] for index in component_vertices) / len(component_vertices) for axis in range(3))
+        joint = component_bone(center, material_index)
+        for vertex in component_vertices:
             previous = vertex_joint[vertex]
             if previous is not None and previous != joint:
-                raise ValueError("source player shares vertices across triangles; split vertices before rigging")
+                raise ValueError("source vertex is shared by components that resolve to different joints")
             vertex_joint[vertex] = joint
     if any(value is None for value in vertex_joint):
         raise ValueError("source player contains unreferenced vertices; rig assignment is ambiguous")
