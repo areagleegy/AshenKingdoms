@@ -53,6 +53,16 @@ The test checks normal, zero, negative and lethal damage; HP clamping; death sta
 identity; and duplicate death-event prevention. It complements, rather than replaces, the existing
 network combat smoke and loopback tests.
 
+## Health numeric-safety regression test
+
+Run the focused test for rejecting non-finite damage, healing, health assignments, and maximum-health increases:
+
+```bash
+godot --headless --path . --script res://tests/health_numeric_safety_test.gd
+```
+
+The shared `Health` component rejects NaN and infinite values at its mutation boundary so malformed numeric input cannot poison the health state.
+
 ## Security reminders for ENet
 
 - Treat clients as untrusted. The server must validate movement, cooldowns, range, damage, ownership,
