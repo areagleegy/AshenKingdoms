@@ -26,8 +26,14 @@ for _ in $(seq 1 40); do
     cat "$server_log"
     exit 1
   fi
-  if ss -lun | grep -Eq "[:.]$ASHEN_TEST_PORT[[:space:]]"; then
-    server_ready=1
+  if command -v ss >/dev/null 2>&1; then
+    if ss -lun | grep -Eq "[:.]$ASHEN_TEST_PORT[[:space:]]"; then server_ready=1; break; fi
+  elif command -v lsof >/dev/null 2>&1; then
+    if lsof -nP -iUDP:"$ASHEN_TEST_PORT" >/dev/null 2>&1; then server_ready=1; break; fi
+  elif command -v netstat >/dev/null 2>&1; then
+    if netstat -an 2>/dev/null | grep -Eq "[:.]$ASHEN_TEST_PORT[[:space:]]"; then server_ready=1; break; fi
+  else
+    echo "No UDP inspection utility found; proceeding to the real client connection test."
     break
   fi
   sleep 0.25
