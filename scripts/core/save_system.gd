@@ -34,6 +34,13 @@ func save_game(data: Dictionary) -> bool:
 			_remove_if_exists(backup_temp)
 			_remove_if_exists(temp_path)
 			return false
+		# Some platforms reject rename when the destination already exists.
+		# The primary is still intact here, so replacing the older backup is safe.
+		if not _remove_if_exists(save_path + BACKUP_SUFFIX):
+			push_error("Could not remove the older backup before replacement.")
+			_remove_if_exists(backup_temp)
+			_remove_if_exists(temp_path)
+			return false
 		var backup_error := DirAccess.rename_absolute(ProjectSettings.globalize_path(backup_temp), ProjectSettings.globalize_path(save_path + BACKUP_SUFFIX))
 		if backup_error != OK:
 			push_error("Could not move verified backup into place: %s" % error_string(backup_error))
