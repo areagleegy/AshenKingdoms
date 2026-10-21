@@ -4,6 +4,7 @@ const SAVE_PATH: String = "user://savegame.json"
 const TEMP_SUFFIX: String = ".tmp"
 const BACKUP_SUFFIX: String = ".bak"
 const BACKUP_TEMP_SUFFIX: String = ".bak.tmp"
+const OLD_PRIMARY_SUFFIX: String = ".old.tmp"
 
 ## Overridable so tests never touch the player's real save.
 var save_path: String = SAVE_PATH
@@ -48,12 +49,29 @@ func save_game(data: Dictionary) -> bool:
 			_remove_if_exists(temp_path)
 			return false
 
-	# Replace directly; never delete the primary before the verified temp is ready.
+	# Windows may reject renaming over an existing destination. Move the old
+	# primary aside only after the new temp and backup have both been verified.
+	var old_primary_path := save_path + OLD_PRIMARY_SUFFIX
+	_remove_if_exists(old_primary_path)
+	var had_primary := FileAccess.file_exists(save_path)
+	if had_primary:
+		var preserve_error := DirAccess.rename_absolute(ProjectSettings.globalize_path(save_path), ProjectSettings.globalize_path(old_primary_path))
+		if preserve_error != OK:
+			push_error("Could not preserve the previous save before replacement: %s" % error_string(preserve_error))
+			_remove_if_exists(temp_path)
+			return false
+
 	var rename_error := DirAccess.rename_absolute(ProjectSettings.globalize_path(temp_path), ProjectSettings.globalize_path(save_path))
 	if rename_error != OK:
 		push_error("Could not move the new save into place: %s" % error_string(rename_error))
+		if had_primary:
+			var restore_error := DirAccess.rename_absolute(ProjectSettings.globalize_path(old_primary_path), ProjectSettings.globalize_path(save_path))
+			if restore_error != OK:
+				push_error("CRITICAL: could not restore previous save; verified backup remains available.")
 		_remove_if_exists(temp_path)
 		return false
+
+	_remove_if_exists(old_primary_path)
 	return true
 
 
@@ -71,7 +89,7 @@ func has_save() -> bool:
 
 func delete_save() -> bool:
 	var ok := true
-	for path in [save_path, save_path + BACKUP_SUFFIX, save_path + TEMP_SUFFIX, save_path + BACKUP_TEMP_SUFFIX]:
+	for path in [save_path, save_path + BACKUP_SUFFIX, save_path + TEMP_SUFFIX, save_path + BACKUP_TEMP_SUFFIX, save_path + OLD_PRIMARY_SUFFIX]:
 		if not _remove_if_exists(path):
 			ok = false
 	return ok
