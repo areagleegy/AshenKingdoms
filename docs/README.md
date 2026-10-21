@@ -9,7 +9,8 @@
 - [نطاق الإصدار المعتمد](RELEASE_SCOPE_AR.md): القرارات المعتمدة ومتطلبات القبول المستهدفة.
 - [حالة التنفيذ الحالية](PROJECT_STATUS_AR.md): ما هو موجود حاليًا، وما هو تجريبي أو مؤجل أو غير متحقق يدويًا.
 - [دليل كتابة وصيانة الوثائق](DOCUMENTATION_GUIDE_AR.md): قواعد التحديث والروابط والأدلة المطلوبة.
-- [تدقيق التوثيق وخطة الاستكمال](DOCUMENTATION_AUDIT_AR.md): سجل الفجوات والأولويات ومعايير الأدلة وحدود المراجعة.\n- [تدقيق Issues وPull Requests](ISSUE_AUDIT_AR.md): لقطة مؤرخة لحالات GitHub، والحالة الفعلية المعلنة، وبوابات قبول الإصدار.
+- [تدقيق التوثيق وخطة الاستكمال](DOCUMENTATION_AUDIT_AR.md): سجل الفجوات والأولويات ومعايير الأدلة وحدود المراجعة.
+- [تدقيق Issues وPull Requests](ISSUE_AUDIT_AR.md): لقطة مؤرخة لحالات GitHub، والحالة الفعلية المعلنة، وبوابات قبول الإصدار.
 - [نموذج تهديدات الشبكة](NETWORK_THREAT_MODEL_AR.md): مراجعة ساكنة لحدود الثقة والمخاطر وضوابط ما قبل النشر.
 - [البنية المختصرة وحالة التنفيذ](ARCHITECTURE.md): ملخص تقني بالإنجليزية.
 - [البنية التقنية التفصيلية](TECHNICAL_ARCHITECTURE.md): المشاهد والأنظمة والسكربتات وحدود التكامل.
@@ -21,6 +22,7 @@
 - [التطوير من متصفح هاتف Android](CLOUD_PHONE_GUIDE_AR.md): استخدام Codespaces وطرفية Godot وإدارة الموارد.
 - [سير عمل التحقق](../.github/workflows/validate.yml) و[سير عمل بناء المنصات](../.github/workflows/build.yml): التعريفات التنفيذية الفعلية لفحوص CI.
 - [اختبارات اللعب والانحدار](../tests/gameplay_regression_test.gd) و[اختبار تحميل الموارد](../tests/script_load_smoke_test.gd).
+- [اختبار تعريف السلاح](../tests/weapon_definition_test.gd) و[مورد تعريف السلاح](../scripts/combat/weapon_definition.gd).
 - [اختبار القتال الشبكي](../tests/network_combat_smoke_test.tscn) و[اختبار اتصال العميل/المضيف](../tests/network_client_smoke_test.gd).
 
 ## الأنظمة
@@ -40,6 +42,7 @@
 
 ## خطط ومواصفات التصميم
 
+- [المخطط الشامل للعالم والمحتوى والقتال](WORLD_CONTENT_COMBAT_BLUEPRINT_AR.md): المناطق والشخصيات والفصائل والأسلحة والدروع والحيوانات والمركبات والسفن وخطة التحقق.
 - [خطة حزم المحتوى](superpowers/plans/2026-10-19-optional-content-packs.md).
 - [مواصفات تصميم حزم المحتوى](superpowers/specs/2026-10-19-optional-content-packs-design.md).
 
@@ -57,7 +60,7 @@
 
 اتبع [دليل كتابة وصيانة الوثائق](DOCUMENTATION_GUIDE_AR.md). الحد الأدنى للتحقق المحلي هو:
 
-~~~bash
+~~~
 python3 tools/validate_docs.py
 python3 tools/validate_free_assets.py
 ~~~

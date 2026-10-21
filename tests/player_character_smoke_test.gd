@@ -4,6 +4,7 @@ const MAIN_SCRIPT: Script = preload("res://scripts/core/main.gd")
 const PLAYER_SCRIPT: Script = preload("res://scripts/player/player.gd")
 const HEALTH_SCRIPT: Script = preload("res://scripts/components/health.gd")
 const INVENTORY_SCRIPT: Script = preload("res://scripts/components/inventory.gd")
+const ENEMY_SCRIPT: Script = preload("res://scripts/enemies/enemy.gd")
 const PLAYER_MODEL_PATH: String = "res://assets/characters/player/player.glb"
 
 var _failures: int = 0
@@ -17,6 +18,7 @@ func _run() -> void:
 	_test_model_loader_and_placeholder()
 	_test_player_without_animations()
 	_test_player_animation_aliases()
+	_test_combat_target_resolution()
 	print("[player-smoke] failures: %d" % _failures)
 	quit(1 if _failures > 0 else 0)
 
@@ -91,6 +93,34 @@ func _test_player_animation_aliases() -> void:
 	_check(not animation_player.current_animation.is_empty(), "idle clip starts when available")
 
 	player.free()
+
+
+
+func _test_combat_target_resolution() -> void:
+	var player := _make_player()
+	root.add_child(player)
+
+	var enemy := CharacterBody3D.new()
+	enemy.name = "CombatTargetEnemy"
+	enemy.set_script(ENEMY_SCRIPT)
+	var enemy_health := Node.new()
+	enemy_health.name = "Health"
+	enemy_health.set_script(HEALTH_SCRIPT)
+	enemy.add_child(enemy_health)
+	root.add_child(enemy)
+
+	var collider := StaticBody3D.new()
+	collider.name = "EnemyHitCollider"
+	enemy.add_child(collider)
+	var resolved: Node = player.call("_find_damageable_target", collider)
+	_check(resolved == enemy, "hit resolution maps child colliders to their enemy root")
+
+	enemy.remove_from_group("enemies")
+	resolved = player.call("_find_damageable_target", collider)
+	_check(resolved == null, "hit resolution ignores nodes outside the enemies group")
+
+	player.free()
+	enemy.free()
 
 
 func _make_player() -> CharacterBody3D:
