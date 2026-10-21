@@ -43,7 +43,10 @@ func _run() -> void:
 	_check(is_equal_approx(float(enemy.get("current_health")), 65.0), "negative damage is ignored")
 
 	enemy.call("apply_damage_from_server", 999.0, 7)
-	_check(is_equal_approx(float(enemy.get("current_health")), 0.0), "lethal damage clamps HP at zero")
+	_check(
+		is_equal_approx(float(enemy.get("current_health")), 0.0),
+		"lethal damage clamps HP at zero"
+	)
 	_check(bool(enemy.get("is_dead")), "lethal damage marks the enemy dead")
 	_check(death_events.size() == 1, "lethal damage emits exactly one death event")
 	_check(
@@ -52,7 +55,10 @@ func _run() -> void:
 	)
 
 	enemy.call("apply_damage_from_server", 10.0, 8)
-	_check(is_equal_approx(float(enemy.get("current_health")), 0.0), "damage after death cannot change HP")
+	_check(
+		is_equal_approx(float(enemy.get("current_health")), 0.0),
+		"damage after death cannot change HP"
+	)
 	_check(death_events.size() == 1, "damage after death does not emit another death event")
 
 	print("[combat-mechanics] checks: %d, failures: %d" % [_checks, _failures])
