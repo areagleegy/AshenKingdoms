@@ -27,9 +27,13 @@ func _run() -> void:
 	health.call("heal", INF)
 	_check(is_equal_approx(float(health.get("current")), 100.0), "infinite healing is ignored")
 	health.call("set_current_health", NAN)
-	_check(is_equal_approx(float(health.get("current")), 100.0), "NaN health assignment is ignored")
+	_check(
+		is_equal_approx(float(health.get("current")), 100.0), "NaN health assignment is ignored"
+	)
 	health.call("set_current_health", INF)
-	_check(is_equal_approx(float(health.get("current")), 100.0), "infinite health assignment is ignored")
+	_check(
+		is_equal_approx(float(health.get("current")), 100.0), "infinite health assignment is ignored"
+	)
 	health.call("increase_max_health", INF)
 	_check(is_equal_approx(float(health.get("max_health")), 100.0), "infinite max-health increase is ignored")
 
