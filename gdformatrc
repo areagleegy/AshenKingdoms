@@ -1,0 +1,6 @@
+# Keep formatter and linter line lengths aligned.
+line_length: 100
+excluded_directories: !!set
+  .git: null
+  .godot: null
+  .venv: null
