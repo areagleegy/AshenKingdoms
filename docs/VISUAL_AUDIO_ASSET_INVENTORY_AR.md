@@ -192,12 +192,16 @@
 
 ### نتيجة التحقق الموثقة
 
-تُسجل هذه الفقرة أدلة التشغيل بعد تحديث الجرد على الرأس `b50fa5df03e3e25c52d3f6c1bbf0c6c191aa4b4d`. هذا الرأس يضيف توثيق الجرد المحدث إلى تغييرات المرئيات السابقة؛ راجع روابط التشغيل ذاتها بدل افتراض أن دليلًا من commit قديم يخص كل رأس لاحق.
+على الرأس `68b006539afce34c423072fc67fb33c0f53e2a8e`:
 
-- [Validate Godot Project #361](https://github.com/areagleegy/AshenKingdoms/actions/runs/39524209019): **نجاح**؛ اكتملت فحوص الأصول والـmanifest والمراجع والسكربتات والمشاهد واختبارات اللاعب والعدو وتأثير القتال واللعب والشبكة.
-- [Build Android and Web #279](https://github.com/areagleegy/AshenKingdoms/actions/runs/39524209043): تصدير Web **نجح**؛ تصدير Android APK **قيد التنفيذ وقت آخر فحص**.
-- [Artifact تدقيق الأصول `asset-forensic-audit-361`](https://github.com/areagleegy/AshenKingdoms/actions/runs/39524209019/artifacts/12312538667) هو تقرير الجرد المقابل لهذا الرأس.
-- لا تتضمن هذه النتائج مراجعة فنية يدوية للمواد أو الأنيميشن أو تجربة على هاتف Android حقيقي. بعد تحديث هذه الوثيقة، سيُنشأ تشغيل CI جديد؛ افحص رأس PR #49 قبل الدمج.
+- [Validate Godot Project #387](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527039460): **نجاح**. اجتازت خطوات استيراد Godot، وفحوص الأصول/الترخيص، واختبار المرشح المهيكل، واختبارات الصوت/الواجهة واللاعب والعدو وVFX وبيئة Ashen Ruins واللعب والشبكة.
+- [Artifact تدقيق الأصول `asset-forensic-audit-387`](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527039460/artifacts/12312668904) هو تقرير الجرد المطابق للرأس أعلاه.
+- [Artifact معاينة مرشح اللاعب المهيكل `rigged-player-candidate-387`](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527039460/artifacts/12313488382) ناتج من أداة التوليد داخل CI؛ هو مرشح للمراجعة الفنية وليس أصل اللاعب المعتمد، ويُحذف الملف المؤقت من شجرة التشغيل بعد الرفع.
+- [Build Android and Web #305](https://github.com/areagleegy/AshenKingdoms/actions/runs/39527039461): تصدير Web **نجح**؛ تصدير Android APK **قيد التنفيذ عند آخر فحص**.
+- سجل GitHub السابق احتوى إخفاقًا في رفع Artifact بسبب اسم غير صالح يتضمن `\\`; أُصلح الاسم، ونجح الرفع في التشغيل #387.
+- هذه نتائج آلية للرأس المذكور؛ لا تتضمن اختبارًا بصريًا/سمعيًا بشريًا أو قياس أداء وحرارة وذاكرة على جهاز Android فعلي.
+
+**حدود رأس الوثيقة:** تحديث هذا التقرير ينشئ commit توثيق جديدًا، لذلك يجب الرجوع إلى CI المرتبط بالرأس الجديد قبل دمج PR #49، لا نقل نتيجة #387 تلقائيًا إلى أي commit لاحق.
 
 ### ترتيب دمج الصوت والمرئيات
 
