@@ -130,13 +130,6 @@ func _attack() -> void:
 		return
 	current_stamina = maxf(0.0, current_stamina - stamina_cost)
 	_stamina_regen_wait = stamina_regen_delay
-	var stamina_cost := maxf(0.0, float(weapon_profile.get("stamina_cost", 0.0)))
-	if current_stamina < stamina_cost:
-		_can_attack = true
-		_is_attacking = false
-		return
-	current_stamina = maxf(0.0, current_stamina - stamina_cost)
-	_stamina_regen_wait = stamina_regen_delay
 	var damage := float(weapon_profile.get("damage", attack_damage))
 	var weapon_range := float(weapon_profile.get("range", attack_range))
 	var windup := maxf(0.0, float(weapon_profile.get("windup_seconds", 0.0)))
