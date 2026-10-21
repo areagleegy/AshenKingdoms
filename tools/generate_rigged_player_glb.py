@@ -318,7 +318,7 @@ def add_animations(document, binary, joint_node_map, pivots):
     add_animation(document, binary, "HeavyAttack", [0, .15, .30, .48, .68], [
         R("UpperArm_R", [1,0,0], [0, -.38, 1.2, .65, 0]),
         R("LowerArm_R", [1,0,0], [0, -.12, -.72, .28, 0]),
-        R("Hand_R", [1,0,0], [0, -.08, -.30, .10, 0]),
+        R("Hand_R", [0,0,1], [0, -.20, -1.00, .40, 0]),
         R("Chest", [0,1,0], [0, -.16, -.35, .1, 0]),
         R("Cape", [1,0,0], [0, .06, .2, -.1, 0]),
     ], joint_node_map)
