@@ -181,11 +181,11 @@
 
 ### نتيجة التحقق على أحدث رأس موثق
 
-- [Validate Godot Project #346](https://github.com/areagleegy/AshenKingdoms/actions/runs/39518122283): **نجاح** على الرأس `0f799e90c1471b7500d9fbd29232e7e9bf7b218a`.
-- [Build Android and Web #264](https://github.com/areagleegy/AshenKingdoms/actions/runs/39518122282): **نجاح**؛ خطوتا تصدير Web وAndroid APK اجتازتا التشغيل.
-- [Artifact تقرير تدقيق الأصول `asset-forensic-audit-346`](https://github.com/areagleegy/AshenKingdoms/actions/runs/39518122283/artifacts/12308254799).
-- تضمنت وظيفة التحقق فحوص Markdown المحلي، ومدقق manifest والترخيص، واستيراد المشروع، وتحميل جميع سكربتات GDScript والمشاهد، واختبارات الصوت/واجهة المستخدم، واختبارَي نموذج اللاعب وشبح الرماد، وتأثير القتال، واللعب والشبكة وحزم المحتوى؛ وكل الخطوات المسجلة نجحت.
-- النتائج آلية ولا تتضمن مراجعة فنية يدوية للمواد أو الأنيميشن أو تجربة على هاتف Android حقيقي.
+- الرأس الحالي الذي اجتاز فحوص Godot هو `cb51c2bd8ae43d7cd5888cc707168530b6cd8297`.
+- [Validate Godot Project #360](https://github.com/areagleegy/AshenKingdoms/actions/runs/39524085235): **نجاح**؛ اكتملت خطوات التحقق وفحوص الأصول والسكربتات والمشاهد واللعب والشبكة واختبارات اللاعب والعدو وتأثير القتال.
+- [Build Android and Web #278](https://github.com/areagleegy/AshenKingdoms/actions/runs/39524085254): تصدير Web **نجح**؛ تصدير Android APK كان **قيد التنفيذ** عند آخر قراءة للخطوات.
+- [Artifact تدقيق الأصول `asset-forensic-audit-360`](https://github.com/areagleegy/AshenKingdoms/actions/runs/39524085235/artifacts/12311463875) ناتج من الرأس الحالي.
+- النتائج آلية ولا تتضمن مراجعة فنية يدوية للمواد أو الأنيميشن أو تجربة على هاتف Android حقيقي. أعد فحص حالة #278 قبل اعتماد البناء النهائي.
 
 ### ترتيب دمج الصوت والمرئيات
 
