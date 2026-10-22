@@ -74,7 +74,7 @@ python3 tools/validate_free_assets.py --root /path/to/AshenKingdoms
 
 ## حزم المحتوى القابلة للتثبيت
 
-أداة `tools/package_content.py` تبني ZIP ومخططًا موقّعًا لحزم المحتوى الاختيارية. يتطلب البناء الآن ملف ترخيص/مصدر خارجيًا مستقلًا عن مجلد الحزمة عبر `--asset-manifest`. يجب أن يتضمن السجل `schema_version: 1` ومصفوفة `assets`؛ ولكل ملف داخل الحزمة سجل مطابق بمسار نسبي دقيق وحقول `author` و`source_url` و`license` و`license_url` و`attribution` و`commercial_use: true` و`redistribution_allowed: true`. لا تُسجّل الإذن إلا بعد التحقق منه فعليًا.
+أداة `tools/package_content.py` تبني ZIP ومخططًا موقّعًا لحزم المحتوى الاختيارية. يستخدم كتالوج الحزم الآن schema v2 لأن بيانات provenance أصبحت إلزامية؛ أما ملف provenance الخارجي نفسه فيستخدم `schema_version: 1`. يتطلب البناء ملف ترخيص/مصدر خارجيًا مستقلًا عن مجلد الحزمة عبر `--asset-manifest`. يجب أن يتضمن السجل `schema_version: 1` ومصفوفة `assets`؛ ولكل ملف داخل الحزمة سجل مطابق بمسار نسبي دقيق وحقول `author` و`source_url` و`license` و`license_url` و`attribution` و`commercial_use: true` و`redistribution_allowed: true`. لا تُسجّل الإذن إلا بعد التحقق منه فعليًا.
 
 مثال مبسط لملف manifest خارجي، حيث `path` نسبي إلى مجلد المصدر:
 ~~~json
@@ -97,15 +97,15 @@ python3 tools/validate_free_assets.py --root /path/to/AshenKingdoms
 
 شغّل البناء بمفتاح RSA خاص محفوظ خارج المستودع؛ لا تستخدم مفتاحًا خاصًا داخل حزمة الأصول أو Git:
 ~~~bash
-python3 tools/package_content.py \\
-  --source /path/to/package-root \\
-  --asset-manifest /path/to/package-provenance.json \\
-  --pack-id hero_pack \\
-  --version 1.0.0 \\
-  --type character \\
-  --url https://cdn.example.org/hero_pack.zip \\
-  --output-zip /path/to/output/hero_pack.zip \\
-  --output-catalog /path/to/output/hero_pack.catalog.json \\
+python3 tools/package_content.py \
+  --source /path/to/package-root \
+  --asset-manifest /path/to/package-provenance.json \
+  --pack-id hero_pack \
+  --version 1.0.0 \
+  --type character \
+  --url https://cdn.example.org/hero_pack.zip \
+  --output-zip /path/to/output/hero_pack.zip \
+  --output-catalog /path/to/output/hero_pack.catalog.json \
   --private-key /secure/path/content-signing-private.pem
 ~~~
 
