@@ -428,6 +428,7 @@ func _test_controller_navigation_configuration() -> void:
 		_check(camera_source.contains("look_left"), "camera reads right-stick input actions")
 		_check(camera_source.contains("InputEventScreenDrag"), "single-player camera handles touch drag")
 		_check(camera_source.contains("touch_sensitivity"), "touch camera sensitivity is applied")
+		_check(camera_source.contains("drag.screen_relative"), "touch camera uses resolution-independent screen deltas")
 
 	var dialogue_file := FileAccess.open("res://scripts/ui/dialogue_ui.gd", FileAccess.READ)
 	_check(dialogue_file != null, "dialogue UI source is readable for controller focus checks")
@@ -456,6 +457,7 @@ func _test_controller_navigation_configuration() -> void:
 		var network_source := network_file.get_as_text()
 		network_file.close()
 		_check(network_source.contains('Input.get_vector("look_left"'), "network camera reads right-stick input actions")
+		_check(network_source.contains("drag.screen_relative"), "network touch look uses resolution-independent screen deltas")
 		var input_handler_start := network_source.find("func _unhandled_input(event: InputEvent) -> void:")
 		var input_handler_end := network_source.find("func _apply_camera_rotation", input_handler_start)
 		_check(input_handler_start >= 0 and input_handler_end > input_handler_start, "network avatar camera input handler is present")
