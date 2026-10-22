@@ -26,6 +26,35 @@ func _run() -> void:
 	_check(float(avatar.get("current_health")) == 100.0, "network avatar starts with expected health")
 	_check(bool(multiplayer.is_server()), "offline smoke harness is allowed to exercise server logic")
 
+	# Test the same server-side counter used before payload/cadence validation,
+	# with controlled timestamps so the one-second window is deterministic.
+	var rate_window_start := 100000
+	avatar.set("_input_rate_window_start_msec", rate_window_start)
+	avatar.set("_input_rate_window_count", 0)
+	var first_forty_accepted := true
+	for request_index in range(40):
+		if not bool(avatar.call("_record_input_rate_request", rate_window_start + request_index * 20)):
+			first_forty_accepted = false
+	_check(
+		first_forty_accepted and int(avatar.get("_input_rate_window_count")) == 40,
+		"input rate counter accepts the first forty authenticated requests in one window"
+	)
+	_check(
+		not bool(avatar.call("_record_input_rate_request", rate_window_start + 800))
+		and int(avatar.get("_input_rate_window_count")) == 40,
+		"input rate counter rejects request forty-one without growing beyond the limit"
+	)
+
+	avatar.set("_input_rate_window_start_msec", rate_window_start)
+	avatar.set("_input_rate_window_count", 40)
+	var next_window_accepted := bool(avatar.call("_record_input_rate_request", rate_window_start + 1000))
+	_check(
+		next_window_accepted
+		and int(avatar.get("_input_rate_window_start_msec")) == rate_window_start + 1000
+		and int(avatar.get("_input_rate_window_count")) == 1,
+		"input rate counter resets at the one-second boundary and accepts the next request"
+	)
+
 	avatar.call("server_grant_experience", 100)
 	print("[network-smoke] XP tested")
 	_check(int(avatar.get("level")) == 2, "server-granted XP advances the network avatar")
