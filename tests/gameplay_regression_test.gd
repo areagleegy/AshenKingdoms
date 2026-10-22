@@ -157,6 +157,7 @@ func _test_save_and_load() -> void:
 	var recovered = save_system.call("load_game")
 	_check(recovered is Dictionary and recovered.get("marker", "") == "backup-state", "load recovers data from a valid backup")
 	_check(str(save_system.get("last_load_status")) == "recovered_backup", "load status identifies backup recovery")
+	_check(FileAccess.get_file_as_string(_test_save_path) == FileAccess.get_file_as_string(_test_save_path + ".bak"), "recovered primary matches the verified backup bytes")
 
 	save_system.queue_free()
 
