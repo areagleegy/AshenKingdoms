@@ -480,16 +480,7 @@ func _load_game() -> void:
 			hud.call("show_message", "لا يوجد ملف حفظ صالح بعد.")
 		return
 
-	var position_data = data.get("player_position", {})
-	if position_data is Dictionary:
-		var x := _safe_saved_float(position_data.get("x", 0.0), 0.0)
-		var y := _safe_saved_float(position_data.get("y", 0.92), 0.92)
-		var z := _safe_saved_float(position_data.get("z", 0.0), 0.0)
-		player.global_position = Vector3(
-			clampf(x, -39.0, 39.0),
-			clampf(y, 0.92, 50.0),
-			clampf(z, -39.0, 39.0)
-		)
+	player.global_position = _safe_saved_position(data.get("player_position", {}))
 
 	progression.call(
 		"restore_state",
@@ -515,6 +506,17 @@ func _load_game() -> void:
 	if is_instance_valid(hud):
 		hud.call("close_overlays")
 		hud.call("show_message", "تم تحميل الحفظ.")
+
+
+func _safe_saved_position(value: Variant) -> Vector3:
+	if not (value is Dictionary):
+		return Vector3(0.0, 0.92, 0.0)
+	var position_data: Dictionary = value
+	return Vector3(
+		clampf(_safe_saved_float(position_data.get("x", 0.0), 0.0), -39.0, 39.0),
+		clampf(_safe_saved_float(position_data.get("y", 0.92), 0.92), 0.92, 50.0),
+		clampf(_safe_saved_float(position_data.get("z", 0.0), 0.0), -39.0, 39.0)
+	)
 
 
 func _safe_saved_float(value: Variant, fallback: float) -> float:
