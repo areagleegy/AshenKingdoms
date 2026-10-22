@@ -231,6 +231,24 @@ func _test_world_item_drop() -> void:
 	inventory.set("slot_count", 1)
 	inventory.set("slots", [])
 	inventory.call("_ensure_slot_count")
+	inventory.call("add_item", potion, potion.max_stack - 1)
+	var partial_drop := WorldItemDropScript.new() as Area3D
+	_check(bool(partial_drop.call("configure", potion.id, 5)), "partial-capacity world drop is configured")
+	root.add_child(partial_drop)
+	partial_drop.set("_available_after_msec", 0)
+	partial_drop.call("_on_body_entered", player)
+	_check(
+		int(inventory.call("count_item", potion.id)) == potion.max_stack,
+		"pickup fills the remaining stack capacity"
+	)
+	_check(
+		int(partial_drop.get("amount")) == 4,
+		"pickup preserves the unaccepted remainder in the world drop"
+	)
+	partial_drop.free()
+
+	inventory.set("slots", [])
+	inventory.call("_ensure_slot_count")
 	inventory.call("add_item", potion, potion.max_stack)
 	var blocked_drop := WorldItemDropScript.new() as Area3D
 	_check(bool(blocked_drop.call("configure", potion.id, 1)), "second world drop is configured")
