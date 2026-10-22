@@ -206,9 +206,18 @@ jobs:
           python3 tools/validate_platform_exports.py macos build/macos/AshenKingdoms.zip
           mkdir -p build/macos/unpacked
           unzip -q build/macos/AshenKingdoms.zip -d build/macos/unpacked
-          app_path="$(find build/macos/unpacked -type d -name 'AshenKingdoms.app' -print -quit)"
-          test -n "$app_path"
-          executable="$app_path/Contents/MacOS/AshenKingdoms"
+          app_path="$(find build/macos/unpacked -type d -name '*.app' -print -quit)"
+          if [[ -z "$app_path" ]]; then
+            find build/macos/unpacked -maxdepth 5 -print
+            echo "macOS archive did not contain an app bundle." >&2
+            exit 1
+          fi
+          executable_name="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app_path/Contents/Info.plist")"
+          if [[ -z "$executable_name" ]]; then
+            echo "CFBundleExecutable is missing from the macOS app Info.plist." >&2
+            exit 1
+          fi
+          executable="$app_path/Contents/MacOS/$executable_name"
           test -f "$executable"
           chmod +x "$executable"
           file "$executable" | tee "$RUNNER_TEMP/macos-binary-info.log"
