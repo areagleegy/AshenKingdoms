@@ -25,6 +25,23 @@ func _run() -> void:
 	_check(float(avatar.get("current_health")) == 100.0, "network avatar starts with expected health")
 	_check(bool(multiplayer.is_server()), "offline smoke harness is allowed to exercise server logic")
 
+	var valid_direction := Vector3(0.25, 0.0, -0.5)
+	avatar.call("_set_requested_input", valid_direction, false, false, false)
+	var direction_before_invalid: Vector3 = avatar.get("_requested_direction")
+	avatar.call("_set_requested_input", Vector3(NAN, 0.0, 0.0), true, true, true)
+	var direction_after_invalid: Vector3 = avatar.get("_requested_direction")
+	_check(direction_after_invalid.is_equal_approx(direction_before_invalid), "non-finite direction is rejected by the shared input setter")
+	_check(not bool(avatar.get("_sprint_requested")), "rejected non-finite input does not enable sprint")
+	_check(not bool(avatar.get("_jump_buffered")), "rejected non-finite input does not buffer a jump")
+
+	avatar.set("_input_tokens", 0.0)
+	avatar.set("_last_token_refill_msec", Time.get_ticks_msec())
+	_check(not bool(avatar.call("_consume_input_token")), "empty input token bucket rejects another RPC")
+	avatar.set("_input_tokens", 1.0)
+	avatar.set("_last_token_refill_msec", Time.get_ticks_msec())
+	_check(bool(avatar.call("_consume_input_token")), "available input token permits one RPC")
+	_check(float(avatar.get("_input_tokens")) < 0.1, "accepted RPC consumes one token")
+
 	avatar.call("server_grant_experience", 100)
 	print("[network-smoke] XP tested")
 	_check(int(avatar.get("level")) == 2, "server-granted XP advances the network avatar")

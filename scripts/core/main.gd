@@ -493,6 +493,34 @@ func _save_game() -> void:
 	hud.call("show_saved_status", success)
 
 
+func _is_finite_number(value: Variant) -> bool:
+	var value_type := typeof(value)
+	if value_type != TYPE_INT and value_type != TYPE_FLOAT:
+		return false
+	return is_finite(float(value))
+
+
+func _restore_player_position(position_data: Dictionary) -> bool:
+	if not is_instance_valid(player):
+		push_warning("Ignoring saved player position because the player is not available.")
+		return false
+
+	var x: Variant = position_data.get("x", 0.0)
+	var y: Variant = position_data.get("y", 0.92)
+	var z: Variant = position_data.get("z", 0.0)
+	if not (_is_finite_number(x) and _is_finite_number(y) and _is_finite_number(z)):
+		push_warning("Ignoring non-finite or non-numeric player position in save data.")
+		return false
+
+	var restored_position := Vector3(float(x), float(y), float(z))
+	if not restored_position.is_finite():
+		push_warning("Ignoring invalid player position in save data.")
+		return false
+
+	player.global_position = restored_position
+	return true
+
+
 func _serialize_dialogue_state() -> Dictionary:
 	var dialogue_manager := get_node_or_null("/root/DialogueManager")
 	if dialogue_manager == null:
@@ -511,10 +539,7 @@ func _load_game() -> void:
 		return
 
 	if data.has("player_position") and data["player_position"] is Dictionary:
-		var position_data: Dictionary = data["player_position"]
-		player.global_position = Vector3(
-			float(position_data.get("x", 0.0)), float(position_data.get("y", 0.92)), float(position_data.get("z", 0.0))
-		)
+		_restore_player_position(data["player_position"])
 
 	progression.call(
 		"restore_state",

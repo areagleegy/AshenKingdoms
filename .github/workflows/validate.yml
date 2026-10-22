@@ -13,9 +13,16 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Guard CI secret isolation
+        run: python3 -m unittest tools.test_ci_security -v
 
       - name: Run diagnostics classifier unit tests
         run: |
@@ -100,6 +107,7 @@ jobs:
           test -f addons/ashen_asset_bridge/plugin.gd
           test -f addons/ashen_asset_bridge/plugin.cfg
           test -f tools/test_ai_test_diagnostics.py
+          test -f tools/test_ci_security.py
           test -f tools/diagnostic_cases.json
           test -f tools/diagnostic_benchmark.py
           test -f tools/ai_test_diagnostics.py
@@ -174,13 +182,11 @@ jobs:
           set -o pipefail
           python -m unittest tools.test_package_content tools.test_sign_content_catalog -v 2>&1 | tee "$RUNNER_TEMP/python-tests.log"
 
-      - name: Diagnose test logs
+      - name: Diagnose test logs (local-only)
         if: always()
         env:
-          ASHEN_AI_DIAGNOSE: ${{ vars.ASHEN_AI_DIAGNOSE }}
-          ASHEN_AI_ENDPOINT: ${{ secrets.ASHEN_AI_ENDPOINT }}
-          ASHEN_AI_API_KEY: ${{ secrets.ASHEN_AI_API_KEY }}
-          ASHEN_AI_MODEL: ${{ vars.ASHEN_AI_MODEL }}
+          # This validation workflow runs pull-request code. Never expose external AI credentials here.
+          ASHEN_AI_DIAGNOSE: "false"
         run: python3 tools/ai_test_diagnostics.py --log "$RUNNER_TEMP/diagnostics-unit-tests.log" --log "$RUNNER_TEMP/diagnostic-benchmark.log" --log "$RUNNER_TEMP/godot-setup.log" --log "$RUNNER_TEMP/godot-import.log" --log "$RUNNER_TEMP/gameplay-tests.log" --log "$RUNNER_TEMP/gameplay-regression.log" --log "$RUNNER_TEMP/content-tests.log" --log "$RUNNER_TEMP/python-tests.log" --log "$RUNNER_TEMP/player-character-tests.log" --log "$RUNNER_TEMP/resource-smoke.log" --log "$RUNNER_TEMP/network-combat.log" --log "$RUNNER_TEMP/network-loopback.log" --output "$RUNNER_TEMP/ashen-test-diagnostics.json"
 
       - name: Upload diagnostic report

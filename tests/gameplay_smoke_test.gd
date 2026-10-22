@@ -3,9 +3,8 @@ extends SceneTree
 const ProgressionManagerScript: Script = preload("res://scripts/core/progression_manager.gd")
 const QuestManagerScript: Script = preload("res://scripts/core/quest_manager.gd")
 const SaveSystemScript: Script = preload("res://scripts/core/save_system.gd")
-const SAVE_PATH: String = "user://savegame.json"
-
 var _failures: int = 0
+var _test_save_path: String = ""
 
 
 func _initialize() -> void:
@@ -13,16 +12,8 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	var had_original_save := FileAccess.file_exists(SAVE_PATH)
-	var original_save := ""
-	if had_original_save:
-		var original_file := FileAccess.open(SAVE_PATH, FileAccess.READ)
-		if original_file == null:
-			push_error("Could not back up existing save before running smoke tests.")
-			quit(1)
-			return
-		original_save = original_file.get_as_text()
-		original_file.close()
+	_test_save_path = "user://ashen_smoke_save_%d.json" % OS.get_process_id()
+	_cleanup_test_save_files(_test_save_path)
 
 	var network_manager: Node = root.get_node_or_null("NetworkManager")
 	_check(network_manager != null, "network manager autoload is present for smoke tests")
@@ -68,7 +59,12 @@ func _run() -> void:
 	_check(not bool(restored_quest.get("active")), "completed state survives save-data round-trip")
 
 	var save_system: Node = SaveSystemScript.new()
+	save_system.set("save_path", _test_save_path)
 	root.add_child(save_system)
+	var configured_save_path := _test_save_path
+	save_system.set("save_path", _test_save_path + "_missing_dir/save.json")
+	_check(not bool(save_system.call("save_game", {"smoke_test_marker": "open-must-fail"})), "save open failure is reported as a failed save")
+	save_system.set("save_path", configured_save_path)
 	var sample_data: Dictionary = {
 		"version": 1,
 		"smoke_test_marker": "ashen-kingdoms",
@@ -82,7 +78,18 @@ func _run() -> void:
 		var loaded_nested = loaded_data.get("nested", {})
 		_check(loaded_nested is Dictionary and int(loaded_nested.get("value", 0)) == 7, "loaded save retains nested values")
 
-	var corrupt_file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	_check(not bool(save_system.call("save_game", {"payload": "x".repeat(1_048_577)})), "oversized save payload is rejected")
+	var after_oversized_write = save_system.call("load_game")
+	_check(after_oversized_write is Dictionary and after_oversized_write.get("smoke_test_marker", "") == "ashen-kingdoms", "oversized payload does not replace the previous valid save")
+
+	# Inject a short write after the temporary file has opened. The original save must survive.
+	save_system.set("write_hook_for_testing", Callable(self, "_simulate_partial_write_failure"))
+	_check(not bool(save_system.call("save_game", {"smoke_test_marker": "partial-write-must-fail"})), "partial write failure is not reported as a successful save")
+	save_system.set("write_hook_for_testing", Callable())
+	var after_failed_write = save_system.call("load_game")
+	_check(after_failed_write is Dictionary and after_failed_write.get("smoke_test_marker", "") == "ashen-kingdoms", "failed temporary write preserves the previous primary save")
+
+	var corrupt_file := FileAccess.open(_test_save_path, FileAccess.WRITE)
 	if corrupt_file == null:
 		_check(false, "test can open save file to simulate corruption")
 	else:
@@ -90,23 +97,51 @@ func _run() -> void:
 		corrupt_file.close()
 		var corrupt_data = save_system.call("load_game")
 		_check(corrupt_data is Dictionary and corrupt_data.is_empty(), "malformed JSON is rejected safely")
+		_check(str(save_system.get("last_load_status")) == "invalid_json", "load status distinguishes malformed JSON")
 
-	_restore_original_save(had_original_save, original_save, save_system)
+	_check(bool(save_system.call("save_game", {"version": 1, "smoke_test_marker": "backup-state"})), "valid recovery baseline is saved")
+	_check(bool(save_system.call("save_game", {"version": 2, "smoke_test_marker": "latest-state"})), "new save rotates the previous valid save into backup")
+	var latest_file := FileAccess.open(_test_save_path, FileAccess.WRITE)
+	if latest_file == null:
+		_check(false, "test can corrupt the latest primary save")
+	else:
+		latest_file.store_string("{corrupt latest save")
+		latest_file.close()
+	var recovered_data = save_system.call("load_game")
+	_check(recovered_data is Dictionary and recovered_data.get("smoke_test_marker", "") == "backup-state", "load recovers the previous valid backup")
+	_check(str(save_system.get("last_load_status")) == "recovered_backup", "load status reports backup recovery")
+	_check(FileAccess.get_file_as_string(_test_save_path) == FileAccess.get_file_as_string(_test_save_path + ".bak"), "restored primary save matches the verified backup bytes")
 
+	save_system.set("rename_hook_for_testing", Callable(self, "_fail_primary_rename_for_test"))
+	_check(not bool(save_system.call("save_game", {"smoke_test_marker": "must-not-replace"})), "replacement failure is not reported as a successful save")
+	save_system.set("rename_hook_for_testing", Callable())
+	var preserved_data = save_system.call("load_game")
+	_check(preserved_data is Dictionary and preserved_data.get("smoke_test_marker", "") == "backup-state", "replacement failure leaves the prior valid save intact")
+
+	_cleanup_test_save_files(_test_save_path)
 	print("[smoke] failures: %d" % _failures)
 	quit(1 if _failures > 0 else 0)
 
 
-func _restore_original_save(had_original_save: bool, original_save: String, save_system: Node) -> void:
-	if had_original_save:
-		var restore_file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-		if restore_file == null:
-			_check(false, "existing save file can be restored after the test")
-			return
-		restore_file.store_string(original_save)
-		restore_file.close()
-	else:
-		_check(bool(save_system.call("delete_save")), "temporary smoke-test save is removed")
+func _simulate_partial_write_failure(file: FileAccess, serialized: String) -> bool:
+	var partial_length := maxi(1, int(serialized.length() / 2))
+	file.store_string(serialized.substr(0, partial_length))
+	return false
+
+
+func _fail_primary_rename_for_test(from_path: String, to_path: String) -> Error:
+	if to_path == ProjectSettings.globalize_path(_test_save_path):
+		return ERR_CANT_CREATE
+	return DirAccess.rename_absolute(from_path, to_path)
+
+
+func _cleanup_test_save_files(base_path: String) -> void:
+	for suffix in ["", ".tmp", ".bak", ".bak.tmp", ".restore.tmp"]:
+		var test_path: String = base_path + str(suffix)
+		if FileAccess.file_exists(test_path):
+			var remove_error: Error = DirAccess.remove_absolute(ProjectSettings.globalize_path(test_path))
+			if remove_error != OK:
+				push_error("Could not clean isolated test save file: %s" % test_path)
 
 
 func _check(condition: bool, description: String) -> void:

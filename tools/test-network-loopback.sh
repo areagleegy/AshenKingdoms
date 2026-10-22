@@ -16,7 +16,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 echo "[network-loopback] starting host on UDP port $ASHEN_TEST_PORT"
-godot --headless --path . -- --server --server-port="$ASHEN_TEST_PORT" >"$server_log" 2>&1 &
+ASHEN_TEST_REJECT_NONFINITE_RPC=1 godot --headless --path . -- --server --server-port="$ASHEN_TEST_PORT" >"$server_log" 2>&1 &
 server_pid=$!
 
 server_ready=0
@@ -48,6 +48,18 @@ if [[ "$client_status" -ne 0 ]]; then
   echo "Client integration test failed (exit $client_status); host log follows:"
   cat "$server_log"
   exit "$client_status"
+fi
+
+if ! grep -q "\[network-security-test\] rejected non-finite input from peer" "$server_log"; then
+  echo "Server did not log rejection of the non-finite RPC input; host log follows:"
+  cat "$server_log"
+  exit 1
+fi
+
+if ! grep -q "\\[network-security-test\\] rejected out-of-range input from peer" "$server_log"; then
+  echo "Server did not log rejection of the oversized RPC input; host log follows:"
+  cat "$server_log"
+  exit 1
 fi
 
 echo "[network-loopback] host/client integration passed"
