@@ -1,6 +1,7 @@
 extends Node3D
 
 const SERVER_SCRIPT: Script = preload("res://scripts/core/server.gd")
+const ASHEN_RUINS_SCENE: PackedScene = preload("res://scenes/world/AshenRuinsEnvironment.tscn")
 const INPUT_SETUP_SCRIPT = preload("res://scripts/core/input_setup.gd")
 const HEALTH_SCRIPT: Script = preload("res://scripts/components/health.gd")
 const PLAYER_SCRIPT: Script = preload("res://scripts/player/player.gd")
@@ -75,14 +76,22 @@ func _create_world() -> void:
 	var environment_node := WorldEnvironment.new()
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_COLOR
-	environment.background_color = Color(0.035, 0.035, 0.055, 1.0)
+	environment.background_color = Color(0.026, 0.031, 0.043, 1.0)
+	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	environment.ambient_light_color = Color(0.24, 0.25, 0.29, 1.0)
+	environment.ambient_light_energy = 0.55
+	environment.fog_enabled = true
+	environment.fog_light_color = Color(0.15, 0.16, 0.19, 1.0)
+	environment.fog_density = 0.006
 	environment_node.environment = environment
 	world.add_child(environment_node)
 
 	var sun := DirectionalLight3D.new()
 	sun.name = "Sun"
 	sun.rotation_degrees = Vector3(-48.0, -32.0, 0.0)
-	sun.light_energy = 1.25
+	sun.light_color = Color(0.88, 0.81, 0.70, 1.0)
+	sun.light_energy = 1.2
+	sun.shadow_enabled = true
 	world.add_child(sun)
 
 	var ground_body := StaticBody3D.new()
@@ -106,6 +115,10 @@ func _create_world() -> void:
 	ground_material.roughness = 1.0
 	ground_mesh_node.material_override = ground_material
 	world.add_child(ground_mesh_node)
+
+	var ruins_instance := ASHEN_RUINS_SCENE.instantiate()
+	ruins_instance.name = "AshenRuins"
+	world.add_child(ruins_instance)
 
 
 func _create_managers() -> void:
