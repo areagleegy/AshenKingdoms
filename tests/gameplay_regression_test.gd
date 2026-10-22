@@ -390,6 +390,7 @@ func _test_android_configuration() -> void:
 		_check(release_workflow.contains("ANDROID_KEYSTORE_PASSWORD"), "release workflow expects the keystore password secret")
 		_check(release_workflow.contains("ANDROID_KEYSTORE_ALIAS"), "release workflow expects the keystore alias secret")
 		_check(release_workflow.contains("platforms;android-36"), "release workflow installs the required Android API 36 platform")
+		_check(release_workflow.contains("--install-android-build-template"), "release export installs the Gradle template in the export invocation")
 		_check(release_workflow.contains("must target API 36"), "release workflow fails when the Google Play target SDK drifts")
 		_check(release_workflow.contains("jarsigner -verify"), "release workflow verifies the AAB signature")
 		_check(release_workflow.contains("ashen-kingdoms-android-play-release"), "release workflow uploads a distinct signed AAB artifact")
