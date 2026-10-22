@@ -369,6 +369,10 @@ func _test_android_configuration() -> void:
 		_check(preset_text.contains('name="Android"'), "export presets contain the required Android preset")
 		_check(preset_text.contains('package/unique_name="org.ashenkingdoms.game"'), "Android package identifier is configured")
 		_check(preset_text.contains("architectures/arm64-v8a=true"), "Android ARM64 export architecture is enabled")
+		_check(preset_text.contains('name="Android Play"'), "export presets contain a separate Google Play App Bundle preset")
+		_check(preset_text.contains('export_path="build/android/AshenKingdoms.aab"'), "Google Play preset writes an AAB artifact")
+		_check(preset_text.contains("gradle_build/use_gradle_build=true"), "Google Play preset enables Gradle export")
+		_check(preset_text.contains("gradle_build/export_format=1"), "Google Play preset selects Android App Bundle format")
 		_check(preset_text.contains('name="Android Play"'), "a separate Google Play App Bundle preset exists")
 		_check(preset_text.contains('export_path="build/android/AshenKingdoms.aab"'), "Google Play preset writes an AAB artifact")
 		_check(preset_text.contains("gradle_build/use_gradle_build=true"), "AAB preset enables the required Gradle build")
@@ -390,6 +394,16 @@ func _test_android_configuration() -> void:
 		_check(release_workflow.contains("ANDROID_KEYSTORE_ALIAS"), "release workflow expects the keystore alias secret")
 		_check(release_workflow.contains("ashen-kingdoms-android-play-release"), "release workflow uploads a separate signed AAB artifact")
 
+
+	var workflow_file := FileAccess.open("res://.github/workflows/build.yml", FileAccess.READ)
+	_check(workflow_file != null, "CI workflow can be read for Android release configuration checks")
+	if workflow_file != null:
+		var workflow_text := workflow_file.get_as_text()
+		workflow_file.close()
+		_check(workflow_text.contains("ANDROID_RELEASE_SIGNING_ENABLED"), "signed Play release is explicitly opt-in")
+		_check(workflow_text.contains("secrets.ANDROID_KEYSTORE_BASE64"), "release keystore comes from GitHub Secrets")
+		_check(workflow_text.contains("--install-android-build-template"), "AAB export installs the Android Gradle build template")
+		_check(workflow_text.contains("ashen-kingdoms-android-play-release"), "signed AAB uses a separate release artifact")
 
 	var main_source_file := FileAccess.open("res://scripts/core/input_setup.gd", FileAccess.READ)
 	_check(main_source_file != null, "shared input setup source is readable")
