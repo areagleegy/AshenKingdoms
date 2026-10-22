@@ -86,6 +86,9 @@ jobs:
       - name: Import project
         run: godot --headless --path . --editor --quit
 
+      - name: Install Android Gradle build template
+        run: godot --headless --path . --install-android-build-template
+
       - name: Export signed Android App Bundle
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
