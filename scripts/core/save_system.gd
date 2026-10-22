@@ -3,10 +3,14 @@ extends Node
 const SAVE_PATH: String = "user://savegame.json"
 const TEMP_PATH: String = "user://savegame.json.tmp"
 const BACKUP_PATH: String = "user://savegame.json.bak"
+const MAX_SAVE_BYTES: int = 1024 * 1024
 
 
 func save_game(data: Dictionary) -> bool:
 	var serialized := JSON.stringify(data, "\t")
+	if serialized.to_utf8_buffer().size() > MAX_SAVE_BYTES:
+		push_error("Refusing to save data larger than the local save-size limit.")
+		return false
 	var validator := JSON.new()
 	if validator.parse(serialized) != OK or not (validator.data is Dictionary):
 		push_error("Refusing to write save data that does not round-trip as a JSON object.")
@@ -112,6 +116,9 @@ func _read_dictionary_file(path: String) -> Dictionary:
 
 	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
+		return result
+	if file.get_length() <= 0 or file.get_length() > MAX_SAVE_BYTES:
+		file.close()
 		return result
 
 	var parser := JSON.new()
