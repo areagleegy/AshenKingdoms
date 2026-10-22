@@ -16,7 +16,7 @@
 
 راجع [تعريف التحقق](../.github/workflows/validate.yml) و[تعريف البناء](../.github/workflows/build.yml) إذا تغيرت قائمة الخطوات؛ هذان الملفان هما المصدر التنفيذي النهائي، وليس هذه القائمة المختصرة.
 
-يحدد `.github/workflows/validate.yml` `contents: read` على مستوى الـ workflow والـ job، ويعطّل حفظ اعتماد checkout عبر `persist-credentials: false`. تُمرر إعدادات AI إلى خطوة التشخيص فقط في أحداث `push` إلى `main` و`workflow_dispatch` على مرجع `main`؛ وتعمل المصنفات المحلية دون تلك الإعدادات في Pull Request. هذا الحارس يمنع تمريرها عبر المسار الحالي، لكنه لا يغني عن ضبط أسرار المستودع والبيئات المحمية، لأن مراجعة صلاحية تغييرات ملفات Workflow مطلوبة عند التعامل مع PRs من فروع داخل المستودع.
+يحدد `.github/workflows/validate.yml` `contents: read` على مستوى الـ workflow والـ job، ويعطّل حفظ اعتماد checkout عبر `persist-credentials: false`. خطوة التشخيص في هذا الـ workflow **محلية فقط**؛ لا تمرر `ASHEN_AI_ENDPOINT` أو `ASHEN_AI_API_KEY` أو بيانات الاعتماد إلى كود Pull Request. إذا احتاج المشروع لاحقًا إلى تشخيص AI خارجي، فينبغي تنفيذه في workflow منفصل ذي حدث موثوق وصلاحيات/بيئة محمية، لا بإعادة إدخال الأسرار في خطوة تُشغّل كود PR.
 
 ## تشغيل مجموعة التحقق محليًا
 
