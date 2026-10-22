@@ -31,7 +31,7 @@ func _ensure_slot_count() -> void:
 func add_item(item: ItemResource, amount: int = 1) -> int:
 	if amount <= 0:
 		return 0
-	if item == null:
+	if item == null or item.max_stack < 1:
 		return amount
 	_ensure_slot_count()
 
