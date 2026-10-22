@@ -4,6 +4,8 @@ extends Node
 signal contents_changed
 signal loot_transferred(item_id: StringName, amount: int)
 
+const MAX_LOOT_AMOUNT: int = 10000
+
 @export var container_id: StringName = &""
 @export var single_use: bool = false
 
@@ -12,22 +14,32 @@ var opened: bool = false
 
 
 func add_loot(item: ItemResource, amount: int = 1) -> bool:
-	if item == null or amount <= 0:
+	if item == null or amount <= 0 or amount > MAX_LOOT_AMOUNT:
 		return false
-	if single_use and opened:
+	if item.max_stack < 1 or (single_use and opened):
 		return false
 
+	var remaining := amount
 	if item.is_stackable():
-		for slot in contents:
-			var existing: ItemResource = slot.get("item") as ItemResource
-			if existing != null and existing.id == item.id:
-				var current := int(slot.get("amount", 0))
-				if current + amount <= item.max_stack:
-					slot["amount"] = current + amount
-					contents_changed.emit()
-					return true
+		for index in range(contents.size()):
+			var existing: ItemResource = contents[index].get("item") as ItemResource
+			if existing == null or existing.id != item.id:
+				continue
+			var current := int(contents[index].get("amount", 0))
+			if current < 1 or current >= item.max_stack:
+				continue
+			var moved := mini(item.max_stack - current, remaining)
+			contents[index]["amount"] = current + moved
+			remaining -= moved
+			if remaining == 0:
+				contents_changed.emit()
+				return true
 
-	contents.append({"item": item, "amount": amount})
+	while remaining > 0:
+		var stack_amount := mini(item.max_stack, remaining) if item.is_stackable() else 1
+		contents.append({"item": item, "amount": stack_amount})
+		remaining -= stack_amount
+
 	contents_changed.emit()
 	return true
 
