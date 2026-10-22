@@ -11,7 +11,7 @@ const DialogueManagerScript: Script = preload("res://scripts/dialogue/dialogue_m
 const DialogueGraphScript: Script = preload("res://scripts/dialogue/dialogue_graph.gd")
 const DialogueNodeScript: Script = preload("res://scripts/dialogue/dialogue_node.gd")
 const DialogueChoiceScript: Script = preload("res://scripts/dialogue/dialogue_choice.gd")
-const MainScript: Script = preload("res://scripts/core/main.gd")
+const InputSetupScript: Script = preload("res://scripts/core/input_setup.gd")
 
 const SAVE_PATH := "user://savegame.json"
 const POTION_PATH := "res://resources/items/health_potion.tres"
@@ -244,20 +244,18 @@ func _test_android_configuration() -> void:
 		_check(preset_text.contains('package/unique_name="org.ashenkingdoms.game"'), "Android package identifier is configured")
 		_check(preset_text.contains("architectures/arm64-v8a=true"), "Android ARM64 export architecture is enabled")
 
-	var main_source_file := FileAccess.open("res://scripts/core/main.gd", FileAccess.READ)
-	_check(main_source_file != null, "main script source is readable for input configuration checks")
+	var main_source_file := FileAccess.open("res://scripts/core/input_setup.gd", FileAccess.READ)
+	_check(main_source_file != null, "shared input setup source is readable")
 	if main_source_file != null:
 		var main_source := main_source_file.get_as_text()
 		main_source_file.close()
-		_check(main_source.contains("func _register_input_actions()"), "main defines the runtime input registration routine")
+		_check(main_source.contains("static func register_input_actions()"), "shared input setup defines the runtime input registration routine")
 		for action in [&"move_forward", &"move_back", &"move_left", &"move_right", &"look_left", &"look_right", &"look_up", &"look_down", &"jump", &"sprint", &"inventory", &"pause", &"save", &"load", &"interact", &"attack"]:
 			_check(main_source.contains(String(action)), "main input registration references action: %s" % String(action))
 
 
 func _test_runtime_input_registration() -> void:
-	var main_node := Node3D.new()
-	main_node.set_script(MainScript)
-	main_node.call("_register_input_actions")
+	InputSetupScript.register_input_actions()
 
 	var actions: Array[StringName] = [
 		&"move_forward", &"move_back", &"move_left", &"move_right",
@@ -269,13 +267,12 @@ func _test_runtime_input_registration() -> void:
 	for action in actions:
 		initial_event_counts[action] = InputMap.action_get_events(action).size()
 
-	main_node.call("_register_input_actions")
+	InputSetupScript.register_input_actions()
 	for action in actions:
 		_check(
 			InputMap.action_get_events(action).size() == int(initial_event_counts[action]),
 			"runtime input registration is idempotent for %s" % String(action)
 		)
-	main_node.free()
 
 
 func _test_gamepad_input_bindings() -> void:
