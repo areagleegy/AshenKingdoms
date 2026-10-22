@@ -60,11 +60,11 @@ func save_game(data: Dictionary) -> bool:
 				_remove_if_exists(TEMP_PATH)
 				push_error("Could not clear a redundant staged save.")
 				return false
-		elif bool(staged_check.get("ok", false)):
+		elif bool(staged_check.get("ok", false)) and had_primary:
 			_remove_if_exists(TEMP_PATH)
 			push_error("A valid staged save needs recovery; refusing to overwrite it.")
 			return false
-		elif not _remove_if_exists(STAGED_PATH):
+		elif not bool(staged_check.get("ok", false)) and not _remove_if_exists(STAGED_PATH):
 			_remove_if_exists(TEMP_PATH)
 			push_error("Could not clear an invalid staged save.")
 			return false
@@ -147,15 +147,9 @@ func load_game_result() -> Dictionary:
 	if not any_save_file:
 		return {"status": "not_found", "data": {}}
 
-	push_error(
-		"Save data is missing or invalid and no usable recovery file was found. "
-		+ "Primary=%s, staged=%s, backup=%s"
-		% [
-			str(primary.get("reason", "unknown")),
-			str(staged.get("reason", "unknown")),
-			str(backup.get("reason", "unknown"))
-		]
-	)
+	# Return structured diagnostic state without logging an error as a side effect;
+	# callers can decide how to surface corruption, and tests can assert statuses
+	# without producing misleading CI error diagnostics.
 	return {
 		"status": "invalid",
 		"data": {},
