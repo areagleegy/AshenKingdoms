@@ -21,6 +21,9 @@ func _initialize() -> void:
 
 func _run() -> void:
 	_save_snapshots = _isolate_save_files()
+	if _save_snapshots.has("__snapshot_error"):
+		quit(1)
+		return
 
 	var network_manager: Node = root.get_node_or_null("NetworkManager")
 	_check(network_manager != null, "network manager autoload is present for smoke tests")
@@ -104,8 +107,8 @@ func _isolate_save_files() -> Dictionary:
 		var file := FileAccess.open(path, FileAccess.READ)
 		if file == null:
 			push_error("Could not snapshot save-related file: %s" % path)
-			snapshots[path] = null
-			continue
+			snapshots["__snapshot_error"] = true
+			return snapshots
 		snapshots[path] = file.get_buffer(file.get_length())
 		file.close()
 	return snapshots
