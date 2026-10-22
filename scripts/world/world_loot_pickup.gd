@@ -17,7 +17,7 @@ var _pickup_in_progress: bool = false
 
 
 func _ready() -> void:
-	if item == null or amount <= 0 or amount > MAX_PICKUP_AMOUNT:
+	if item == null or amount <= 0 or amount > MAX_PICKUP_AMOUNT or (item != null and item.max_stack < 1):
 		push_warning("WorldLootPickup has invalid item or amount; removing invalid pickup.")
 		queue_free()
 		return
