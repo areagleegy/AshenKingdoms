@@ -6,7 +6,7 @@ import json
 import unittest
 from pathlib import Path
 
-from validate_world_catalog import WORLD_PATH, validate_world
+from tools.validate_world_catalog import WORLD_PATH, validate_world
 
 
 class WorldCatalogTests(unittest.TestCase):
