@@ -87,23 +87,33 @@ func _run() -> void:
 	if local_avatar == null:
 		_check(false, "client has a local avatar for invalid-input RPC test")
 	else:
-		# Let the spawn settle, then suspend normal local input so a valid packet
-		# cannot overwrite the malicious test packet before the server processes it.
+		# Let the spawn settle, then suspend normal local input so normal packets
+		# cannot overwrite either deliberately invalid test packet.
 		await create_timer(0.25).timeout
-		var position_before_invalid: Vector3 = local_avatar.global_position
 		local_avatar.set_physics_process(false)
+
+		var position_before_invalid: Vector3 = local_avatar.global_position
 		local_avatar.rpc_id(1, "_rpc_submit_input", Vector3(NAN, 0.0, 0.0), false, false, false)
 		await create_timer(0.15).timeout
 		var position_after_invalid: Vector3 = local_avatar.global_position
-		local_avatar.set_physics_process(true)
 		_check(position_after_invalid.is_finite(), "non-finite RPC input does not corrupt the replicated avatar position")
-		# Vertical movement can continue while gravity settles the avatar onto the floor.
-		# The rejected horizontal input should not change the requested X/Z movement.
-		var horizontal_delta := Vector2(
+		var nonfinite_horizontal_delta := Vector2(
 			position_after_invalid.x - position_before_invalid.x,
 			position_after_invalid.z - position_before_invalid.z
 		)
-		_check(horizontal_delta.length() < 0.25, "non-finite RPC input does not materially move the avatar horizontally")
+		_check(nonfinite_horizontal_delta.length() < 0.25, "non-finite RPC input does not materially move the avatar horizontally")
+
+		var position_before_oversized: Vector3 = local_avatar.global_position
+		local_avatar.rpc_id(1, "_rpc_submit_input", Vector3(10.0, 0.0, 0.0), false, true, true)
+		await create_timer(0.15).timeout
+		var position_after_oversized: Vector3 = local_avatar.global_position
+		local_avatar.set_physics_process(true)
+		_check(position_after_oversized.is_finite(), "oversized finite RPC input does not corrupt the replicated avatar position")
+		var oversized_horizontal_delta := Vector2(
+			position_after_oversized.x - position_before_oversized.x,
+			position_after_oversized.z - position_before_oversized.z
+		)
+		_check(oversized_horizontal_delta.length() < 0.25, "oversized finite RPC input does not materially move the avatar horizontally")
 	if _failures > 0 and current_scene != null:
 		var entities := current_scene.get_node_or_null("Entities") as Node3D
 		if entities != null:
