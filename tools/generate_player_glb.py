@@ -214,8 +214,14 @@ def _validate_glb_container(path: Path) -> None:
                         if saw_binary:
                             raise MeshyError("GLB may contain at most one BIN chunk.")
                         saw_binary = True
-                    # Validate container bounds above, then skip unknown/optional chunk types.
-                    model_file.seek(chunk_length, os.SEEK_CUR)
+                    # Read in bounded blocks instead of seeking: seeking beyond EOF
+                    # can hide a truncated BIN/extension chunk.
+                    remaining_chunk_bytes = chunk_length
+                    while remaining_chunk_bytes:
+                        block = model_file.read(min(1024 * 1024, remaining_chunk_bytes))
+                        if not block:
+                            raise MeshyError("GLB chunk data is truncated.")
+                        remaining_chunk_bytes -= len(block)
 
                 offset += chunk_length
                 chunk_index += 1
