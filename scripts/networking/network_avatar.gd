@@ -117,7 +117,8 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 		_log_test_input_rejection("non_finite", sender_id)
 		return
 
-	var rejection_reason := _input_rate_rejection_reason(Time.get_ticks_msec())
+	var now := Time.get_ticks_msec()
+	var rejection_reason := _input_rate_rejection_reason(now)
 	if not rejection_reason.is_empty():
 		_log_test_input_rejection(rejection_reason, sender_id)
 		return
