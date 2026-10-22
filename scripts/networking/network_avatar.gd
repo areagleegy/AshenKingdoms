@@ -114,6 +114,8 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 
 	# Reject malformed numeric input before it reaches movement/physics code.
 	if not is_finite(direction.x) or not is_finite(direction.y) or not is_finite(direction.z):
+		if OS.get_environment("ASHEN_TEST_COMBAT") == "1":
+			print("[network-input-test] rejected non-finite direction")
 		return
 
 	var now := Time.get_ticks_msec()
@@ -121,6 +123,8 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 		_input_rate_window_start_msec = now
 		_input_rate_window_count = 0
 	if _input_rate_window_count >= INPUT_RATE_LIMIT:
+		if OS.get_environment("ASHEN_TEST_COMBAT") == "1":
+			print("[network-input-test] rejected input rate limit")
 		return
 	if _last_input_packet_msec > 0 and now - _last_input_packet_msec < INPUT_MIN_INTERVAL_MSEC:
 		return
