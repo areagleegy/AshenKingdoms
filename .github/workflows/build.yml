@@ -60,7 +60,7 @@ jobs:
           retention-days: 7
 
   desktop:
-    name: Export \${{ matrix.platform }}
+    name: Export ${{ matrix.platform }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     strategy:
@@ -107,11 +107,11 @@ jobs:
           GODOT_SILENCE_ROOT_WARNING: "1"
         run: godot --headless --path . --editor --quit
 
-      - name: Export \${{ matrix.platform }}
+      - name: Export ${{ matrix.platform }}
         env:
           GODOT_SILENCE_ROOT_WARNING: "1"
-          EXPORT_PRESET: \${{ matrix.preset }}
-          EXPORT_PATH: \${{ matrix.output }}
+          EXPORT_PRESET: ${{ matrix.preset }}
+          EXPORT_PATH: ${{ matrix.output }}
         shell: bash
         run: |
           set -euo pipefail
@@ -119,11 +119,11 @@ jobs:
           godot --headless --path . --export-release "$EXPORT_PRESET" "$EXPORT_PATH"
           test -s "$EXPORT_PATH"
 
-      - name: Upload \${{ matrix.platform }} artifact
+      - name: Upload ${{ matrix.platform }} artifact
         uses: actions/upload-artifact@v4
         with:
-          name: \${{ matrix.artifact }}
-          path: \${{ matrix.output }}
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.output }}
           if-no-files-found: error
           retention-days: 7
 
@@ -218,11 +218,11 @@ jobs:
 
   ios:
     name: Export iOS Xcode project
-    if: \${{ vars.IOS_TEAM_ID != '' }}
+    if: ${{ vars.IOS_TEAM_ID != '' }}
     runs-on: macos-latest
     timeout-minutes: 35
     env:
-      IOS_TEAM_ID: \${{ vars.IOS_TEAM_ID }}
+      IOS_TEAM_ID: ${{ vars.IOS_TEAM_ID }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
