@@ -93,14 +93,16 @@ func load_game() -> Dictionary:
 	var primary := _read_save_file(save_path)
 	if bool(primary.get("ok", false)):
 		last_load_status = LOAD_STATUS_OK
-		return primary.get("data", {}) as Dictionary
+		var primary_data: Variant = primary.get("data", {})
+		return primary_data if primary_data is Dictionary else {}
 
 	var backup := _read_save_file(_backup_path())
 	if bool(backup.get("ok", false)):
 		last_load_status = LOAD_STATUS_RECOVERED_BACKUP
 		if not _restore_backup_to_primary():
 			push_warning("Loaded the valid backup, but could not restore the primary save file.")
-		return backup.get("data", {}) as Dictionary
+		var backup_data: Variant = backup.get("data", {})
+		return backup_data if backup_data is Dictionary else {}
 
 	if str(primary.get("status", "")) == LOAD_STATUS_NOT_FOUND:
 		last_load_status = str(backup.get("status", LOAD_STATUS_NOT_FOUND))
@@ -195,7 +197,7 @@ func _restore_backup_to_primary() -> bool:
 
 func _rename_path(from_path: String, to_path: String) -> Error:
 	if rename_hook_for_testing.is_valid():
-		return int(rename_hook_for_testing.call(from_path, to_path)) as Error
+		return int(rename_hook_for_testing.call(from_path, to_path))
 	return DirAccess.rename_absolute(from_path, to_path)
 
 
