@@ -14,26 +14,26 @@ BANNER = "Godot Engine v4.6.stable.official.test"
 
 class RuntimeOutputTests(unittest.TestCase):
     def test_clean_runtime_output_passes(self) -> None:
-        check_runtime_output(BANNER + "\\n[network] server ready\\n", 0)
+        check_runtime_output(BANNER + "\n[network] server ready\n", 0)
 
     def test_nonzero_exit_fails(self) -> None:
         with self.assertRaisesRegex(SmokeTestError, "status 3"):
-            check_runtime_output(BANNER + "\\n", 3)
+            check_runtime_output(BANNER + "\n", 3)
 
     def test_missing_engine_banner_fails(self) -> None:
         with self.assertRaisesRegex(SmokeTestError, "version banner"):
-            check_runtime_output("started with no runtime banner\\n", 0)
+            check_runtime_output("started with no runtime banner\n", 0)
 
     def test_script_error_fails_even_when_exit_code_is_zero(self) -> None:
         with self.assertRaisesRegex(SmokeTestError, "SCRIPT ERROR"):
-            check_runtime_output(BANNER + "\\nSCRIPT ERROR: test\\n", 0)
+            check_runtime_output(BANNER + "\nSCRIPT ERROR: test\n", 0)
 
     def test_engine_error_fails_even_when_exit_code_is_zero(self) -> None:
         with self.assertRaisesRegex(SmokeTestError, "ERROR:"):
-            check_runtime_output(BANNER + "\\nERROR: shutdown issue\\n", 0)
+            check_runtime_output(BANNER + "\nERROR: shutdown issue\n", 0)
 
     def test_passed_test_name_does_not_trigger_failure(self) -> None:
-        check_runtime_output(BANNER + "\\n[PASS] scene loaded\\n", 0)
+        check_runtime_output(BANNER + "\n[PASS] scene loaded\n", 0)
 
     def test_run_smoke_writes_combined_output_log(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
