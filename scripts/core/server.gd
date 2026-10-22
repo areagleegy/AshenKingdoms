@@ -24,6 +24,7 @@ func _ready() -> void:
 
 
 func _load_network_arena() -> void:
+	var network_manager := get_node_or_null("/root/NetworkManager")
 	var result := get_tree().change_scene_to_file(NETWORK_ARENA_PATH)
 	if result != OK:
 		push_error("Dedicated server could not load network arena: %s" % error_string(result))
