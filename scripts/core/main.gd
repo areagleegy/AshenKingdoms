@@ -475,31 +475,39 @@ func _serialize_dialogue_state() -> Dictionary:
 func _load_game() -> void:
 	var data: Dictionary = save_system.call("load_game")
 	print("[LOAD] data keys: %s" % str(data.keys()))
-	print("[LOAD] dialogue: %s" % str(data.get("dialogue", {})))
 	if data.is_empty():
 		if is_instance_valid(hud):
-			hud.call("show_message", "لا يوجد ملف حفظ بعد.")
+			hud.call("show_message", "لا يوجد ملف حفظ صالح بعد.")
 		return
 
-	if data.has("player_position") and data["player_position"] is Dictionary:
-		var position_data: Dictionary = data["player_position"]
+	var position_data = data.get("player_position", {})
+	if position_data is Dictionary:
+		var x := _safe_saved_float(position_data.get("x", 0.0), 0.0)
+		var y := _safe_saved_float(position_data.get("y", 0.92), 0.92)
+		var z := _safe_saved_float(position_data.get("z", 0.0), 0.0)
 		player.global_position = Vector3(
-			float(position_data.get("x", 0.0)), float(position_data.get("y", 0.92)), float(position_data.get("z", 0.0))
+			clampf(x, -39.0, 39.0),
+			clampf(y, 0.92, 50.0),
+			clampf(z, -39.0, 39.0)
 		)
 
 	progression.call(
 		"restore_state",
-		int(data.get("level", 1)),
-		int(data.get("experience", 0))
+		_safe_saved_int(data.get("level", 1), 1, 1, 50),
+		_safe_saved_int(data.get("experience", 0), 0, 0, 100000)
 	)
 	var restored_level := int(progression.get("level"))
 	var level_bonus := maxi(restored_level - 1, 0)
 	var health := player.get_node("Health") as Health
 	health.max_health = 100.0 + (float(level_bonus) * 10.0)
 	player.set("attack_damage", 20.0 + (float(level_bonus) * 3.0))
-	health.set_current_health(float(data.get("player_health", health.max_health)))
-	player.get_node("Inventory").call("restore_save_data", data.get("inventory", []))
-	quests.call("load_state", data.get("quest", {}))
+	var saved_health := _safe_saved_float(data.get("player_health", health.max_health), health.max_health)
+	health.set_current_health(clampf(saved_health, 0.0, health.max_health))
+
+	var inventory_data = data.get("inventory", [])
+	player.get_node("Inventory").call("restore_save_data", inventory_data if inventory_data is Array else [])
+	var quest_data = data.get("quest", {})
+	quests.call("load_state", quest_data if quest_data is Dictionary else {})
 	var dialogue_data = data.get("dialogue", {})
 	var dialogue_manager := get_node_or_null("/root/DialogueManager")
 	if dialogue_manager != null:
@@ -507,3 +515,20 @@ func _load_game() -> void:
 	if is_instance_valid(hud):
 		hud.call("close_overlays")
 		hud.call("show_message", "تم تحميل الحفظ.")
+
+
+func _safe_saved_float(value: Variant, fallback: float) -> float:
+	var value_type := typeof(value)
+	if value_type != TYPE_INT and value_type != TYPE_FLOAT:
+		return fallback
+	var number := float(value)
+	return number if is_finite(number) else fallback
+
+
+func _safe_saved_int(value: Variant, fallback: int, minimum: int, maximum: int) -> int:
+	var number := _safe_saved_float(value, float(fallback))
+	if number <= float(minimum):
+		return minimum
+	if number >= float(maximum):
+		return maximum
+	return int(number)
