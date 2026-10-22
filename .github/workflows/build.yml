@@ -328,19 +328,33 @@ jobs:
               selected_team_id = "AAAAAAAAAA"
               print("IOS_TEAM_ID is unset; using placeholder AAAAAAAAAA for unsigned Xcode project generation.")
           content = content.replace(marker, f'application/app_store_team_id="{selected_team_id}"', 1)
-          config.write_text(content, encoding="utf-8")
-          PY
 
-      - name: Start local ADB daemon for Godot editor device discovery
-        shell: bash
-        run: |
-          set -euo pipefail
-          if command -v adb >/dev/null 2>&1; then
-            adb start-server
-            adb devices
-          else
-            echo "ADB not installed; no Android device is needed for the iOS export."
-          fi
+          # The Android preset is only needed in the Android job. Leaving it
+          # runnable makes the macOS Godot editor probe an unrelated ADB device
+          # at shutdown; the iOS project-only export must not deploy to devices.
+          lines = content.splitlines()
+          current_preset_start = -1
+          android_found = False
+          for index, line in enumerate(lines):
+              if line.startswith("[preset.") and line.endswith("]"):
+                  current_preset_start = index
+              if line == 'name="Android"':
+                  if current_preset_start < 0:
+                      raise SystemExit("Android export preset section was not found.")
+                  runnable_index = next(
+                      (position for position in range(current_preset_start + 1, index)
+                       if lines[position].startswith("runnable=")),
+                      None,
+                  )
+                  if runnable_index is None:
+                      raise SystemExit("Android export preset has no runnable option.")
+                  lines[runnable_index] = "runnable=false"
+                  android_found = True
+                  break
+          if not android_found:
+              raise SystemExit("Android export preset was not found.")
+          config.write_text("\\n".join(lines) + "\\n", encoding="utf-8")
+          PY
 
       - name: Import project
         env:
