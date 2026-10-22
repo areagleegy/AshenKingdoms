@@ -236,7 +236,7 @@ func _test_oversized_registry_is_rejected() -> void:
 	_check(manager_script != null, "content manager source loads for isolated registry test")
 	if manager_script != null:
 		var isolated_manager := manager_script.new() as Node
-		var load_error := isolated_manager.call("_load_registry")
+		isolated_manager.call("_load_registry")
 		var installed_value = isolated_manager.call("get_installed_packs")
 		_check(
 			installed_value is Dictionary and installed_value.is_empty(),
