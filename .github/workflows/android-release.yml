@@ -86,6 +86,9 @@ jobs:
       - name: Import project
         run: godot --headless --path . --editor --quit
 
+      - name: Install Android Gradle build template
+        run: godot --headless --path . --install-android-build-template
+
       - name: Export signed Android App Bundle
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -151,7 +154,7 @@ jobs:
           PY
 
           mkdir -p build/android
-          godot --headless --path . --install-android-build-template --export-release "Android Play" build/android/AshenKingdoms.aab
+          godot --headless --path . --export-release "Android Play" build/android/AshenKingdoms.aab
           test -s build/android/AshenKingdoms.aab
           jarsigner -verify -verbose -certs build/android/AshenKingdoms.aab > "$RUNNER_TEMP/aab-signature-check.log" 2>&1
           grep -Eiq 'jar verified\.' "$RUNNER_TEMP/aab-signature-check.log" || { cat "$RUNNER_TEMP/aab-signature-check.log"; echo "AAB signature verification did not confirm a signed bundle." >&2; exit 1; }
