@@ -65,7 +65,7 @@
     {
       "id": "passing-placeholder-fallback",
       "expected_category": null,
-      "log": "[PASS] missing player.glb selects the documented placeholder path\\n[PASS] player tolerates missing AnimationPlayer\\n"
+      "log": "player-character-tests.log: [PASS] missing player.glb selects the documented placeholder path\\nplayer-character-tests.log: [PASS] player tolerates missing AnimationPlayer\\n"
     }
   ]
 }
