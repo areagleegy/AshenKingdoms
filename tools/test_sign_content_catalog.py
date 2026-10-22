@@ -18,7 +18,18 @@ def pack(pack_id, dependencies=None):
         "url": f"https://cdn.example.invalid/{pack_id}.zip",
         "download_size": 128,
         "sha256": "a" * 64,
-        "files": [{"path": "characters/hero.glb", "size": 64, "sha256": "b" * 64}],
+        "files": [{
+            "path": "characters/hero.glb",
+            "size": 64,
+            "sha256": "b" * 64,
+            "author": "Test author",
+            "source_url": "https://assets.example.invalid/hero.glb",
+            "license": "CC0-1.0",
+            "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+            "attribution": "Test fixture; no attribution required by this license.",
+            "commercial_use": True,
+            "redistribution_allowed": True,
+        }],
         "dependencies": dependencies or [],
     }
 
@@ -34,6 +45,24 @@ class SignContentCatalogTests(unittest.TestCase):
     def test_accepts_catalog_with_multiple_packs_and_dependency(self):
         catalog = {"schema_version": 1, "packs": [pack("base_pack"), pack("hero_pack", ["base_pack"])]}
         self.assertEqual(sign_content_catalog.validate_catalog(catalog), catalog)
+
+    def test_rejects_file_missing_provenance_metadata(self):
+        catalog = {"schema_version": 1, "packs": [pack("hero_pack")]}
+        del catalog["packs"][0]["files"][0]["author"]
+        with self.assertRaises(sign_content_catalog.PackageError):
+            sign_content_catalog.validate_catalog(catalog)
+
+    def test_rejects_file_without_redistribution_permission(self):
+        catalog = {"schema_version": 1, "packs": [pack("hero_pack")]}
+        catalog["packs"][0]["files"][0]["redistribution_allowed"] = False
+        with self.assertRaises(sign_content_catalog.PackageError):
+            sign_content_catalog.validate_catalog(catalog)
+
+    def test_rejects_file_license_url_with_embedded_credentials(self):
+        catalog = {"schema_version": 1, "packs": [pack("hero_pack")]}
+        catalog["packs"][0]["files"][0]["license_url"] = "https://user:pass@license.example.invalid/text"
+        with self.assertRaises(sign_content_catalog.PackageError):
+            sign_content_catalog.validate_catalog(catalog)
 
     def test_rejects_missing_dependency(self):
         catalog = {"schema_version": 1, "packs": [pack("hero_pack", ["missing_pack"])]}
