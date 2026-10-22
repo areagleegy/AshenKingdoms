@@ -4,10 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       version_code:
-        description: Monotonically increasing Android version code
+        description: Monotonically increasing Android version code (must be higher than the last uploaded value and <= 2100000000)
         type: number
         required: true
-        default: 1
       version_name:
         description: Human-readable Android version name
         type: string
