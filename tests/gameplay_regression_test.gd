@@ -300,6 +300,7 @@ func _test_controller_navigation_configuration() -> void:
 		menu_file.close()
 		_check(menu_source.contains("_solo_button.grab_focus()"), "main menu focuses the initial game action")
 		_check(menu_source.contains("_focus_default_control"), "main menu defers focus until layout is ready")
+		_check(menu_source.contains("INPUT_SETUP_SCRIPT.register_input_actions()"), "main menu registers inputs before opening solo or network play")
 		_check(menu_source.contains("العصا اليسرى للحركة"), "main menu displays controller instructions")
 
 	var hud_file := FileAccess.open("res://scripts/ui/hud.gd", FileAccess.READ)
@@ -317,6 +318,21 @@ func _test_controller_navigation_configuration() -> void:
 		var camera_source := camera_file.get_as_text()
 		camera_file.close()
 		_check(camera_source.contains("look_left"), "camera reads right-stick input actions")
+
+	var dialogue_file := FileAccess.open("res://scripts/ui/dialogue_ui.gd", FileAccess.READ)
+	_check(dialogue_file != null, "dialogue UI source is readable for controller focus checks")
+	if dialogue_file != null:
+		var dialogue_source := dialogue_file.get_as_text()
+		dialogue_file.close()
+		_check(dialogue_source.contains("_focus_first_choice"), "dialogue focuses the first choice for controller selection")
+		_check(dialogue_source.contains("Control.FOCUS_ALL"), "dialogue choice buttons are focusable")
+
+	var network_file := FileAccess.open("res://scripts/networking/network_avatar.gd", FileAccess.READ)
+	_check(network_file != null, "network avatar source is readable for controller look checks")
+	if network_file != null:
+		var network_source := network_file.get_as_text()
+		network_file.close()
+		_check(network_source.contains('Input.get_vector("look_left"'), "network camera reads right-stick input actions")
 
 
 func _has_joypad_button(action: StringName, expected_button: int) -> bool:
