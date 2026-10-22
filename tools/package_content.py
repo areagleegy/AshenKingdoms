@@ -14,6 +14,7 @@ import shutil
 import subprocess
 import tempfile
 import zipfile
+from urllib.parse import urlsplit
 from typing import Any
 
 ALLOWED_EXTENSIONS = {
@@ -27,6 +28,7 @@ MAX_ARCHIVE_BYTES = 2 * 1024 * 1024 * 1024
 PACK_TYPES = {"character", "world", "equipment", "audio", "language"}
 PACK_ID_RE = re.compile(r"^[a-z0-9_-]{1,64}$")
 VERSION_RE = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
+HOST_LABEL_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$")
 
 
 class PackageError(ValueError):
@@ -57,8 +59,33 @@ def validate_version(value: str) -> str:
 
 
 def validate_package_url(value: str) -> str:
-    if not value.startswith("https://") or len(value) > 2048:
-        raise PackageError("Package URL must be an HTTPS URL.")
+    if not isinstance(value, str) or not value or len(value) > 2048:
+        raise PackageError("Package URL must be a valid HTTPS URL.")
+    if any(ord(character) <= 32 or ord(character) == 127 for character in value) or "\\" in value:
+        raise PackageError("Package URL contains whitespace or an invalid separator.")
+    try:
+        parsed = urlsplit(value)
+        port = parsed.port
+    except ValueError as exc:
+        raise PackageError("Package URL has an invalid host or port.") from exc
+    if (
+        parsed.scheme.lower() != "https"
+        or not parsed.hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.fragment
+        or "#" in value
+        or parsed.netloc.endswith(":")
+    ):
+        raise PackageError("Package URL must use HTTPS with a valid host and no credentials or fragment.")
+    hostname = parsed.hostname
+    if len(hostname) > 253 or ":" in hostname:
+        raise PackageError("Package URL host is invalid.")
+    labels = hostname.split(".")
+    if any(not HOST_LABEL_RE.fullmatch(label) for label in labels):
+        raise PackageError("Package URL host contains an invalid DNS label.")
+    if port is not None and not 1 <= port <= 65535:
+        raise PackageError("Package URL port is outside the valid range.")
     return value
 
 

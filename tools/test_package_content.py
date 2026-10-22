@@ -31,6 +31,11 @@ class PackageContentTests(unittest.TestCase):
     def test_rejects_backslash_path(self):
         self.assertFalse(package_content.is_safe_relative_path("characters\\..\\outside.json"))
 
+    def test_rejects_empty_path_segments(self):
+        for value in ("characters//hero.glb", "characters/hero.glb/"):
+            with self.subTest(value=value):
+                self.assertFalse(package_content.is_safe_relative_path(value))
+
     def test_collects_allowed_data_asset(self):
         (self.source / "hero.glb").write_bytes(b"glb-fixture")
         records = package_content.collect_files(self.source)
@@ -123,6 +128,37 @@ class PackageContentTests(unittest.TestCase):
     def test_rejects_non_https_package_url(self):
         with self.assertRaises(package_content.PackageError):
             package_content.validate_package_url("http://content.example.invalid/test.zip")
+
+    def test_accepts_valid_https_package_url(self):
+        self.assertEqual(
+            package_content.validate_package_url("https://cdn.example.invalid:443/packs/world.zip?version=1"),
+            "https://cdn.example.invalid:443/packs/world.zip?version=1",
+        )
+        self.assertEqual(
+            package_content.validate_package_url("https://cdn.example.invalid/packs/@world.zip"),
+            "https://cdn.example.invalid/packs/@world.zip",
+        )
+
+    def test_rejects_https_url_without_host(self):
+        for value in ("https://", "https:///packs/world.zip", "https://?download=1"):
+            with self.subTest(value=value), self.assertRaises(package_content.PackageError):
+                package_content.validate_package_url(value)
+
+    def test_rejects_https_url_with_credentials(self):
+        with self.assertRaises(package_content.PackageError):
+            package_content.validate_package_url("https://user:password@cdn.example.invalid/world.zip")
+
+    def test_rejects_invalid_https_host_or_port(self):
+        for value in (
+            "https://bad..host/world.zip",
+            "https://-bad.example/world.zip",
+            "https://cdn.example.invalid:99999/world.zip",
+            "https://cdn.example.invalid:/world.zip",
+            "https://cdn.example.invalid/world.zip#fragment",
+            "https://cdn.example.invalid/a b.zip",
+        ):
+            with self.subTest(value=value), self.assertRaises(package_content.PackageError):
+                package_content.validate_package_url(value)
 
     def test_rejects_unsafe_pack_id(self):
         with self.assertRaises(package_content.PackageError):

@@ -41,6 +41,9 @@ func _run() -> void:
 	}
 	var valid_result: Dictionary = _catalog.call("validate_catalog", valid_catalog)
 	_check(bool(valid_result.get("ok", false)), "valid catalog is accepted")
+	var at_path_catalog: Dictionary = valid_catalog.duplicate(true)
+	at_path_catalog["packs"][0]["url"] = "https://content.example.invalid/packs/@world.zip"
+	_check(bool(_catalog.call("validate_catalog", at_path_catalog).get("ok", false)), "at-sign in HTTPS path is accepted when authority has no credentials")
 	_check(not bool(_catalog.call("parse_signed_envelope", "{}", "").get("ok", true)), "remote catalog fails closed when no public key is configured")
 	var private_key: CryptoKey = Crypto.new().generate_rsa(2048)
 	var payload_text := JSON.stringify(valid_catalog)
@@ -65,6 +68,20 @@ func _run() -> void:
 	var insecure_catalog: Dictionary = valid_catalog.duplicate(true)
 	insecure_catalog["packs"][0]["url"] = "http://content.example.invalid/packs/world.zip"
 	_check(not bool(_catalog.call("validate_catalog", insecure_catalog).get("ok", true)), "non-HTTPS package URLs are rejected")
+
+	for invalid_url in [
+		"https://",
+		"https:///packs/world.zip",
+		"https://user:password@content.example.invalid/world.zip",
+		"https://bad..host/world.zip",
+		"https://content.example.invalid:99999/world.zip",
+		"https://content.example.invalid:/world.zip",
+		"https://content.example.invalid/world.zip#fragment",
+		"https://content.example.invalid/a b.zip"
+	]:
+		var invalid_url_catalog: Dictionary = valid_catalog.duplicate(true)
+		invalid_url_catalog["packs"][0]["url"] = invalid_url
+		_check(not bool(_catalog.call("validate_catalog", invalid_url_catalog).get("ok", true)), "malformed or credential-bearing HTTPS package URL is rejected: %s" % invalid_url)
 
 	var traversal_catalog: Dictionary = valid_catalog.duplicate(true)
 	traversal_catalog["packs"][0]["files"][0]["path"] = "../outside.cfg"
@@ -96,6 +113,8 @@ func _run() -> void:
 
 	_check(not bool(_catalog.call("is_safe_relative_path", "../escape.txt")), "parent traversal is rejected by path helper")
 	_check(not bool(_catalog.call("is_safe_relative_path", "/absolute/path.txt")), "absolute paths are rejected by path helper")
+	_check(not bool(_catalog.call("is_safe_relative_path", "characters//hero.glb")), "empty path segments are rejected by path helper")
+	_check(not bool(_catalog.call("is_safe_relative_path", "characters/hero.glb/")), "trailing empty path segments are rejected by path helper")
 	_check(bool(_catalog.call("is_safe_relative_path", "characters/hero.glb")), "nested relative asset path is accepted")
 
 	var installer_script: Script = load("res://scripts/content/content_package_installer.gd") as Script

@@ -97,8 +97,8 @@ func _validate_pack(pack: Dictionary) -> Dictionary:
 	if not ALLOWED_PACK_TYPES.has(str(pack.get("type", ""))):
 		return _error("Pack %s has an unsupported type." % pack_id)
 	var url := str(pack.get("url", ""))
-	if not url.begins_with("https://") or url.length() > 2048:
-		return _error("Pack %s must use an HTTPS URL." % pack_id)
+	if not _is_https_url(url):
+		return _error("Pack %s must use a valid HTTPS URL without credentials or fragments." % pack_id)
 	var download_size := int(pack.get("download_size", -1))
 	if download_size < 1 or download_size > MAX_DOWNLOAD_BYTES:
 		return _error("Pack %s has an invalid download size." % pack_id)
@@ -145,12 +145,59 @@ func _validate_pack(pack: Dictionary) -> Dictionary:
 	return {"ok": true, "error": ""}
 
 
+func _is_https_url(value: String) -> bool:
+	if value.is_empty() or value.length() > 2048 or value.substr(0, 8).to_lower() != "https://":
+		return false
+	if value.strip_edges() != value or value.contains(" ") or value.contains("\\") or value.contains("#"):
+		return false
+	if value.contains("\t") or value.contains("\n") or value.contains("\r") or value.to_utf8_buffer().has(0):
+		return false
+	var remainder := value.substr(8)
+	var authority := remainder.split("/", true)[0].split("?", true)[0]
+	if authority.is_empty() or authority.ends_with(":") or authority.contains("@"):
+		return false
+	var host := authority
+	if authority.contains(":"):
+		if authority.count(":") != 1:
+			return false
+		var host_and_port := authority.split(":", true)
+		if host_and_port.size() != 2 or host_and_port[1].is_empty():
+			return false
+		for digit in host_and_port[1]:
+			var code := digit.unicode_at(0)
+			if code < 48 or code > 57:
+				return false
+		var port := int(host_and_port[1])
+		if port < 1 or port > 65535:
+			return false
+		host = host_and_port[0]
+	if host.is_empty() or host.length() > 253:
+		return false
+	var labels := host.split(".", true)
+	for label in labels:
+		if label.is_empty() or label.length() > 63:
+			return false
+		var first_code := label.unicode_at(0)
+		var last_code := label.unicode_at(label.length() - 1)
+		if not _is_ascii_alphanumeric(first_code) or not _is_ascii_alphanumeric(last_code):
+			return false
+		for index in label.length():
+			var code := label.unicode_at(index)
+			if not _is_ascii_alphanumeric(code) and code != 45:
+				return false
+	return true
+
+
+func _is_ascii_alphanumeric(code: int) -> bool:
+	return (code >= 48 and code <= 57) or (code >= 65 and code <= 90) or (code >= 97 and code <= 122)
+
+
 func is_safe_relative_path(path: String) -> bool:
 	if path.is_empty() or path.length() > 240:
 		return false
 	if path.begins_with("/") or path.begins_with("\\") or path.contains(":") or path.contains("\\") or path.to_utf8_buffer().has(0):
 		return false
-	var segments := path.split("/", false)
+	var segments := path.split("/", true)
 	if segments.is_empty():
 		return false
 	for segment in segments:
