@@ -261,6 +261,7 @@ func _test_runtime_input_registration() -> void:
 	var actions: Array[StringName] = [
 		&"move_forward", &"move_back", &"move_left", &"move_right",
 		&"look_left", &"look_right", &"look_up", &"look_down",
+		&"ui_up", &"ui_down", &"ui_left", &"ui_right", &"ui_accept", &"ui_cancel",
 		&"jump", &"sprint", &"inventory", &"pause", &"save", &"load",
 		&"interact", &"attack", &"ui_accept", &"ui_cancel",
 		&"ui_up", &"ui_down", &"ui_left", &"ui_right"
@@ -293,6 +294,12 @@ func _test_gamepad_input_bindings() -> void:
 	_check(_has_joypad_button(&"inventory", JOY_BUTTON_Y), "Y/Triangle button maps to inventory")
 	_check(_has_joypad_button(&"sprint", JOY_BUTTON_LEFT_STICK), "left stick press maps to sprint")
 	_check(_has_joypad_button(&"pause", JOY_BUTTON_START), "Start button maps to pause menu")
+	_check(_has_joypad_button(&"ui_accept", JOY_BUTTON_A), "A/Cross activates the focused UI control")
+	_check(_has_joypad_button(&"ui_cancel", JOY_BUTTON_B), "B/Circle cancels focused UI navigation")
+	_check(_has_joypad_button(&"ui_up", JOY_BUTTON_DPAD_UP), "D-pad up navigates focused UI")
+	_check(_has_joypad_button(&"ui_down", JOY_BUTTON_DPAD_DOWN), "D-pad down navigates focused UI")
+	_check(_has_joypad_button(&"ui_left", JOY_BUTTON_DPAD_LEFT), "D-pad left navigates focused UI")
+	_check(_has_joypad_button(&"ui_right", JOY_BUTTON_DPAD_RIGHT), "D-pad right navigates focused UI")
 	_check(_has_joypad_button(&"ui_accept", JOY_BUTTON_A), "A/Cross confirms focused UI controls")
 	_check(_has_joypad_button(&"ui_cancel", JOY_BUTTON_B), "B/Circle maps to UI cancel")
 	_check(_has_joypad_button(&"ui_up", JOY_BUTTON_DPAD_UP), "D-pad up navigates focused UI")
@@ -330,6 +337,8 @@ func _test_controller_navigation_configuration() -> void:
 		var camera_source := camera_file.get_as_text()
 		camera_file.close()
 		_check(camera_source.contains("look_left"), "camera reads right-stick input actions")
+		_check(camera_source.contains("InputEventScreenDrag"), "single-player camera handles touch drag")
+		_check(camera_source.contains("touch_sensitivity"), "touch camera sensitivity is applied")
 
 	var dialogue_file := FileAccess.open("res://scripts/ui/dialogue_ui.gd", FileAccess.READ)
 	_check(dialogue_file != null, "dialogue UI source is readable for controller focus checks")
@@ -338,6 +347,15 @@ func _test_controller_navigation_configuration() -> void:
 		dialogue_file.close()
 		_check(dialogue_source.contains("_focus_first_choice"), "dialogue focuses the first choice for controller selection")
 		_check(dialogue_source.contains("Control.FOCUS_ALL"), "dialogue choice buttons are focusable")
+
+	var arena_file := FileAccess.open("res://scripts/networking/multiplayer_arena.gd", FileAccess.READ)
+	_check(arena_file != null, "network arena source is readable for pause-menu checks")
+	if arena_file != null:
+		var arena_source := arena_file.get_as_text()
+		arena_file.close()
+		_check(arena_source.contains("_build_pause_menu"), "network arena builds a controller-accessible pause menu")
+		_check(arena_source.contains("_set_pause_menu_open"), "network pause menu has an explicit open/close state")
+		_check(arena_source.contains("set_local_input_enabled"), "network pause menu gates local player input")
 
 	var network_file := FileAccess.open("res://scripts/networking/network_avatar.gd", FileAccess.READ)
 	_check(network_file != null, "network avatar source is readable for controller look checks")
