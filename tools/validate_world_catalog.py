@@ -60,6 +60,13 @@ def validate_world(world: Any) -> list[str]:
     character_ids = unique_ids(characters, "characters")
     creature_ids = unique_ids(creatures, "creatures")
     quest_ids = unique_ids(quests, "quest_chains")
+
+    for faction in factions:
+        for related_faction in faction.get("relations", {}):
+            if related_faction not in faction_ids:
+                errors.append(
+                    f"faction {faction.get('id')} references unknown faction {related_faction}"
+                )
     unique_ids(waterways, "waterways")
 
     for region in regions:
