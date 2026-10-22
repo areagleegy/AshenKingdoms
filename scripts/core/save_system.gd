@@ -116,10 +116,11 @@ func _normalize_save_data(data: Dictionary) -> Dictionary:
 		if not _has_required_fields(normalized):
 			return {}
 		normalized["version"] = CURRENT_SAVE_VERSION
-	if not (normalized.get("version") is int):
+	if not _is_integer_number(normalized.get("version")):
 		return {}
 	if int(normalized["version"]) != CURRENT_SAVE_VERSION:
 		return {}
+	normalized["version"] = CURRENT_SAVE_VERSION
 	if not _has_required_fields(normalized):
 		return {}
 	return normalized
@@ -142,7 +143,7 @@ func _has_required_fields(data: Dictionary) -> bool:
 	var level_value: Variant = data.get("level")
 	var experience_value: Variant = data.get("experience")
 	var health_value: Variant = data.get("player_health")
-	if not (level_value is int) or not (experience_value is int) or not _is_finite_number(health_value):
+	if not _is_integer_number(level_value) or not _is_integer_number(experience_value) or not _is_finite_number(health_value):
 		return false
 	var level := int(level_value)
 	var experience := int(experience_value)
@@ -169,7 +170,7 @@ func _has_required_fields(data: Dictionary) -> bool:
 		var amount: Variant = item.get("amount")
 		if not (item_id is String) or String(item_id).is_empty() or String(item_id).length() > 128:
 			return false
-		if not (amount is int) or int(amount) < 1 or int(amount) > MAX_STACK_AMOUNT:
+		if not _is_integer_number(amount) or int(amount) < 1 or int(amount) > MAX_STACK_AMOUNT:
 			return false
 
 	var quest_value: Variant = data.get("quest")
@@ -178,7 +179,7 @@ func _has_required_fields(data: Dictionary) -> bool:
 	var quest: Dictionary = quest_value
 	if not (quest.get("id", "") is String) or not (quest.get("title", "") is String):
 		return false
-	if not (quest.get("progress", 0) is int) or not (quest.get("active", false) is bool):
+	if not _is_integer_number(quest.get("progress", 0)) or not (quest.get("active", false) is bool):
 		return false
 	if int(quest.get("progress", 0)) < 0 or int(quest.get("progress", 0)) > 100000:
 		return false
@@ -192,6 +193,12 @@ func _is_finite_number(value: Variant) -> bool:
 	if not (value is int or value is float):
 		return false
 	return is_finite(float(value))
+
+
+func _is_integer_number(value: Variant) -> bool:
+	if not _is_finite_number(value):
+		return false
+	return is_equal_approx(float(value), roundf(float(value)))
 
 
 func _read_valid_save(path: String) -> Dictionary:
