@@ -27,7 +27,9 @@ func _run_tests() -> void:
 	_expect(inventory.count_item(item.id) == 25, "Inventory should contain all 25 potions.")
 	_expect(int(inventory.slots[0].get("amount", 0)) == item.max_stack, "First stack should respect max_stack.")
 
-	_expect(not inventory.add_item(item, 0) == false, "Zero-amount input should not create items.")
+	var count_before_zero_add := inventory.count_item(item.id)
+	_expect(inventory.add_item(item, 0) == 0, "Zero-amount input should be rejected without leftovers.")
+	_expect(inventory.count_item(item.id) == count_before_zero_add, "Zero-amount input must not change inventory.")
 	var removed := inventory.remove_item(item.id, 5)
 	_expect(removed, "Removing an available quantity should succeed.")
 	_expect(inventory.count_item(item.id) == 20, "Removal should subtract the exact quantity.")
