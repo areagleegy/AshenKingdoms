@@ -78,7 +78,7 @@ def classify_text(text: str) -> list[dict[str, Any]]:
     # Successful unittest rows can contain words such as "parse_error" in the
     # test name; they are not evidence of a runtime failure.
     successful_unittest = re.compile(r"\btest_[A-Za-z0-9_]+(?:\s+\([^)]*\))?\s+\.\.\.\s+ok\s*$", re.IGNORECASE)
-    successful_assertion = re.compile(r"^\s*\[(?:PASS|OK|SUCCESS)\]\s*", re.IGNORECASE)
+    successful_assertion = re.compile(r"^\s*(?:[^:\n]+\.log:\s*)?\[(?:PASS|OK|SUCCESS)\]\s*", re.IGNORECASE)
 
     def _source_key(line: str) -> str:
         # build_report prefixes each line with its log filename; direct callers
