@@ -29,7 +29,9 @@ func _ensure_slot_count() -> void:
 
 ## Returns the amount that could not be added. Zero means the full amount was added.
 func add_item(item: ItemResource, amount: int = 1) -> int:
-	if item == null or amount <= 0:
+	if amount <= 0:
+		return 0
+	if item == null:
 		return amount
 	_ensure_slot_count()
 
