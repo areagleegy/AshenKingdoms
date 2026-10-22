@@ -3,6 +3,7 @@ extends Control
 const SOLO_SCENE: String = "res://scenes/boot/Main.tscn"
 const NETWORK_SCENE: String = "res://scenes/network/MultiplayerArena.tscn"
 const DEFAULT_PORT: int = 7777
+const INPUT_SETUP_SCRIPT: Script = preload("res://scripts/core/input_setup.gd")
 
 var _address_input: LineEdit
 var _port_input: LineEdit
@@ -12,6 +13,7 @@ var _solo_button: Button
 
 
 func _ready() -> void:
+	INPUT_SETUP_SCRIPT.register_input_actions()
 	NetworkManager.status_changed.connect(_on_network_status_changed)
 	NetworkManager.session_connected.connect(_on_session_connected)
 	NetworkManager.connection_failed.connect(_on_connection_failed)
