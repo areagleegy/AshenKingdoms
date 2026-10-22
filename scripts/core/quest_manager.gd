@@ -89,8 +89,10 @@ func load_state(data: Dictionary) -> void:
 		return
 
 	var saved_id := StringName(str(data.get("id", "")))
+	var legacy_progress := _safe_saved_int(data.get("progress", 0), 0, 0, 1000)
+	var legacy_active := _safe_saved_bool(data.get("active", false), false)
 	# Backward compatibility with save files created before quests had IDs.
-	if saved_id == &"" and (bool(data.get("active", false)) or int(data.get("progress", 0)) > 0):
+	if saved_id == &"" and (legacy_active or legacy_progress > 0):
 		saved_id = &"ash_trail"
 
 	var key := String(saved_id)
@@ -109,8 +111,29 @@ func load_state(data: Dictionary) -> void:
 	description = String(definition.get("description", ""))
 	target = maxi(1, int(definition.get("target", 1)))
 	reward_xp = maxi(0, int(definition.get("reward_xp", 0)))
-	progress = clampi(int(data.get("progress", 0)), 0, target)
-	active = bool(data.get("active", progress < target))
+	progress = _safe_saved_int(data.get("progress", 0), 0, 0, target)
+	active = _safe_saved_bool(data.get("active", progress < target), progress < target)
 	if progress >= target:
 		active = false
 	refresh_ui()
+
+
+func _safe_saved_int(value: Variant, fallback: int, minimum: int, maximum: int) -> int:
+	var number: int
+	match typeof(value):
+		TYPE_INT:
+			number = int(value)
+		TYPE_FLOAT:
+			var numeric := float(value)
+			if not is_finite(numeric):
+				return fallback
+			number = roundi(numeric)
+			if not is_equal_approx(numeric, float(number)):
+				return fallback
+		_:
+			return fallback
+	return clampi(number, minimum, maximum)
+
+
+func _safe_saved_bool(value: Variant, fallback: bool) -> bool:
+	return value if typeof(value) == TYPE_BOOL else fallback
