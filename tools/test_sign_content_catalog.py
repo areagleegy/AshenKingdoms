@@ -64,6 +64,12 @@ class SignContentCatalogTests(unittest.TestCase):
         with self.assertRaises(sign_content_catalog.PackageError):
             sign_content_catalog.validate_catalog(catalog)
 
+    def test_rejects_provenance_url_with_whitespace(self):
+        catalog = {"schema_version": 2, "packs": [pack("hero_pack")]}
+        catalog["packs"][0]["files"][0]["source_url"] = "https://assets.example.invalid/bad url"
+        with self.assertRaises(sign_content_catalog.PackageError):
+            sign_content_catalog.validate_catalog(catalog)
+
     def test_rejects_legacy_schema_without_provenance_contract(self):
         catalog = {"schema_version": 1, "packs": [pack("hero_pack")]}
         with self.assertRaises(sign_content_catalog.PackageError):
