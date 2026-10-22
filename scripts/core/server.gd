@@ -6,13 +6,14 @@ const NETWORK_ARENA_PATH: String = "res://scenes/network/MultiplayerArena.tscn"
 
 
 func _ready() -> void:
-	if not has_node("/root/NetworkManager"):
+	var network_manager := get_node_or_null("/root/NetworkManager")
+	if network_manager == null:
 		push_error("Dedicated server requires the NetworkManager autoload.")
 		get_tree().quit(1)
 		return
 
 	var port := _get_server_port()
-	var result := int(NetworkManager.call("start_host", port, MAX_CLIENTS))
+	var result := int(network_manager.call("start_host", port, MAX_CLIENTS))
 	if result != OK:
 		push_error("Dedicated server could not start on port %d: %s" % [port, error_string(result)])
 		get_tree().quit(1)
@@ -26,7 +27,7 @@ func _load_network_arena() -> void:
 	var result := get_tree().change_scene_to_file(NETWORK_ARENA_PATH)
 	if result != OK:
 		push_error("Dedicated server could not load network arena: %s" % error_string(result))
-		NetworkManager.call("leave_session", false)
+		network_manager.call("leave_session", false)
 		get_tree().quit(1)
 
 
