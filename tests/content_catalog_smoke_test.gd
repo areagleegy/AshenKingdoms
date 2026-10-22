@@ -171,6 +171,14 @@ func _run() -> void:
 			_check(bool(installed.get("ok", false)), "verified package installs into private content storage")
 			if bool(installed.get("ok", false)):
 				_check(FileAccess.file_exists(str(installed["installed_path"]).path_join("world.glb")), "installed package asset exists")
+				var installed_manifest_path := str(installed["installed_path"]).path_join("installed_manifest.json")
+				var installed_manifest: Variant = JSON.parse_string(FileAccess.get_file_as_string(installed_manifest_path))
+				_check(
+					installed_manifest is Dictionary
+					and installed_manifest.get("files", []).size() == 1
+					and str(installed_manifest["files"][0].get("license", "")) == "CC0-1.0",
+					"installed manifest preserves the verified asset license provenance"
+				)
 				installer.call("remove_installed_pack", "content_smoke_pack", "1.0.0")
 			var tampered_pack: Dictionary = test_pack.duplicate(true)
 			tampered_pack["sha256"] = "f".repeat(64)
