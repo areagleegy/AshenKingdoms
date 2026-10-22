@@ -4,6 +4,7 @@ const PlayerScript: Script = preload("res://scripts/player/player.gd")
 const HealthScript: Script = preload("res://scripts/components/health.gd")
 const InventoryScript: Script = preload("res://scripts/components/inventory.gd")
 const ItemResourceScript: Script = preload("res://scripts/items/item_resource.gd")
+const WorldItemDropScript: Script = preload("res://scripts/items/world_item_drop.gd")
 const ProgressionScript: Script = preload("res://scripts/core/progression_manager.gd")
 const QuestManagerScript: Script = preload("res://scripts/core/quest_manager.gd")
 const SaveSystemScript: Script = preload("res://scripts/core/save_system.gd")
@@ -38,6 +39,7 @@ func _run() -> void:
 
 	_test_player_and_health()
 	_test_inventory_and_potions()
+	_test_world_item_drop()
 	_test_save_and_load(had_original_save, original_save)
 	_test_dialogue_and_quests()
 	_test_android_configuration()
@@ -125,6 +127,43 @@ func _test_inventory_and_potions() -> void:
 	restored.call("restore_save_data", saved_inventory)
 	_check(int(restored.call("count_item", &"health_potion")) == 1, "inventory item ID and count survive serialization round-trip")
 	restored.queue_free()
+	player.queue_free()
+
+
+func _test_world_item_drop() -> void:
+	var player := _make_player()
+	var inventory: Inventory = player.get_node("Inventory") as Inventory
+	var potion := load(POTION_PATH) as ItemResource
+	_check(potion != null, "world drop test item loads")
+	if potion == null:
+		player.queue_free()
+		return
+
+	inventory.call("add_item", potion, 1)
+	var drop := WorldItemDropScript.new() as Area3D
+	_check(drop != null, "world item drop instance is created")
+	if drop == null:
+		player.queue_free()
+		return
+	_check(bool(drop.call("configure", potion.id, 1)), "world drop accepts a registered item and positive quantity")
+	root.add_child(drop)
+	drop.set("_available_after_msec", 0)
+	drop.call("_on_body_entered", player)
+	_check(int(inventory.call("count_item", potion.id)) == 2, "pickup transfers dropped item into inventory")
+	_check(int(drop.get("amount")) == 0, "successful pickup consumes the world drop quantity")
+	drop.free()
+
+	inventory.set("slot_count", 1)
+	inventory.set("slots", [])
+	inventory.call("_ensure_slot_count")
+	inventory.call("add_item", potion, potion.max_stack)
+	var blocked_drop := WorldItemDropScript.new() as Area3D
+	_check(bool(blocked_drop.call("configure", potion.id, 1)), "second world drop is configured")
+	root.add_child(blocked_drop)
+	blocked_drop.set("_available_after_msec", 0)
+	blocked_drop.call("_on_body_entered", player)
+	_check(int(blocked_drop.get("amount")) == 1, "full inventory leaves the dropped item in the world")
+	blocked_drop.free()
 	player.queue_free()
 
 
