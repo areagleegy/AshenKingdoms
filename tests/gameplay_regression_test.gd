@@ -190,7 +190,7 @@ func _test_save_and_load(had_original_save: bool, original_save: String) -> void
 	var migrated: Dictionary = save_system.call("load_game")
 	_check(int(migrated.get("version", 0)) == 1, "valid versionless legacy save migrates to schema version 1")
 
-	var preserved := JSON.stringify(_valid_save_data(6, 80.0), "\\t")
+	var preserved := JSON.stringify(_valid_save_data(6, 80.0), "\t")
 	_check(bool(save_system.call("save_game", _valid_save_data(6, 80.0))), "save system accepts a valid replacement before failed-write test")
 	var existing_file := FileAccess.open(SAVE_PATH, FileAccess.READ)
 	var existing_contents := existing_file.get_as_text() if existing_file != null else ""
