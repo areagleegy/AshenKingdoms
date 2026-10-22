@@ -229,11 +229,6 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Install Android Gradle build template
-        env:
-          GODOT_SILENCE_ROOT_WARNING: "1"
-        run: godot --headless --path . --install-android-build-template
-
       - name: Validate Google Play App Bundle export (ephemeral signing key)
         env:
           GODOT_SILENCE_ROOT_WARNING: "1"
@@ -254,7 +249,7 @@ jobs:
           GODOT_ANDROID_KEYSTORE_RELEASE_PATH="$keystore_path" \
           GODOT_ANDROID_KEYSTORE_RELEASE_USER="ashen-ci-validation" \
           GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD="$validation_password" \
-            godot --headless --path . --export-release "Android Play" build/android/AshenKingdoms-validation.aab
+            godot --headless --path . --install-android-build-template --export-release "Android Play" build/android/AshenKingdoms-validation.aab
           test -s build/android/AshenKingdoms-validation.aab
           jarsigner -verify -verbose -certs build/android/AshenKingdoms-validation.aab > "$RUNNER_TEMP/aab-validation-signature.log" 2>&1
           grep -Eiq 'jar verified\.' "$RUNNER_TEMP/aab-validation-signature.log" || { cat "$RUNNER_TEMP/aab-validation-signature.log"; echo "CI AAB signature validation failed." >&2; exit 1; }
