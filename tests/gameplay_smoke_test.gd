@@ -3,9 +3,16 @@ extends SceneTree
 const ProgressionManagerScript: Script = preload("res://scripts/core/progression_manager.gd")
 const QuestManagerScript: Script = preload("res://scripts/core/quest_manager.gd")
 const SaveSystemScript: Script = preload("res://scripts/core/save_system.gd")
-const SAVE_PATH: String = "user://savegame.json"
+const SAVE_RELATED_FILES: Array[String] = [
+	"user://savegame.json",
+	"user://savegame.bak.json",
+	"user://savegame.tmp",
+	"user://savegame.bak.tmp",
+	"user://savegame.json.old",
+]
 
 var _failures: int = 0
+var _save_snapshots: Dictionary = {}
 
 
 func _initialize() -> void:
@@ -13,16 +20,7 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	var had_original_save := FileAccess.file_exists(SAVE_PATH)
-	var original_save := ""
-	if had_original_save:
-		var original_file := FileAccess.open(SAVE_PATH, FileAccess.READ)
-		if original_file == null:
-			push_error("Could not back up existing save before running smoke tests.")
-			quit(1)
-			return
-		original_save = original_file.get_as_text()
-		original_file.close()
+	_save_snapshots = _isolate_save_files()
 
 	var network_manager: Node = root.get_node_or_null("NetworkManager")
 	_check(network_manager != null, "network manager autoload is present for smoke tests")
@@ -91,22 +89,46 @@ func _run() -> void:
 		var corrupt_data = save_system.call("load_game")
 		_check(corrupt_data is Dictionary and corrupt_data.is_empty(), "malformed JSON is rejected safely")
 
-	_restore_original_save(had_original_save, original_save, save_system)
+	_restore_save_files(_save_snapshots)
 
 	print("[smoke] failures: %d" % _failures)
 	quit(1 if _failures > 0 else 0)
 
 
-func _restore_original_save(had_original_save: bool, original_save: String, save_system: Node) -> void:
-	if had_original_save:
-		var restore_file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-		if restore_file == null:
-			_check(false, "existing save file can be restored after the test")
-			return
-		restore_file.store_string(original_save)
-		restore_file.close()
-	else:
-		_check(bool(save_system.call("delete_save")), "temporary smoke-test save is removed")
+func _isolate_save_files() -> Dictionary:
+	var snapshots: Dictionary = {}
+	for path in SAVE_RELATED_FILES:
+		if not FileAccess.file_exists(path):
+			snapshots[path] = null
+			continue
+		var file := FileAccess.open(path, FileAccess.READ)
+		if file == null:
+			push_error("Could not snapshot save-related file: %s" % path)
+			snapshots[path] = null
+			continue
+		snapshots[path] = file.get_buffer(file.get_length())
+		file.close()
+	return snapshots
+
+
+func _restore_save_files(snapshots: Dictionary) -> void:
+	for path in SAVE_RELATED_FILES:
+		var absolute_path := ProjectSettings.globalize_path(path)
+		var original: Variant = snapshots.get(path, null)
+		if original == null:
+			if FileAccess.file_exists(path):
+				var remove_error := DirAccess.remove_absolute(absolute_path)
+				_check(remove_error == OK, "new save-related file is removed: %s" % path)
+			continue
+		var file := FileAccess.open(path, FileAccess.WRITE)
+		if file == null:
+			_check(false, "original save-related file can be restored: %s" % path)
+			continue
+		file.store_buffer(original as PackedByteArray)
+		file.flush()
+		var write_error: Error = file.get_error()
+		file.close()
+		_check(write_error == OK, "original save-related file is restored: %s" % path)
 
 
 func _check(condition: bool, description: String) -> void:
