@@ -1,0 +1,176 @@
+{
+  "schema_version": 1,
+  "world_id": "ashen_kingdoms",
+  "title": {"en": "Ashen Kingdoms", "ar": "ممالك الرماد"},
+  "lore": {
+    "era": "The Afterfall",
+    "premise": "The Crown of Embers shattered, leaving seven regions connected by old roads, flooded tunnels and dangerous sea lanes. Ash storms distort magic and awaken ancient guardians.",
+    "central_mystery": "The ashfall is not merely volcanic. The buried Bell Engine beneath the old capital is still ringing, and each ring changes one part of the world."
+  },
+  "world_rules": {
+    "magic_source": "Emberglass, crystallized residue of the shattered Crown",
+    "magic_cost": "Heat, stamina and sometimes a temporary loss of memory",
+    "travel_scale": "Regional travel is represented by connected gameplay zones; distances are design estimates, not a real-world map scale.",
+    "server_authority": ["damage", "loot", "quest completion", "currency", "inventory mutations", "boss state"],
+    "content_status": "Design data only; not yet wired to runtime scenes or gameplay systems."
+  },
+  "regions": [
+    {
+      "id": "ashen_basin",
+      "name": {"en": "Ashen Basin", "ar": "حوض الرماد"},
+      "biome": "wind-scoured ash plain",
+      "danger": 1,
+      "landmarks": ["cinder_gate", "pilgrims_well", "broken_waystone"],
+      "resources": ["iron_scrap", "ash_reed", "low_grade_emberglass"],
+      "threats": ["ash_hound", "cinder_bandit"],
+      "quest_hooks": ["recover a caravan ledger", "restore the broken waystone"]
+    },
+    {
+      "id": "ruined_crown",
+      "name": {"en": "Ruins of the Crown", "ar": "أطلال التاج"},
+      "biome": "collapsed imperial city",
+      "danger": 4,
+      "landmarks": ["throne_without_a_king", "bell_tower", "underkeep"],
+      "resources": ["royal_steel", "sealed_records", "ancient_emberglass"],
+      "threats": ["hollow_knight", "bell_wraith", "crownless_sentinel"],
+      "quest_hooks": ["find the royal succession tablets", "silence one bell chamber"]
+    },
+    {
+      "id": "coalwood",
+      "name": {"en": "Coalwood", "ar": "غابة الفحم"},
+      "biome": "black pine forest and charred groves",
+      "danger": 2,
+      "landmarks": ["widow_tree", "charcoal_camp", "root_chapel"],
+      "resources": ["blackwood", "healing_moss", "beast_hide"],
+      "threats": ["briar_stalker", "ember_boar", "lost_woodsman"],
+      "quest_hooks": ["track the missing woodcutters", "burn a blighted root nest"]
+    },
+    {
+      "id": "bellfen",
+      "name": {"en": "Bellfen Mire", "ar": "مستنقع الأجراس"},
+      "biome": "misty wetlands with submerged shrines",
+      "danger": 3,
+      "landmarks": ["drowned_belfry", "reed_market", "sunk_ferry"],
+      "resources": ["fen_salt", "bog_iron", "glowcap"],
+      "threats": ["fen_leech", "mire_witch", "drowned_guard"],
+      "quest_hooks": ["retrieve the ferryman's chain", "identify the source of the midnight ringing"]
+    },
+    {
+      "id": "sable_coast",
+      "name": {"en": "Sable Coast", "ar": "الساحل الأسود"},
+      "biome": "basalt cliffs, fishing towns and storm beaches",
+      "danger": 2,
+      "landmarks": ["blackwake_harbor", "saltwatch_lighthouse", "wreckers_cove"],
+      "resources": ["salt_crystal", "ship_oak", "storm_glass"],
+      "threats": ["reef_raider", "storm_gull", "tide_crawler"],
+      "quest_hooks": ["light Saltwatch again", "escort a supply ship through the reef"]
+    },
+    {
+      "id": "cinder_isles",
+      "name": {"en": "Cinder Isles", "ar": "جزر الجمر"},
+      "biome": "volcanic islands and sea caves",
+      "danger": 4,
+      "landmarks": ["red_crater", "glassbeach", "monastery_of_tides"],
+      "resources": ["red_emberglass", "volcanic_slag", "deep_pearl"],
+      "threats": ["lava_tortoise", "isle_reaver", "ash_drake"],
+      "quest_hooks": ["chart the safe passage", "recover a lens from the tide monastery"]
+    },
+    {
+      "id": "sootmarch",
+      "name": {"en": "Sootmarch Highlands", "ar": "مرتفعات السخام"},
+      "biome": "cold ridges, mines and abandoned forts",
+      "danger": 5,
+      "landmarks": ["sootkeep", "ironvein_mine", "windbreak_pass"],
+      "resources": ["cold_iron", "black_quartz", "fortress_stone"],
+      "threats": ["ironbound_mercenary", "ridge_ogre", "frost_ash_wraith"],
+      "quest_hooks": ["reopen the mine lift", "choose who controls Sootkeep"]
+    }
+  ],
+  "waterways": [
+    {"id": "river_vein", "name": {"en": "Vein River", "ar": "نهر الوريد"}, "connects": ["ashen_basin", "coalwood", "bellfen"], "hazards": ["ash_flood", "broken_bridges"], "transport": ["ferry", "shallow_boat"]},
+    {"id": "blackwater_channel", "name": {"en": "Blackwater Channel", "ar": "قناة الماء الأسود"}, "connects": ["sable_coast", "cinder_isles"], "hazards": ["reef_fields", "storm_squalls"], "transport": ["sloop", "guard_cutter"]},
+    {"id": "underking_run", "name": {"en": "Underking Run", "ar": "مجرى الملك السفلي"}, "connects": ["ruined_crown", "sootmarch"], "hazards": ["low_ceilings", "flood_gates", "buried_guardians"], "transport": ["on_foot"]}
+  ],
+  "settlements": [
+    {"id": "cinder_gate", "region": "ashen_basin", "type": "frontier_town", "services": ["inn", "blacksmith", "general_store", "notice_board", "stable"], "governance": "town council", "state": "starter hub"},
+    {"id": "reed_market", "region": "bellfen", "type": "stilt_market", "services": ["herbalist", "ferryman", "smuggler_contact", "repair_dock"], "governance": "merchant compact", "state": "neutral unless provoked"},
+    {"id": "blackwake_harbor", "region": "sable_coast", "type": "port", "services": ["shipwright", "fish_market", "warehouse", "crew_hiring"], "governance": "harbor master and captains"},
+    {"id": "sootkeep", "region": "sootmarch", "type": "fortress_settlement", "services": ["armorer", "weapon_smith", "barracks", "mine_exchange"], "governance": "contested military command"}
+  ],
+  "factions": [
+    {"id": "cinder_compact", "name": {"en": "Cinder Compact", "ar": "ميثاق الجمر"}, "goal": "Keep trade roads open and prevent another imperial collapse.", "methods": ["caravan guards", "contracts", "local councils"], "relations": {"reed_court": "trade_rivals", "crown_remnant": "hostile"}, "player_choices": ["protect caravans", "expose a corrupt quartermaster", "negotiate tolls"]},
+    {"id": "reed_court", "name": {"en": "Court of Reeds", "ar": "مجلس القصب"}, "goal": "Control the wetlands and the knowledge hidden in submerged shrines.", "methods": ["spies", "herbal remedies", "river tolls"], "relations": {"cinder_compact": "trade_rivals", "tide_monastery": "uneasy_allies"}},
+    {"id": "crown_remnant", "name": {"en": "Crown Remnant", "ar": "بقايا التاج"}, "goal": "Restore imperial order under a single ruler.", "methods": ["conscription", "relic hunts", "fortified checkpoints"], "relations": {"cinder_compact": "hostile", "bell_keepers": "opposed"}},
+    {"id": "bell_keepers", "name": {"en": "Bell Keepers", "ar": "حراس الأجراس"}, "goal": "Prevent the Bell Engine from ringing its final sequence.", "methods": ["sealed archives", "ritual engineering", "hidden sanctuaries"], "relations": {"crown_remnant": "opposed", "tide_monastery": "allied"}},
+    {"id": "saltwake_freecrews", "name": {"en": "Saltwake Free Crews", "ar": "أطقم ملح الموج الحرة"}, "goal": "Keep sea lanes free from imperial taxes and predatory pirates.", "methods": ["escorts", "salvage", "naval skirmishes"], "relations": {"cinder_compact": "conditional_allies", "isle_reavers": "hostile"}},
+    {"id": "isle_reavers", "name": {"en": "Cinder Isle Reavers", "ar": "ناهبو جزر الجمر"}, "goal": "Monopolize emberglass deposits and hidden sea passages.", "methods": ["ambushes", "black-market sales", "hostage-taking"], "relations": {"saltwake_freecrews": "hostile"}}
+  ],
+  "characters": [
+    {"id": "mara_vell", "name": {"en": "Mara Vell", "ar": "مارا فيل"}, "role": "caravan captain", "home": "cinder_gate", "motivation": "Find her missing brother without abandoning the road network.", "secret": "Her last caravan carried a sealed bell component.", "questline": "The Empty Ledger"},
+    {"id": "warden_osk", "name": {"en": "Warden Osk", "ar": "الحارس أوسك"}, "role": "frontier defender", "home": "cinder_gate", "motivation": "Keep the basin settlements independent.", "secret": "He once served the Crown Remnant.", "questline": "A Wall Made of Ash"},
+    {"id": "sister_neri", "name": {"en": "Sister Neri", "ar": "الأخت نيري"}, "role": "Bell Keeper archivist", "home": "root_chapel", "motivation": "Decode the bells before the next ash storm.", "secret": "She can hear the Engine in dreams.", "questline": "Seven Notes"},
+    {"id": "tovin_reed", "name": {"en": "Tovin Reed", "ar": "توفين ريد"}, "role": "fen ferryman and fixer", "home": "reed_market", "motivation": "Pay a debt owed to the Court of Reeds.", "secret": "He knows a route under the drowned belfry.", "questline": "The Ferryman's Due"},
+    {"id": "captain_veska", "name": {"en": "Captain Veska", "ar": "القائدة فيسكا"}, "role": "free-crew navigator", "home": "blackwake_harbor", "motivation": "Break the reavers' blockade.", "secret": "Her ship carries a forbidden imperial map.", "questline": "A Passage Through Glass"},
+    {"id": "forge_master_dagan", "name": {"en": "Forge Master Dagan", "ar": "معلم الحدادة داغان"}, "role": "smith and engineer", "home": "sootkeep", "motivation": "Reopen the cold-iron mine.", "secret": "His prototype can dampen Emberglass surges.", "questline": "The Quiet Hammer"},
+    {"id": "the_uncrowned", "name": {"en": "The Uncrowned", "ar": "بلا تاج"}, "role": "masked faction leader", "home": "ruined_crown", "motivation": "Unite the kingdoms before the Engine wakes fully.", "secret": "Their identity changes according to player choices.", "questline": "A Throne of Names"}
+  ],
+  "creatures": [
+    {"id": "ash_hound", "name": {"en": "Ash Hound", "ar": "كلب الرماد"}, "tier": 1, "habitats": ["ashen_basin", "coalwood"], "combat_role": "fast flanker", "weakness": "stagger and fire-resistant gear", "drops": ["beast_hide", "ash_fang"]},
+    {"id": "cinder_bandit", "name": {"en": "Cinder Bandit", "ar": "قاطع طريق الجمر"}, "tier": 1, "habitats": ["ashen_basin"], "combat_role": "light melee and thrown debris", "weakness": "shield pressure", "drops": ["scrap_iron", "worn_coin"]},
+    {"id": "briar_stalker", "name": {"en": "Briar Stalker", "ar": "متربص الشوك"}, "tier": 2, "habitats": ["coalwood"], "combat_role": "ambush and bleed", "weakness": "bright light and fire", "drops": ["thorn_sinew", "healing_moss"]},
+    {"id": "fen_leech", "name": {"en": "Fen Leech", "ar": "علقة المستنقع"}, "tier": 2, "habitats": ["bellfen"], "combat_role": "grapple and stamina drain", "weakness": "salt and blunt damage", "drops": ["fen_gel", "bog_salt"]},
+    {"id": "hollow_knight", "name": {"en": "Hollow Knight", "ar": "الفارس الأجوف"}, "tier": 3, "habitats": ["ruined_crown"], "combat_role": "armored guard and counterattack", "weakness": "flanking and heavy stagger", "drops": ["royal_steel", "hollow_seal"]},
+    {"id": "crownless_sentinel", "name": {"en": "Crownless Sentinel", "ar": "حارس بلا تاج"}, "tier": 4, "habitats": ["ruined_crown", "sootmarch"], "combat_role": "elite area denial", "weakness": "exposed joints after a heavy strike", "drops": ["sentinel_core", "ancient_emberglass"]},
+    {"id": "lava_tortoise", "name": {"en": "Lava Tortoise", "ar": "سلحفاة الحمم"}, "tier": 3, "habitats": ["cinder_isles"], "combat_role": "slow armored tank", "weakness": "cooling vents during recovery", "drops": ["volcanic_slag", "heat_plate"]},
+    {"id": "ash_drake", "name": {"en": "Ash Drake", "ar": "تنين الرماد"}, "tier": 5, "habitats": ["cinder_isles", "sootmarch"], "combat_role": "boss-scale aerial sweeps", "weakness": "grounding harpoons and exposed wing joints", "drops": ["drake_scale", "red_emberglass"]}
+  ],
+  "equipment": {
+    "weapons": [
+      {"id": "pilgrim_knife", "name": {"en": "Pilgrim Knife", "ar": "سكين الحاج"}, "class": "light", "damage": 18, "reach_m": 1.2, "windup_s": 0.18, "recovery_s": 0.32, "stamina_cost": 8, "durability": 80, "special": "fast combo; low stagger"},
+      {"id": "basin_sword", "name": {"en": "Basin Sword", "ar": "سيف الحوض"}, "class": "medium", "damage": 30, "reach_m": 1.8, "windup_s": 0.34, "recovery_s": 0.52, "stamina_cost": 14, "durability": 120, "special": "balanced slash and guard"},
+      {"id": "cinder_greatmaul", "name": {"en": "Cinder Greatmaul", "ar": "مطرقة الجمر العظمى"}, "class": "heavy", "damage": 58, "reach_m": 2.1, "windup_s": 0.82, "recovery_s": 1.05, "stamina_cost": 28, "durability": 180, "special": "high stagger; punishable recovery"},
+      {"id": "reed_spear", "name": {"en": "Reed Spear", "ar": "رمح القصب"}, "class": "medium", "damage": 27, "reach_m": 2.6, "windup_s": 0.38, "recovery_s": 0.58, "stamina_cost": 13, "durability": 110, "special": "thrust and short keep-away"},
+      {"id": "blackwood_bow", "name": {"en": "Blackwood Bow", "ar": "قوس الخشب الأسود"}, "class": "ranged", "damage": 24, "reach_m": 22.0, "windup_s": 0.55, "recovery_s": 0.48, "stamina_cost": 10, "durability": 90, "ammo_type": "iron_arrow", "ammo_capacity": 24, "special": "aimed shot; limited ammunition"},
+      {"id": "emberglass_focus", "name": {"en": "Emberglass Focus", "ar": "مُركّز زجاج الجمر"}, "class": "arcane", "damage": 34, "reach_m": 12.0, "windup_s": 0.7, "recovery_s": 0.75, "stamina_cost": 20, "durability": 70, "charge_s": 1.4, "charges": 3, "special": "piercing bolt; recharges at ember shrines"}
+    ],
+    "armor": [
+      {"id": "wayfarer_leathers", "name": {"en": "Wayfarer Leathers", "ar": "جلود المسافر"}, "class": "light", "physical_resist": 8, "elemental_resist": 4, "mobility": 1.0, "noise": 0.2, "durability": 70},
+      {"id": "compact_mail", "name": {"en": "Compact Mail", "ar": "درع الميثاق الحَلَقي"}, "class": "medium", "physical_resist": 18, "elemental_resist": 8, "mobility": 0.82, "noise": 0.45, "durability": 120},
+      {"id": "sootkeep_plate", "name": {"en": "Sootkeep Plate", "ar": "صفائح حصن السخام"}, "class": "heavy", "physical_resist": 32, "elemental_resist": 10, "mobility": 0.62, "noise": 0.8, "durability": 190}
+    ],
+    "shields": [
+      {"id": "reed_buckler", "name": {"en": "Reed Buckler", "ar": "ترس القصب"}, "guard": 18, "stability": 0.65, "weight": 4, "durability": 75},
+      {"id": "gatewatch_shield", "name": {"en": "Gatewatch Shield", "ar": "ترس حرس البوابة"}, "guard": 35, "stability": 0.9, "weight": 10, "durability": 140}
+    ]
+  },
+  "transport": {
+    "mounts": [
+      {"id": "ash_runner", "name": {"en": "Ash Runner", "ar": "عدّاء الرماد"}, "speed": 1.35, "stamina": 80, "cargo_slots": 4, "terrain_bonus": ["ashen_basin", "sable_coast"]},
+      {"id": "mire_mule", "name": {"en": "Mire Mule", "ar": "بغل المستنقع"}, "speed": 0.8, "stamina": 130, "cargo_slots": 10, "terrain_bonus": ["bellfen", "coalwood"]}
+    ],
+    "vehicles": [
+      {"id": "cinder_cart", "name": {"en": "Cinder Cart", "ar": "عربة الجمر"}, "capacity": 30, "speed": 0.55, "crew": 1, "terrain": "roads and packed ash"},
+      {"id": "fortress_wagon", "name": {"en": "Fortress Wagon", "ar": "عربة الحصن"}, "capacity": 18, "speed": 0.4, "crew": 2, "terrain": "roads", "defense": 25}
+    ],
+    "ships": [
+      {"id": "reed_skiff", "name": {"en": "Reed Skiff", "ar": "زورق القصب"}, "class": "river boat", "speed": 0.8, "cargo": 4, "crew": 1, "weapons": 0},
+      {"id": "saltwake_sloop", "name": {"en": "Saltwake Sloop", "ar": "مركب ملح الموج"}, "class": "sailing sloop", "speed": 1.0, "cargo": 16, "crew": 4, "weapons": 1},
+      {"id": "blackwake_cutter", "name": {"en": "Blackwake Cutter", "ar": "سفينة حراسة بلاكويك"}, "class": "guard cutter", "speed": 0.85, "cargo": 12, "crew": 8, "weapons": 4}
+    ]
+  },
+  "quest_chains": [
+    {"id": "the_empty_ledger", "title": {"en": "The Empty Ledger", "ar": "السجل الفارغ"}, "start_npc": "mara_vell", "region": "ashen_basin", "steps": ["find the missing caravan", "recover its manifest", "decide whether to expose or protect the quartermaster"], "outcomes": ["trade prices improve", "compact loses influence", "unlock a hidden bell-component clue"]},
+    {"id": "seven_notes", "title": {"en": "Seven Notes", "ar": "النغمات السبع"}, "start_npc": "sister_neri", "region": "coalwood", "steps": ["collect three damaged bell plates", "compare inscriptions at the drowned belfry", "choose which bell to silence"], "outcomes": ["reduce ash storms in one region", "open a sealed ruin", "strengthen a faction's claim"]},
+    {"id": "a_passage_through_glass", "title": {"en": "A Passage Through Glass", "ar": "ممر عبر الزجاج"}, "start_npc": "captain_veska", "region": "sable_coast", "steps": ["repair the lighthouse lens", "secure a ship and crew", "cross the Blackwater Channel during a storm"], "outcomes": ["open sea travel", "gain a ship ally", "or empower the reavers if the deal fails"]}
+  ],
+  "world_events": [
+    {"id": "ashfall", "trigger": "periodic regional event", "effects": ["reduced visibility", "rare emberglass spawns", "some creatures become aggressive"], "counterplay": ["seek shelter", "wear a filter hood", "use marked safe routes"]},
+    {"id": "bell_tide", "trigger": "after selected quest milestones", "effects": ["water levels change in Bellfen", "new tunnels open", "some paths flood"], "counterplay": ["track tide bells", "use boats", "secure elevated routes"]},
+    {"id": "free_crew_blockade", "trigger": "faction reputation threshold", "effects": ["ship prices and sea encounters change", "harbor services may close"], "counterplay": ["negotiate passage", "escort a convoy", "break the blockade"]}
+  ],
+  "progression": {
+    "recommended_region_order": ["ashen_basin", "coalwood", "sable_coast", "bellfen", "ruined_crown", "cinder_isles", "sootmarch"],
+    "level_bands": [{"min": 1, "max": 5, "region": "ashen_basin"}, {"min": 4, "max": 9, "region": "coalwood"}, {"min": 6, "max": 12, "region": "sable_coast"}, {"min": 8, "max": 14, "region": "bellfen"}, {"min": 12, "max": 20, "region": "ruined_crown"}, {"min": 15, "max": 24, "region": "cinder_isles"}, {"min": 18, "max": 30, "region": "sootmarch"}],
+    "design_note": "Level bands overlap intentionally so faction choices and equipment mastery can support alternative routes."
+  }
+}
