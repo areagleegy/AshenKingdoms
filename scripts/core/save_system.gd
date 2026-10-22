@@ -32,6 +32,7 @@ func save_game(data: Dictionary) -> bool:
 	# file fails, restore the previous file instead of leaving no primary save.
 	var had_primary := FileAccess.file_exists(SAVE_PATH)
 	if had_primary:
+		_remove_if_exists(BACKUP_TEMP_PATH)
 		var backup_error := DirAccess.copy_absolute(
 			ProjectSettings.globalize_path(SAVE_PATH),
 			ProjectSettings.globalize_path(BACKUP_PATH)
