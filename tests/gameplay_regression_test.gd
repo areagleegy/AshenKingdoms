@@ -434,6 +434,8 @@ func _test_android_configuration() -> void:
 		_check(not generic_workflow.contains("secrets.ANDROID_KEYSTORE_BASE64"), "generic CI does not receive the release keystore secret")
 		_check(not generic_workflow.contains("Export signed Google Play App Bundle"), "real release signing is isolated from pull-request CI")
 		_check(generic_workflow.contains("Validate Google Play App Bundle export (ephemeral signing key)"), "generic CI exercises AAB export with an ephemeral test key")
+		_check(generic_workflow.contains("Install Android Gradle build template"), "generic AAB validation installs the Gradle build template separately")
+		_check(generic_workflow.contains('trap \'rm -f "$keystore_path" build/android/AshenKingdoms-validation.aab\' EXIT'), "ephemeral AAB signing files are removed even if validation fails")
 
 	var main_source_file := FileAccess.open("res://scripts/core/input_setup.gd", FileAccess.READ)
 	_check(main_source_file != null, "shared input setup source is readable")
