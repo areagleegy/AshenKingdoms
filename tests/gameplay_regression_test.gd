@@ -216,7 +216,7 @@ func _test_autosave_notifications() -> void:
 	)
 
 	test_player.global_position = Vector3(2.0, 3.0, 4.0)
-	main_for_test.call("_notification", Node.NOTIFICATION_WM_CLOSE_REQUEST)
+	main_for_test.call("_handle_window_close_request")
 	var loaded_after_close: Dictionary = save_system.call("load_game")
 	var position_after_close: Dictionary = loaded_after_close.get("player_position", {})
 	_check(
