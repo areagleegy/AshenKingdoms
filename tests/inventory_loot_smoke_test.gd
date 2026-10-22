@@ -4,6 +4,8 @@ const INVENTORY_SCRIPT = preload("res://scripts/components/inventory.gd")
 const ITEM_PATH = "res://resources/items/health_potion.tres"
 const LOOT_SCRIPT = preload("res://scripts/components/loot_container.gd")
 
+var _failed: bool = false
+
 func _init() -> void:
 	call_deferred("_run_tests")
 
@@ -38,8 +40,11 @@ func _run_tests() -> void:
 
 	inventory.queue_free()
 	loot.queue_free()
-	print("Inventory/Loot smoke tests completed.")
-	quit(0)
+	if _failed:
+		quit(1)
+	else:
+		print("Inventory/Loot smoke tests completed.")
+		quit(0)
 
 
 func _expect(condition: bool, message: String) -> void:
@@ -48,5 +53,5 @@ func _expect(condition: bool, message: String) -> void:
 
 
 func _fail(message: String) -> void:
+	_failed = true
 	push_error("Inventory/Loot test failed: " + message)
-	quit(1)
