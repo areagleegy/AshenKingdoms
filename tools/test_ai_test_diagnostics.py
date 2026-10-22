@@ -39,8 +39,8 @@ class DiagnosticsClassifierTests(unittest.TestCase):
 
     def test_expected_malformed_json_rejection_is_not_reported(self):
         log = (
-            "ERROR: Parse JSON failed. Error at line 0: Expected key\\n"
-            "[PASS] malformed JSON is rejected safely\\n"
+            "ERROR: Parse JSON failed. Error at line 0: Expected key\n"
+            "[PASS] malformed JSON is rejected safely\n"
         )
         self.assertEqual(classify_text(log), [])
 
@@ -57,16 +57,16 @@ class DiagnosticsClassifierTests(unittest.TestCase):
 
     def test_expected_oversized_save_rejection_is_not_reported(self):
         log = (
-            "ERROR: Refusing to save data larger than the local save-size limit.\\n"
-            "[PASS] save system rejects payloads larger than the configured size limit\\n"
+            "ERROR: Refusing to save data larger than the local save-size limit.\n"
+            "[PASS] save system rejects payloads larger than the configured size limit\n"
         )
         self.assertEqual(classify_text(log), [])
 
     def test_expected_save_error_does_not_hide_another_log_error(self):
         log = (
-            "gameplay-regression.log: ERROR: Refusing to save data larger than the local save-size limit.\\n"
-            "gameplay-regression.log: [PASS] save system rejects payloads larger than the configured size limit\\n"
-            "network-loopback.log: SCRIPT ERROR: Cannot call method 'get_unique_id' on a null value.\\n"
+            "gameplay-regression.log: ERROR: Refusing to save data larger than the local save-size limit.\n"
+            "gameplay-regression.log: [PASS] save system rejects payloads larger than the configured size limit\n"
+            "network-loopback.log: SCRIPT ERROR: Cannot call method 'get_unique_id' on a null value.\n"
         )
         findings = classify_text(log)
         self.assertTrue(findings)
