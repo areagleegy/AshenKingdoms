@@ -35,8 +35,8 @@ class DiagnosticsClassifierTests(unittest.TestCase):
 
     def test_passing_placeholder_asset_assertions_are_not_reported_as_errors(self):
         log = (
-            "[PASS] missing player.glb selects the documented placeholder path\\n"
-            "[PASS] player tolerates missing AnimationPlayer\\n"
+            "player-character-tests.log: [PASS] missing player.glb selects the documented placeholder path\\n"
+            "player-character-tests.log: [PASS] player tolerates missing AnimationPlayer\\n"
         )
         self.assertEqual(classify_text(log), [])
 
