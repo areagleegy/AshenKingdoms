@@ -3,6 +3,7 @@ extends SceneTree
 const ProgressionManagerScript: Script = preload("res://scripts/core/progression_manager.gd")
 const QuestManagerScript: Script = preload("res://scripts/core/quest_manager.gd")
 const SaveSystemScript: Script = preload("res://scripts/core/save_system.gd")
+const SAVE_PATH: String = "user://savegame.json"
 const SAVE_RELATED_FILES: Array[String] = [
 	"user://savegame.json",
 	"user://savegame.bak.json",
