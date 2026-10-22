@@ -11,6 +11,7 @@ signal peer_arena_ready(peer_id: int)
 const DEFAULT_PORT: int = 7777
 const DEFAULT_MAX_CLIENTS: int = 8
 const CONNECTION_TIMEOUT_SECONDS: float = 12.0
+const GLOBAL_RPC_MIN_INTERVAL_MSEC: int = 5
 
 var session_mode: String = "offline"
 var session_port: int = DEFAULT_PORT
@@ -18,6 +19,7 @@ var session_port: int = DEFAULT_PORT
 var _client_connected: bool = false
 var _connection_generation: int = 0
 var _ready_peers: Dictionary = {}
+var _rpc_rate_limit_timestamps: Dictionary = {}
 
 
 func _ready() -> void:
@@ -80,6 +82,7 @@ func leave_session(notify: bool = true) -> void:
 	_connection_generation += 1
 	_client_connected = false
 	_ready_peers.clear()
+	_rpc_rate_limit_timestamps.clear()
 	var old_mode := session_mode
 	session_mode = "offline"
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
@@ -102,6 +105,47 @@ func get_ready_peer_ids() -> Array[int]:
 	return result
 
 
+# Server-only per-peer limits: a global bucket plus a bucket for each RPC family.
+func accept_rpc_rate_limit(peer_id: int, action: StringName, min_interval_msec: int) -> bool:
+	if not multiplayer.is_server() or peer_id <= 1 or not multiplayer.get_peers().has(peer_id):
+		return false
+	if action == &"" or min_interval_msec < 0:
+		return false
+	var now := Time.get_ticks_msec()
+	if not _accept_rpc_rate_limit_at(peer_id, &"__all__", GLOBAL_RPC_MIN_INTERVAL_MSEC, now):
+		return false
+	return _accept_rpc_rate_limit_at(peer_id, action, min_interval_msec, now)
+
+
+# Exposed internally for deterministic regression tests; network RPCs use the
+# server/connected-peer checked wrapper above.
+func _accept_rpc_rate_limit_at(peer_id: int, action: StringName, min_interval_msec: int, now_msec: int) -> bool:
+	if peer_id <= 1 or action == &"" or min_interval_msec < 0:
+		return false
+	var key := "%d:%s" % [peer_id, String(action)]
+	if _rpc_rate_limit_timestamps.has(key):
+		var elapsed := now_msec - int(_rpc_rate_limit_timestamps[key])
+		if elapsed < min_interval_msec:
+			return false
+	_rpc_rate_limit_timestamps[key] = now_msec
+	if _rpc_rate_limit_timestamps.size() > 512:
+		_prune_rpc_rate_limit_timestamps(now_msec)
+	return true
+
+
+func _prune_rpc_rate_limit_timestamps(now_msec: int) -> void:
+	for key in _rpc_rate_limit_timestamps.keys():
+		if now_msec - int(_rpc_rate_limit_timestamps[key]) > 60000:
+			_rpc_rate_limit_timestamps.erase(key)
+
+
+func _clear_peer_rpc_rate_limits(peer_id: int) -> void:
+	var prefix := "%d:" % peer_id
+	for key in _rpc_rate_limit_timestamps.keys():
+		if String(key).begins_with(prefix):
+			_rpc_rate_limit_timestamps.erase(key)
+
+
 # Called only after the network arena and its MultiplayerSpawner are ready.
 func notify_arena_ready() -> void:
 	if not is_session_active():
@@ -120,6 +164,8 @@ func _rpc_notify_arena_ready() -> void:
 		return
 	var sender_id := multiplayer.get_remote_sender_id()
 	if sender_id <= 1 or not multiplayer.get_peers().has(sender_id):
+		return
+	if not accept_rpc_rate_limit(sender_id, &"arena_ready", 1000):
 		return
 	if _ready_peers.has(sender_id):
 		return
@@ -164,6 +210,7 @@ func _on_peer_connected(peer_id: int) -> void:
 
 func _on_peer_disconnected(peer_id: int) -> void:
 	_ready_peers.erase(peer_id)
+	_clear_peer_rpc_rate_limits(peer_id)
 	status_changed.emit("غادر اللاعب %d الجلسة." % peer_id)
 	peer_left.emit(peer_id)
 
