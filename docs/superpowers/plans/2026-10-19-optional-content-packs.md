@@ -1,5 +1,7 @@
 # Optional Content Packs Implementation Plan
 
+> **Document status:** Historical implementation plan, not a live checklist. The repository now contains initial catalog validation, packaging/signing tools, a content manager, and smoke tests. Some checkboxes below record the original test-first plan and may not have been backfilled after implementation. Use `content/README.md`, `docs/PROJECT_STATUS_AR.md`, and `docs/TEST_PLAN.md` for current behavior and remaining acceptance work.
+
 > **For agentic workers:** Execute this plan task-by-task and keep each step independently reviewable. Tasks use checkbox syntax. Use test-driven development: write the failing test first, demonstrate failure, implement the smallest fix, and rerun all relevant checks.
 
 **Goal:** Deliver an Android-first optional content-pack system for AshenKingdoms that keeps the core game playable offline, lets players download/verify/install/update/delete data-only packs, and loads installed assets on demand.

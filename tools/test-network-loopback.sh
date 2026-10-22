@@ -2,9 +2,14 @@
 set -euo pipefail
 
 export GODOT_SILENCE_ROOT_WARNING=1
+export ASHEN_TEST_TRANSPORT="${1:-enet}"
+if [[ "$ASHEN_TEST_TRANSPORT" != "enet" && "$ASHEN_TEST_TRANSPORT" != "websocket" ]]; then
+  echo "Usage: $0 [enet|websocket]" >&2
+  exit 2
+fi
 export ASHEN_TEST_PORT="$((40000 + RANDOM % 20000))"
 
-server_log="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/ashen-network-server.log"
+server_log="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/ashen-network-server-$ASHEN_TEST_TRANSPORT.log"
 server_pid=""
 
 cleanup() {
@@ -15,18 +20,28 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-echo "[network-loopback] starting host on UDP port $ASHEN_TEST_PORT"
-godot --headless --path . -- --server --server-port="$ASHEN_TEST_PORT" >"$server_log" 2>&1 &
+if [[ "$ASHEN_TEST_TRANSPORT" == "websocket" ]]; then
+  echo "[network-loopback] starting WebSocket host on TCP port $ASHEN_TEST_PORT"
+  godot --headless --path . -- --server --server-transport=websocket --server-port="$ASHEN_TEST_PORT" >"$server_log" 2>&1 &
+else
+  echo "[network-loopback] starting ENet host on UDP port $ASHEN_TEST_PORT"
+  godot --headless --path . -- --server --server-port="$ASHEN_TEST_PORT" >"$server_log" 2>&1 &
+fi
 server_pid=$!
 
 server_ready=0
 for _ in $(seq 1 40); do
   if ! kill -0 "$server_pid" >/dev/null 2>&1; then
-    echo "Host process exited before binding its UDP port."
+    echo "Host process exited before binding its $ASHEN_TEST_TRANSPORT port."
     cat "$server_log"
     exit 1
   fi
-  if ss -lun | grep -Eq "[:.]$ASHEN_TEST_PORT[[:space:]]"; then
+  if [[ "$ASHEN_TEST_TRANSPORT" == "websocket" ]]; then
+    port_listening="$(ss -ltn)"
+  else
+    port_listening="$(ss -lun)"
+  fi
+  if grep -Eq "[:.]$ASHEN_TEST_PORT[[:space:]]" <<<"$port_listening"; then
     server_ready=1
     break
   fi
@@ -34,7 +49,7 @@ for _ in $(seq 1 40); do
 done
 
 if [[ "$server_ready" -ne 1 ]]; then
-  echo "Host did not bind its UDP port in time."
+  echo "Host did not bind its $ASHEN_TEST_TRANSPORT port in time."
   cat "$server_log"
   exit 1
 fi
@@ -50,4 +65,4 @@ if [[ "$client_status" -ne 0 ]]; then
   exit "$client_status"
 fi
 
-echo "[network-loopback] host/client integration passed"
+echo "[network-loopback] $ASHEN_TEST_TRANSPORT host/client integration passed"

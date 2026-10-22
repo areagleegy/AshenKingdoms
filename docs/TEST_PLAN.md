@@ -9,7 +9,7 @@
 - اختبارات الوحدة لمصنّف تشخيص سجلات الاختبار وقياس مجموعة التشخيص الاصطناعية.
 - التحقق من الملفات الأساسية، واستيراد مشروع Godot 4.6 وتحليل السكربتات والموارد.
 - تحميل السكربتات والمشاهد، واختبارات اللعب الأساسية والانحدار وبطل اللاعب. ويتحقق اختبار تحميل الموارد أيضًا من مسارات عقد مشهد `TouchControls.tscn` مقابل العقد الموجودة فعليًا، لمنع عودة مراجع `$NodePath` المكسورة.
-- اختبارات قتال الشبكة، واتصال ENet loopback بين عمليتين محليتين.
+- اختبارات قتال الشبكة وPvP، بما فيها رفض مدخلات اللاعب غير الصحيحة/غير المنتهية، واختبار حد معدل الإدخال الخادمي، ورفض أرقام تسلسل الإدخال المكررة أو القديمة؛ واختبارات قواعد باتل رويال واتصال loopback محلي بين عمليتين لكل من ENet وWebSocket.
 - اختبارات فهرس حزم المحتوى ومثبتها، واختبارات Python لبناء الحزم وتوقيع الفهرس.
 - فحص سجل الأصول والرخص، والتحقق من الروابط المحلية في ملفات Markdown.
 - تشغّل `.github/workflows/build.yml` تصدير Android وWeb بصورة مستقلة وترفع المخرجات كـ Artifacts.
@@ -28,7 +28,9 @@ godot --headless --path . --script res://tests/gameplay_smoke_test.gd
 godot --headless --path . --script res://tests/gameplay_regression_test.gd
 godot --headless --path . --script res://tests/player_character_smoke_test.gd
 timeout 45s godot --headless --path . res://tests/network_combat_smoke_test.tscn
-bash tools/test-network-loopback.sh
+godot --headless --path . --script res://tests/battle_royale_rules_smoke_test.gd
+bash tools/test-network-loopback.sh enet
+bash tools/test-network-loopback.sh websocket
 godot --headless --path . --script res://tests/content_catalog_smoke_test.gd
 python -m unittest tools.test_package_content tools.test_sign_content_catalog -v
 python -m unittest discover -s tools -p 'test_ai_test_diagnostics.py' -v
@@ -137,24 +139,26 @@ godot --headless --path . --script res://tests/player_character_smoke_test.gd
 تتحقق الاختبارات من تحميل أدوات Python، وصحة بيانات ترخيص الأصول، ومسار تحميل النموذج عند وجوده، والرجوع الآمن إلى شكل بطل مؤقت عند غياب `player.glb`، وفصل التصادم عن المجسم البصري، وسلوك اللاعب عندما لا تتوفر الحركات أو تختلف أسماء مقاطعها. هذا لا يعني أن نموذج GLB نهائيًا أو صوتيات قد أضيفت، ولا يغني عن معاينة مرئية واختبار Android فعلي.
 
 
-## اختبارات الشبكة ENet
+## اختبارات ENet وWebSocket وباتل رويال
 
 تعمل الاختبارات الآلية بعد استيراد Godot 4.6:
 
 ```bash
 godot --headless --path . --script res://tests/script_load_smoke_test.gd
 timeout 45s godot --headless --path . res://tests/network_combat_smoke_test.tscn
-bash tools/test-network-loopback.sh
+bash tools/test-network-loopback.sh enet
+bash tools/test-network-loopback.sh websocket
+godot --headless --path . --script res://tests/battle_royale_rules_smoke_test.gd
 ```
 
-يفحص اختبار الموارد تحميل السكربتات والمشاهد وعصا التحكم التناظرية الافتراضية دون استبدال مشهد عناصر اللمس الخاص باللعب الفردي. ويختبر اختبار loopback اتصال خادم وعميل كعمليتين منفصلتين، وتحقق الساحة وظهور اللاعبين والأعداء. هذا لا يغني عن اختبار Android فعلي، أو اختبار جهازين عبر شبكة محلية/إنترنت، أو مراجعة الأمان قبل النشر.
+يفحص اختبار الموارد تحميل السكربتات والمشاهد وعصا التحكم التناظرية الافتراضية دون استبدال مشهد عناصر اللمس الخاص باللعب الفردي. يشغّل سكربت loopback خادمًا وعميلًا كعمليتين منفصلتين، ويمرر enet أو websocket لتحديد الناقل. يختبر اختبار قواعد باتل رويال حالات المباراة وانكماش المنطقة والفائز، بينما يختبر اختبار القتال الشبكي PvP والإقصاء دون إحياء داخل هذا الطور. لا يثبت أي من ذلك اتصالًا عامًا أو أمانًا إنتاجيًا؛ اختبر Android الفعلي والمتصفح وخادم WSS المنشور قبل الإصدار.
 
 
 ## توضيح قبول الشبكة والخادم
 
-اختبار `tools/test-network-loopback.sh` يثبت أن مضيف ENet وعميلًا منفصلًا يتصلان داخل بيئة CI وأن الساحة التجريبية تنشئ اللاعبين والأعداء المتوقّعين. لا يثبت هذا اتصالًا عبر الإنترنت أو سلامة تكوينات جدار الحماية أو أمان الخادم أو تجربة Android.
+اختبار `tools/test-network-loopback.sh enet` يثبت اتصال ENet محليًا داخل بيئة الاختبار؛ ويختبر `tools/test-network-loopback.sh websocket` اتصال WebSocket محليًا. كلاهما يختبر loopback فقط، ولا يثبت اتصالًا عبر الإنترنت أو WSS عامًا أو صحة جدار الحماية أو أمان الخادم أو تجربة Android.
 
-مسار تشغيل المضيف المخصص الحالي يبدأ من `scenes/ui/MainMenu.tscn` و`scripts/ui/main_menu.gd` في وضع headless ويستخدم `NetworkManager.start_host()`. الملف `scripts/core/server.gd` ما زال يحتوي على هيكل تمهيدي؛ لا تصفه بأنه خادم ENet المنفذ في مسار CI.
+مسار تشغيل المضيف المخصص يبدأ من `scenes/ui/MainMenu.tscn` و`scripts/ui/main_menu.gd` في وضع headless ويستخدم `NetworkManager.start_host()`. الناقل الافتراضي ENet، ويمكن اختيار WebSocket عبر `--server-transport=websocket`. الملف `scripts/core/server.gd` ما زال يحتوي على هيكل تمهيدي؛ لا تصفه بأنه مسار الاستضافة النشط.
 
 قبل أي إصدار يتضمن الشبكة، نفّذ اختبارًا يدويًا من جهاز مضيف وعميل فعليين على الشبكة المستهدفة، واختبر انقطاع العميل، وإعادة الاتصال، والمنفذ المحجوب، والتحقق من الهجمات والمكافآت، وأعد مراجعة نموذج الأمان. لا تضع بيانات اعتماد أو أسرارًا حقيقية في سجلات الاختبار.
 
@@ -174,5 +178,7 @@ git diff --check
 - شغّل فاحص الأصول بعد أي تغيير في ملفات الأصول أو سجل التراخيص.
 - قبل الدمج، افحص حالة Workflow التحقق وWorkflow البناء على رأس PR نفسه؛ لا تعتمد على نجاح تشغيل أقدم.
 - قبل إعلان الإصدار، اختبر APK على هاتف Android فعليًا، وWeb عبر HTTP/HTTPS في المتصفحات المستهدفة، واللعب الجماعي على المنصات التي يُعلن دعمها.
-- لا يثبت اختبار ENet loopback الاتصال عبر الإنترنت أو أمان خادم عام.
+- اختبر WebSocket من متصفح حقيقي إلى خادم منشور عبر WSS، وتحقق من الاتصال والخروج والفصل وفقد الشبكة والمزامنة وسلوك الأخطاء.
+- اختبر طور باتل رويال على عدة عملاء فعلية: بدء المباراة، تقلص المنطقة، ضرر العاصفة، PvP، إقصاء اللاعب وعدم إحيائه، وآخر ناجٍ/الفائز.
+- لا يثبت اختبار ENet/WebSocket loopback الاتصال عبر الإنترنت أو نجاح WSS العام أو أمان الخادم أو قدرة 100 لاعب؛ يلزم اختبار حمل مستقل قبل اعتماد رقم 100.
 - راجع [نطاق الإصدار المعتمد](RELEASE_SCOPE_AR.md) و[حالة التنفيذ الحالية](PROJECT_STATUS_AR.md) وبوابة القبول [Issue #20](https://github.com/areagleegy/AshenKingdoms/issues/20). تنزيل المحتوى مؤجل ولا يدخل في قبول هذا الإصدار.

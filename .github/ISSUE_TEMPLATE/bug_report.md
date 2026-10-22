@@ -9,7 +9,8 @@ assignees: ""
 ## Environment
 - Device / OS:
 - Godot version:
-- Build (Android / Web / other):
+- Build / commit or PR link (if known):
+- Platform and version (Android / Web / Desktop):
 
 ## Steps to reproduce
 1.
@@ -21,4 +22,4 @@ assignees: ""
 ## Actual behavior
 
 ## Logs or screenshots
-Do not include passwords, access tokens, signing keys, or personal data.
+Remove passwords, access tokens, signing keys, and personal data before posting.

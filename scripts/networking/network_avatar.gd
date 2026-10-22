@@ -2,6 +2,8 @@ extends CharacterBody3D
 
 const INPUT_SEND_INTERVAL: float = 0.05
 const INPUT_TIMEOUT_MSEC: int = 350
+const MIN_INPUT_INTERVAL_MSEC: int = 20
+const MAX_INPUT_DIRECTION_LENGTH_SQUARED: float = 1.21
 const MAX_LEVEL: int = 50
 const QUEST_TARGET: int = 3
 const QUEST_REWARD_XP: int = 75
@@ -26,6 +28,7 @@ var experience: int = 0
 var quest_progress: int = 0
 var quest_completed: bool = false
 var is_dead: bool = false
+var battle_royale_mode: bool = false
 
 var _gravity: float = float(ProjectSettings.get_setting("physics/3d/default_gravity"))
 var _requested_direction: Vector3 = Vector3.ZERO
@@ -35,9 +38,12 @@ var _attack_requested: bool = false
 var _last_jump_down: bool = false
 var _last_attack_down: bool = false
 var _last_input_msec: int = 0
+var _has_received_input: bool = false
 var _next_attack_msec: int = 0
 var _death_generation: int = 0
 var _input_send_accumulator: float = 0.0
+var _input_sequence: int = 0
+var _last_input_sequence: int = -1
 var _base_color: Color = Color.WHITE
 
 
@@ -46,6 +52,14 @@ func configure_owner(peer_id: int) -> void:
 	set_multiplayer_authority(1, true)
 	position = _spawn_position(owner_peer_id)
 	current_health = max_health
+	_last_input_msec = 0
+	_has_received_input = false
+	_input_sequence = 0
+	_last_input_sequence = -1
+
+
+func configure_battle_royale(enabled: bool) -> void:
+	battle_royale_mode = enabled
 
 
 func _ready() -> void:
@@ -87,9 +101,11 @@ func _physics_process(delta: float) -> void:
 	_input_send_accumulator += delta
 	if _input_send_accumulator >= INPUT_SEND_INTERVAL:
 		_input_send_accumulator = 0.0
+		_input_sequence += 1
 		rpc_id(
 			1,
 			"_rpc_submit_input",
+			_input_sequence,
 			_read_world_direction(),
 			Input.is_action_pressed("jump"),
 			Input.is_action_pressed("sprint"),
@@ -98,18 +114,44 @@ func _physics_process(delta: float) -> void:
 
 
 @rpc("any_peer", "call_remote", "unreliable")
-func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, attack_down: bool) -> void:
+func _rpc_submit_input(input_sequence: int, direction: Vector3, jump_down: bool, sprint_down: bool, attack_down: bool) -> void:
 	if not multiplayer.is_server():
 		return
 	var sender_id := multiplayer.get_remote_sender_id()
-	if sender_id != owner_peer_id or sender_id <= 1 or is_dead:
-		return
+	_accept_remote_input(sender_id, input_sequence, direction, jump_down, sprint_down, attack_down, Time.get_ticks_msec())
 
-	var safe_direction := Vector3(direction.x, 0.0, direction.z)
-	if safe_direction.length_squared() > 1.0:
-		safe_direction = safe_direction.normalized()
-	_set_requested_input(safe_direction, jump_down, sprint_down, attack_down)
-	_last_input_msec = Time.get_ticks_msec()
+
+## Server-side gate shared by the RPC handler and deterministic regression tests.
+## Clients may send at most one accepted input per player every 20 ms.
+func _accept_remote_input(
+	sender_id: int,
+	input_sequence: int,
+	direction: Vector3,
+	jump_down: bool,
+	sprint_down: bool,
+	attack_down: bool,
+	now_msec: int
+) -> bool:
+	if not multiplayer.is_server() or sender_id != owner_peer_id or sender_id <= 1:
+		return false
+	if is_dead or current_health <= 0.0 or now_msec < 0:
+		return false
+	if input_sequence < 0 or input_sequence <= _last_input_sequence:
+		return false
+	if not direction.is_finite() or absf(direction.y) > 0.001:
+		return false
+
+	var planar_direction := Vector2(direction.x, direction.z)
+	if not planar_direction.is_finite() or planar_direction.length_squared() > MAX_INPUT_DIRECTION_LENGTH_SQUARED:
+		return false
+	if _has_received_input and now_msec - _last_input_msec < MIN_INPUT_INTERVAL_MSEC:
+		return false
+
+	_set_requested_input(Vector3(planar_direction.x, 0.0, planar_direction.y), jump_down, sprint_down, attack_down)
+	_last_input_msec = now_msec
+	_last_input_sequence = input_sequence
+	_has_received_input = true
+	return true
 
 
 func _set_requested_input(direction: Vector3, jump_down: bool, sprint_down: bool, attack_down: bool) -> void:
@@ -170,25 +212,28 @@ func _server_try_attack() -> void:
 	var forward := -global_transform.basis.z
 	forward.y = 0.0
 	forward = forward.normalized()
-	var closest_enemy: Node3D
+	var closest_target: Node3D
 	var closest_distance := attack_range
-	for candidate in get_tree().get_nodes_in_group("network_enemies"):
-		if not is_instance_valid(candidate) or not candidate.has_method("apply_damage_from_server"):
-			continue
-		if bool(candidate.get("is_dead")):
-			continue
-		var offset: Vector3 = candidate.global_position - global_position
-		offset.y = 0.0
-		var distance: float = offset.length()
-		if distance > closest_distance or distance <= 0.001:
-			continue
-		if forward.dot(offset.normalized()) < 0.1:
-			continue
-		closest_enemy = candidate as Node3D
-		closest_distance = distance
+	for group_name in ["network_enemies", "network_players"]:
+		for candidate in get_tree().get_nodes_in_group(group_name):
+			if not is_instance_valid(candidate) or candidate == self or not candidate.has_method("apply_damage_from_server"):
+				continue
+			if group_name == "network_players" and int(candidate.get("owner_peer_id")) == owner_peer_id:
+				continue
+			if bool(candidate.get("is_dead")):
+				continue
+			var offset: Vector3 = candidate.global_position - global_position
+			offset.y = 0.0
+			var distance: float = offset.length()
+			if distance > closest_distance or distance <= 0.001:
+				continue
+			if forward.dot(offset.normalized()) < 0.1:
+				continue
+			closest_target = candidate as Node3D
+			closest_distance = distance
 
-	if is_instance_valid(closest_enemy):
-		closest_enemy.call("apply_damage_from_server", attack_damage, owner_peer_id)
+	if is_instance_valid(closest_target):
+		closest_target.call("apply_damage_from_server", attack_damage, owner_peer_id)
 
 
 func apply_damage_from_server(amount: float, attacker_peer_id: int = 0) -> void:
@@ -206,6 +251,9 @@ func _server_begin_respawn() -> void:
 	_jump_buffered = false
 	_attack_requested = false
 	_death_generation += 1
+	if battle_royale_mode:
+		# Battle royale deaths are eliminations; do not respawn into the same match.
+		return
 	var timer := get_tree().create_timer(2.0)
 	timer.timeout.connect(_server_respawn.bind(_death_generation))
 
