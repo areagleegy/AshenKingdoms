@@ -1,6 +1,7 @@
 extends Node
 
 const SAVE_PATH: String = "user://savegame.json"
+const MAX_SAVE_BYTES: int = 1_048_576
 
 const LOAD_STATUS_NOT_FOUND: String = "not_found"
 const LOAD_STATUS_OK: String = "ok"
