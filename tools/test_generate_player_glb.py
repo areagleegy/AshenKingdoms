@@ -14,6 +14,13 @@ JSON_CHUNK = generate_player_glb.GLB_JSON_CHUNK_TYPE
 BIN_CHUNK = generate_player_glb.GLB_BIN_CHUNK_TYPE
 
 
+def make_json_chunk(document: object | None = None) -> bytes:
+    if document is None:
+        document = {"asset": {"version": "2.0"}}
+    json_chunk = json.dumps(document, separators=(",", ":")).encode("utf-8")
+    return json_chunk + b" " * ((-len(json_chunk)) % 4)
+
+
 def make_glb(
     document: object | None = None,
     chunks: list[tuple[int, bytes]] | None = None,
@@ -21,11 +28,7 @@ def make_glb(
     declared_size_delta: int = 0,
 ) -> bytes:
     if chunks is None:
-        if document is None:
-            document = {"asset": {"version": "2.0"}}
-        json_chunk = json.dumps(document, separators=(",", ":")).encode("utf-8")
-        json_chunk += b" " * ((-len(json_chunk)) % 4)
-        chunks = [(JSON_CHUNK, json_chunk)]
+        chunks = [(JSON_CHUNK, make_json_chunk(document))]
     body = b"".join(struct.pack("<II", len(payload), kind) + payload for kind, payload in chunks)
     declared_size = 12 + len(body) + declared_size_delta
     return struct.pack("<4sII", b"glTF", version, declared_size) + body
@@ -73,7 +76,7 @@ class GeneratePlayerGlbTests(unittest.TestCase):
 
     def test_accepts_json_and_one_binary_chunk(self) -> None:
         self.validate_bytes(make_glb(chunks=[
-            (JSON_CHUNK, b'{"asset":{"version":"2.0"}}    '),
+            (JSON_CHUNK, make_json_chunk()),
             (BIN_CHUNK, b"\\x00\\x00\\x00\\x00"),
         ]))
 
@@ -93,7 +96,7 @@ class GeneratePlayerGlbTests(unittest.TestCase):
 
     def test_rejects_truncated_chunk_header(self) -> None:
         content = make_glb(chunks=[(JSON_CHUNK, b'{"asset":{"version":"2.0"}}    ')])
-        content += b"\\x00\\x00\\x00\\x00"
+        content += bytes([0, 0, 0, 0])
         content = bytearray(content)
         struct.pack_into("<I", content, 8, len(content))
         path = self.root / "truncated-chunk-header.glb"
@@ -126,7 +129,7 @@ class GeneratePlayerGlbTests(unittest.TestCase):
         self.validate_rejects(make_glb(document={"scene": 0, "scenes": []}))
 
     def test_rejects_duplicate_json_chunks(self) -> None:
-        json_chunk = b'{"asset":{"version":"2.0"}}    '
+        json_chunk = make_json_chunk()
         self.validate_rejects(make_glb(chunks=[(JSON_CHUNK, json_chunk), (JSON_CHUNK, json_chunk)]))
 
     def test_rejects_duplicate_binary_chunks(self) -> None:
