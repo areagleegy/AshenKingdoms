@@ -142,6 +142,18 @@ func _validate_pack(pack: Dictionary) -> Dictionary:
 			return _error("Pack %s exceeds the unpacked size limit." % pack_id)
 		if not _is_sha256(str(file_record.get("sha256", ""))):
 			return _error("Pack %s contains an invalid file digest." % pack_id)
+
+		for field in ["author", "license", "attribution"]:
+			var text_value: Variant = file_record.get(field, null)
+			if not text_value is String or str(text_value).strip_edges().is_empty():
+				return _error("Pack %s is missing required %s provenance for %s." % [pack_id, field, path])
+		for field in ["source_url", "license_url"]:
+			if not _is_http_url(file_record.get(field, null)):
+				return _error("Pack %s has an invalid %s for %s." % [pack_id, field, path])
+		for field in ["commercial_use", "redistribution_allowed"]:
+			var permission: Variant = file_record.get(field, null)
+			if typeof(permission) != TYPE_BOOL or not permission:
+				return _error("Pack %s lacks explicit %s permission for %s." % [pack_id, field, path])
 	return {"ok": true, "error": ""}
 
 
@@ -158,6 +170,28 @@ func is_safe_relative_path(path: String) -> bool:
 			return false
 		if segment.strip_edges() != segment:
 			return false
+	return true
+
+
+func _is_http_url(value: Variant) -> bool:
+	if not value is String:
+		return false
+	var url := str(value)
+	if url.is_empty() or url.length() > 2048 or url.contains(" ") or url.contains("\\t") or url.contains("\\n"):
+		return false
+	var scheme_end := url.find("://")
+	if scheme_end <= 0:
+		return false
+	var scheme := url.substr(0, scheme_end).to_lower()
+	if scheme != "http" and scheme != "https":
+		return false
+	var authority := url.substr(scheme_end + 3)
+	for delimiter in ["/", "?", "#"]:
+		var delimiter_index := authority.find(delimiter)
+		if delimiter_index >= 0:
+			authority = authority.substr(0, delimiter_index)
+	if authority.is_empty() or authority.contains("@") or authority.contains("\\"):
+		return false
 	return true
 
 
