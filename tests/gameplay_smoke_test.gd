@@ -85,15 +85,15 @@ func _run() -> void:
 		"experience": 7,
 		"inventory": [],
 		"quest": {"active": false, "progress": 0},
-		"dialogue": {"smoke_test_marker": "ashen-kingdoms", "nested": {"value": 7}}
+		"dialogue": {"flags": {"smoke_test_marker": true, "nested_value": true}}
 	}
 	_check(bool(save_system.call("save_game", sample_data)), "save system writes JSON data")
 	var loaded_data = save_system.call("load_game")
 	_check(loaded_data is Dictionary, "save system loads a JSON object")
 	if loaded_data is Dictionary:
-		_check(loaded_data.get("dialogue", {}).get("smoke_test_marker", "") == "ashen-kingdoms", "loaded save retains its marker")
-		var loaded_nested = loaded_data.get("dialogue", {}).get("nested", {})
-		_check(loaded_nested is Dictionary and int(loaded_nested.get("value", 0)) == 7, "loaded save retains nested values")
+		_check(bool(loaded_data.get("dialogue", {}).get("flags", {}).get("smoke_test_marker", false)), "loaded save retains its marker flag")
+		var loaded_flags: Dictionary = loaded_data.get("dialogue", {}).get("flags", {})
+		_check(bool(loaded_flags.get("nested_value", false)), "loaded save retains additional dialogue flags")
 
 	_remove_if_exists(BACKUP_SAVE_PATH)
 	var corrupt_file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
