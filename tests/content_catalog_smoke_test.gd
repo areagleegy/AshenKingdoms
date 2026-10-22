@@ -156,7 +156,13 @@ func _run() -> void:
 				}]
 			}
 			var verified: Dictionary = installer.call("verify_archive", archive_path, test_pack)
-			_check(bool(verified.get("ok", false)), "valid ZIP package and per-file digests are accepted")
+			_check(bool(verified.get("ok", false)), "valid ZIP package and per-file digests with provenance are accepted")
+			var missing_provenance_pack: Dictionary = test_pack.duplicate(true)
+			missing_provenance_pack["files"][0].erase("author")
+			_check(
+				not bool(installer.call("verify_archive", archive_path, missing_provenance_pack).get("ok", true)),
+				"installer rejects package manifests that omit asset provenance"
+			)
 			var installed: Dictionary = installer.call("install_archive", archive_path, test_pack)
 			_check(bool(installed.get("ok", false)), "verified package installs into private content storage")
 			if bool(installed.get("ok", false)):
