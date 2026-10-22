@@ -122,7 +122,7 @@ jobs:
           GODOT_SILENCE_ROOT_WARNING: "1"
         run: |
           set -o pipefail
-          godot --headless --path . --script res://tests/qa_reporter_smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/qa-reporter-tests.log"
+          timeout 120s godot --headless --path . --script res://tests/qa_reporter_smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/qa-reporter-tests.log"
 
       - name: Validate local asset tools and license manifest
         run: |
