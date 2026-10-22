@@ -14,6 +14,7 @@ var _solo_button: Button
 
 func _ready() -> void:
 	INPUT_SETUP_SCRIPT.register_input_actions()
+	_set_mouse_visible_for_menu()
 	NetworkManager.status_changed.connect(_on_network_status_changed)
 	NetworkManager.session_connected.connect(_on_session_connected)
 	NetworkManager.connection_failed.connect(_on_connection_failed)
@@ -206,6 +207,12 @@ func _on_connection_failed(reason: String) -> void:
 		_join_button.disabled = false
 
 
+
+
+func _set_mouse_visible_for_menu() -> void:
+	if OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios"):
+		return
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 
 func _focus_default_control() -> void:
