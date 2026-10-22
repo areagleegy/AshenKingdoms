@@ -630,7 +630,9 @@ func _test_controller_navigation_configuration() -> void:
 		_check(arena_source.contains("_mouse_mode_before_pause = Input.mouse_mode"), "network pause menu stores prior mouse mode")
 		_check(arena_source.contains("Input.mouse_mode = Input.MOUSE_MODE_VISIBLE"), "network pause menu shows cursor for pointer interaction")
 		var return_to_menu_start := arena_source.find("func _return_to_menu() -> void:")
-		var return_to_menu_end := arena_source.find("func ", return_to_menu_start + 5)
+		var return_to_menu_end := arena_source.find("\nfunc ", return_to_menu_start + 5)
+		if return_to_menu_start >= 0 and return_to_menu_end < 0:
+			return_to_menu_end = arena_source.length()
 		_check(return_to_menu_start >= 0 and return_to_menu_end > return_to_menu_start, "network return-to-menu handler is present")
 		if return_to_menu_start >= 0 and return_to_menu_end > return_to_menu_start:
 			var return_to_menu_source := arena_source.substr(return_to_menu_start, return_to_menu_end - return_to_menu_start)
