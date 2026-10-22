@@ -32,18 +32,21 @@ func verify_archive(archive_path: String, pack_record: Dictionary) -> Dictionary
 	if not files_value is Array or files_value.is_empty() or files_value.size() > MAX_FILES:
 		return _error("Package file manifest is invalid.")
 	var expected_files: Dictionary = {}
+	var seen_manifest_paths: Dictionary = {}
 	var total_size := 0
 	for item in files_value:
 		if not item is Dictionary:
 			return _error("Package file manifest contains an invalid record.")
 		var record: Dictionary = item
 		var path := str(record.get("path", ""))
+		var normalized_path := path.to_lower()
 		var size := int(record.get("size", -1))
 		var digest := str(record.get("sha256", "")).to_lower()
-		if not catalog.is_safe_relative_path(path) or path.to_lower() == "installed_manifest.json" or not _is_allowed_extension(path):
+		if not catalog.is_safe_relative_path(path) or normalized_path == "installed_manifest.json" or not _is_allowed_extension(path):
 			return _error("Package file path or extension is not allowed.")
-		if expected_files.has(path) or size < 0 or size > MAX_FILE_BYTES or not _is_sha256(digest):
-			return _error("Package file record is invalid or duplicated.")
+		if seen_manifest_paths.has(normalized_path) or size < 0 or size > MAX_FILE_BYTES or not _is_sha256(digest):
+			return _error("Package file record is invalid or duplicated, including case-insensitive paths.")
+		seen_manifest_paths[normalized_path] = true
 		expected_files[path] = {"size": size, "sha256": digest}
 		total_size += size
 		if total_size > MAX_UNPACKED_BYTES:
@@ -60,10 +63,11 @@ func verify_archive(archive_path: String, pack_record: Dictionary) -> Dictionary
 	var seen: Dictionary = {}
 	for archive_name in archive_files:
 		var path := str(archive_name)
-		if not catalog.is_safe_relative_path(path) or seen.has(path) or not expected_files.has(path):
+		var normalized_path := path.to_lower()
+		if not catalog.is_safe_relative_path(path) or normalized_path == "installed_manifest.json" or seen.has(normalized_path) or not expected_files.has(path):
 			zip.close()
-			return _error("Archive contains an unsafe, duplicate, or unlisted path.")
-		seen[path] = true
+			return _error("Archive contains an unsafe, duplicate, case-colliding, or unlisted path.")
+		seen[normalized_path] = true
 		var bytes: PackedByteArray = zip.read_file(path)
 		var expected: Dictionary = expected_files[path]
 		if bytes.size() != int(expected["size"]):
@@ -87,19 +91,44 @@ func install_archive(archive_path: String, pack_record: Dictionary) -> Dictionar
 
 	var destination := "%s/%s/%s" % [INSTALLED_ROOT, pack_id, version]
 	var destination_absolute := ProjectSettings.globalize_path(destination)
-	if DirAccess.dir_exists_absolute(destination_absolute):
+	if DirAccess.dir_exists_absolute(destination_absolute) or FileAccess.file_exists(destination):
 		return _error("This package version is already installed.")
 	var staging := "%s/%s-%s-%s" % [STAGING_ROOT, pack_id, version, str(randi())]
 	var staging_absolute := ProjectSettings.globalize_path(staging)
 	if DirAccess.make_dir_recursive_absolute(staging_absolute) != OK:
 		return _error("Could not create package staging directory.")
 
+	var catalog := CatalogScript.new()
+	var verified_files: Dictionary = verification.get("files", {})
 	var zip := ZIPReader.new()
 	if zip.open(archive_path) != OK:
 		_remove_tree(staging_absolute)
 		return _error("Could not reopen verified package archive.")
-	for archive_name in zip.get_files():
+	var archive_names := zip.get_files()
+	if archive_names.size() != verified_files.size():
+		zip.close()
+		_remove_tree(staging_absolute)
+		return _error("Package archive changed after verification.")
+	var seen_install_paths: Dictionary = {}
+	for archive_name in archive_names:
 		var relative_path := str(archive_name)
+		var normalized_path := relative_path.to_lower()
+		if not catalog.is_safe_relative_path(relative_path) or normalized_path == "installed_manifest.json" or seen_install_paths.has(normalized_path) or not verified_files.has(relative_path):
+			zip.close()
+			_remove_tree(staging_absolute)
+			return _error("Package archive changed or contains a path collision during installation.")
+		seen_install_paths[normalized_path] = true
+		# Re-check the bytes while extracting to close the verify-then-reopen gap.
+		var bytes: PackedByteArray = zip.read_file(relative_path)
+		var expected: Dictionary = verified_files[relative_path]
+		if bytes.size() != int(expected.get("size", -1)):
+			zip.close()
+			_remove_tree(staging_absolute)
+			return _error("Package file size changed after verification: %s" % relative_path)
+		if _sha256_bytes(bytes).hex_encode().to_lower() != str(expected.get("sha256", "")):
+			zip.close()
+			_remove_tree(staging_absolute)
+			return _error("Package file digest changed after verification: %s" % relative_path)
 		var target_path := staging.path_join(relative_path)
 		var target_absolute := ProjectSettings.globalize_path(target_path)
 		var parent_path := target_absolute.get_base_dir()
@@ -107,14 +136,19 @@ func install_archive(archive_path: String, pack_record: Dictionary) -> Dictionar
 			zip.close()
 			_remove_tree(staging_absolute)
 			return _error("Could not create package directory.")
-		var bytes: PackedByteArray = zip.read_file(relative_path)
 		var output := FileAccess.open(target_path, FileAccess.WRITE)
 		if output == null:
 			zip.close()
 			_remove_tree(staging_absolute)
 			return _error("Could not write package file.")
 		output.store_buffer(bytes)
+		output.flush()
+		var write_error: Error = output.get_error()
 		output.close()
+		if write_error != OK:
+			zip.close()
+			_remove_tree(staging_absolute)
+			return _error("Package file write did not complete successfully.")
 	zip.close()
 
 	var manifest_file := FileAccess.open(staging.path_join("installed_manifest.json"), FileAccess.WRITE)
@@ -124,9 +158,14 @@ func install_archive(archive_path: String, pack_record: Dictionary) -> Dictionar
 	manifest_file.store_string(JSON.stringify({
 		"id": pack_id,
 		"version": version,
-		"files": verification["files"]
+		"files": verified_files
 	}, "\t"))
+	manifest_file.flush()
+	var manifest_error: Error = manifest_file.get_error()
 	manifest_file.close()
+	if manifest_error != OK:
+		_remove_tree(staging_absolute)
+		return _error("Installed manifest write did not complete successfully.")
 
 	if DirAccess.make_dir_recursive_absolute(destination_absolute.get_base_dir()) != OK:
 		_remove_tree(staging_absolute)
