@@ -145,7 +145,7 @@ func build_report() -> Dictionary:
 		"build": {
 			"commit": BUILD_COMMIT,
 			"project_name": str(ProjectSettings.get_setting("application/config/name", "AshenKingdoms")),
-			"project_version": str(ProjectSettings.get_setting("application/config/version", "unknown")),
+			"project_version": str(ProjectSettings.get_setting("application/config/version", "0.1.0")),
 			"godot_version": str(version_info.get("string", "unknown")),
 			"os_name": OS.get_name(),
 			"android": OS.has_feature("android"),
