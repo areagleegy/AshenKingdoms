@@ -36,7 +36,7 @@ func add_loot(item: ItemResource, amount: int = 1) -> bool:
 func take_loot(slot_index: int, requested_amount: int, inventory: Inventory) -> int:
 	if inventory == null or slot_index < 0 or slot_index >= contents.size():
 		return 0
-	if requested_amount <= 0 or (single_use and opened):
+	if requested_amount <= 0:
 		return 0
 
 	var slot: Dictionary = contents[slot_index]
