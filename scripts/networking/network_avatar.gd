@@ -63,10 +63,18 @@ func _ready() -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	var material := visual_mesh.material_override as StandardMaterial3D
 	if material != null:
 		material.albedo_color = Color(0.14, 0.12, 0.16, 1.0) if is_dead else _base_color
+
+	if _owns_local_input() and camera.current:
+		var look_input := Input.get_vector("look_left", "look_right", "look_up", "look_down")
+		if look_input.length_squared() > 0.0001:
+			_apply_camera_rotation(
+				look_input.x * 2.2 * delta,
+				look_input.y * 2.2 * delta
+			)
 
 
 func _physics_process(delta: float) -> void:
