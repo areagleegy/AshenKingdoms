@@ -34,6 +34,8 @@ func _run() -> void:
 	_test_round_trip()
 	_test_backup_recovery()
 	_test_rejects_oversized_data()
+	_test_backup_not_overwritten_by_invalid_primary()
+	_test_load_statuses()
 	_test_delete()
 	_save_system.free()
 	_restore_original_files()
@@ -66,6 +68,8 @@ func _test_backup_recovery() -> void:
 	file.store_string("{broken JSON")
 	file.close()
 
+	var detail: Dictionary = _save_system.call("load_game_result")
+	_check(str(detail.get("status", "")) == "recovered_from_backup", "load result distinguishes backup recovery")
 	var recovered: Dictionary = _save_system.call("load_game")
 	_check(int(recovered.get("revision", 0)) == 1, "corrupt primary save recovers the previous revision from backup")
 
@@ -74,6 +78,55 @@ func _test_rejects_oversized_data() -> void:
 	var oversized := {"payload": "x".repeat(MAX_SAVE_SIZE + 10)}
 	_check(not bool(_save_system.call("save_game", oversized)), "oversized save data is rejected")
 
+
+
+func _test_backup_not_overwritten_by_invalid_primary() -> void:
+	_save_system.call("delete_save")
+	_check(bool(_save_system.call("save_game", {"revision": 1})), "initial save creates revision one")
+	_check(bool(_save_system.call("save_game", {"revision": 2})), "second save creates a backup of revision one")
+
+	var file := FileAccess.open("user://savegame.json", FileAccess.WRITE)
+	_check(file != null, "test can corrupt primary save fixture")
+	if file == null:
+		return
+	file.store_string("{broken JSON")
+	file.close()
+
+	_check(
+		bool(_save_system.call("save_game", {"revision": 3})),
+		"new valid data can replace a corrupt primary without rotating corrupt bytes into the backup"
+	)
+
+	file = FileAccess.open("user://savegame.json", FileAccess.WRITE)
+	_check(file != null, "test can corrupt new primary fixture")
+	if file == null:
+		return
+	file.store_string("{corrupted again")
+	file.close()
+
+	var recovered: Dictionary = _save_system.call("load_game_result")
+	_check(str(recovered.get("status", "")) == "recovered_from_backup", "corrupt primary falls back to preserved backup")
+	_check(
+		int((recovered.get("data", {}) as Dictionary).get("revision", 0)) == 1,
+		"resaving after primary corruption preserves the last known valid backup"
+	)
+
+
+func _test_load_statuses() -> void:
+	_save_system.call("delete_save")
+	var missing: Dictionary = _save_system.call("load_game_result")
+	_check(str(missing.get("status", "")) == "not_found", "missing save is distinguished from corrupted save")
+
+	var file := FileAccess.open("user://savegame.json", FileAccess.WRITE)
+	_check(file != null, "test can write invalid JSON fixture")
+	if file == null:
+		return
+	file.store_string("{incomplete")
+	file.close()
+
+	var invalid: Dictionary = _save_system.call("load_game_result")
+	_check(str(invalid.get("status", "")) == "invalid", "invalid JSON returns an explicit invalid status")
+	_check(str(invalid.get("primary_reason", "")) == "invalid_json", "invalid status contains the primary failure reason")
 
 func _test_delete() -> void:
 	_check(bool(_save_system.call("delete_save")), "delete_save succeeds")
