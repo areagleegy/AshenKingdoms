@@ -29,6 +29,8 @@ static func register_input_actions() -> void:
 	_add_joy_button_action(&"jump", JOY_BUTTON_A)
 	_add_joy_button_action(&"interact", JOY_BUTTON_B)
 	_add_joy_button_action(&"attack", JOY_BUTTON_X)
+	# Right trigger is a second, analog-aware attack binding (RT/R2).
+	_add_joy_axis_action(&"attack", JOY_AXIS_TRIGGER_RIGHT, 1.0)
 	_add_joy_button_action(&"inventory", JOY_BUTTON_Y)
 	_add_joy_button_action(&"sprint", JOY_BUTTON_LEFT_STICK)
 	_add_joy_button_action(&"pause", JOY_BUTTON_START)
