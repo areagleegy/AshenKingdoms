@@ -2,6 +2,7 @@ extends SceneTree
 
 const CATALOG_SCRIPT_PATH := "res://scripts/content/content_catalog.gd"
 var _failures := 0
+var _unavailable_pack_events: Array[String] = []
 var _catalog_script: Script
 var _catalog: RefCounted
 
@@ -145,7 +146,19 @@ func _run() -> void:
 	_check(content_manager != null, "content manager autoload exists")
 	if content_manager != null:
 		_check(str(content_manager.call("get_catalog_state")) == "not_configured", "base game starts with content downloads disabled when no service is configured")
+		content_manager.pack_state_changed.connect(_on_pack_state_changed)
+		content_manager.set("_catalog", {"test_pack_one": {}, "test_pack_two": {}})
+		content_manager.call("_fail_catalog", "synthetic catalog failure for regression test")
+		_check(content_manager.get_catalog().is_empty(), "catalog failure clears stale catalog entries")
+		_check(str(content_manager.call("get_catalog_state")) == "error", "catalog failure sets the error state")
+		_check(_unavailable_pack_events.size() == 2, "catalog failure emits unavailable state for every previously indexed pack")
+		_check(_unavailable_pack_events.has("test_pack_one") and _unavailable_pack_events.has("test_pack_two"), "catalog failure identifies both unavailable packs")
 	_finish()
+
+
+func _on_pack_state_changed(pack_id: String, state: String, _details: Dictionary) -> void:
+	if state == "unavailable":
+		_unavailable_pack_events.append(pack_id)
 
 
 func _sha256_bytes(bytes: PackedByteArray) -> PackedByteArray:

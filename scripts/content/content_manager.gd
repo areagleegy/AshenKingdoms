@@ -336,10 +336,11 @@ func _remove_file(path: String) -> void:
 func _fail_catalog(message: String) -> void:
 	_catalog_state = "error"
 	_last_error = message
+	var unavailable_pack_ids: Array = _catalog.keys()
 	_catalog.clear()
 	push_warning(message)
 	catalog_updated.emit({})
-	for pack_id in _catalog:
+	for pack_id in unavailable_pack_ids:
 		_emit_pack_state(str(pack_id), "unavailable", {"error": message})
 
 
