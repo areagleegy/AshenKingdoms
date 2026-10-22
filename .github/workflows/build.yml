@@ -303,13 +303,18 @@ jobs:
           marker = 'application/app_store_team_id=""'
           if content.count(marker) != 1:
               raise SystemExit("Expected exactly one empty iOS app_store_team_id setting.")
-          if not team_id:
-              print("IOS_TEAM_ID is unset; exporting an unsigned Xcode project only.")
-          else:
+          if team_id:
               if not re.fullmatch(r"[A-Z0-9]{10}", team_id):
                   raise SystemExit("IOS_TEAM_ID must be the 10-character Apple Developer Team ID.")
-              content = content.replace(marker, f'application/app_store_team_id="{team_id}"', 1)
-              config.write_text(content, encoding="utf-8")
+              selected_team_id = team_id
+              print("Using the configured Apple Developer Team ID.")
+          else:
+              # Godot 4.6 requires a non-empty, 10-character Team ID even when
+              # exporting an Xcode project only. This placeholder is not a signing identity.
+              selected_team_id = "AAAAAAAAAA"
+              print("IOS_TEAM_ID is unset; using placeholder AAAAAAAAAA for unsigned Xcode project generation.")
+          content = content.replace(marker, f'application/app_store_team_id="{selected_team_id}"', 1)
+          config.write_text(content, encoding="utf-8")
           PY
 
       - name: Import project
