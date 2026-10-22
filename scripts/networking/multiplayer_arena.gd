@@ -21,6 +21,7 @@ func _ready() -> void:
 		call_deferred("_return_to_menu")
 		return
 
+	add_to_group("network_arenas")
 	_register_input_actions()
 	_build_world()
 	_build_hud()
@@ -347,10 +348,25 @@ func _on_peer_arena_ready(peer_id: int) -> void:
 	# The loopback integration harness opts into a deterministic combat setup.
 	# Never enabled during normal gameplay.
 	if multiplayer.is_server() and OS.get_environment("ASHEN_TEST_COMBAT") == "1":
-		var avatar := _entities.get_node_or_null("Peer_%d" % peer_id) as Node3D
-		var enemy := _entities.get_node_or_null("Enemy_01") as Node3D
-		if is_instance_valid(avatar) and is_instance_valid(enemy):
-			enemy.global_position = avatar.global_position + Vector3(0.0, 0.0, -2.0)
+		_set_test_combat_scenario(peer_id, 0)
+
+
+func _set_test_combat_scenario(peer_id: int, scenario_index: int) -> void:
+	if not multiplayer.is_server() or OS.get_environment("ASHEN_TEST_COMBAT") != "1":
+		return
+	var avatar := _entities.get_node_or_null("Peer_%d" % peer_id) as Node3D
+	var enemy := _entities.get_node_or_null("Enemy_01") as CharacterBody3D
+	if not is_instance_valid(avatar) or not is_instance_valid(enemy):
+		return
+
+	var offset := Vector3(0.0, 0.0, -2.0)
+	if scenario_index == 0:
+		offset = Vector3(0.0, 0.0, -4.0)
+	elif scenario_index == 1:
+		offset = Vector3(0.0, 0.0, 2.0)
+	# Later attack edges use an in-range target in front of the avatar.
+	enemy.global_position = avatar.global_position + offset
+	enemy.velocity = Vector3.ZERO
 
 
 func _on_peer_left(peer_id: int) -> void:
