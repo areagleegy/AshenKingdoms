@@ -6,15 +6,15 @@
 
 يُعرّف `.github/workflows/validate.yml` فحوصًا على كل دفع إلى `main` وعلى فتح أو تحديث Pull Request، ويمكن تشغيله يدويًا. تشمل الخطوات الحالية:
 
-- اختبارات الوحدة لمصنّف تشخيص سجلات الاختبار وقياس مجموعة التشخيص الاصطناعية.
+- اختبار منع تسريب أسرار التشخيص إلى Workflow لطلبات السحب، واختبارات الوحدة لمصنّف سجلات الاختبار وقياس مجموعة التشخيص الاصطناعية.
 - التحقق من الملفات الأساسية، واستيراد مشروع Godot 4.6 وتحليل السكربتات والموارد.
 - تحميل السكربتات والمشاهد، واختبارات اللعب الأساسية والانحدار وبطل اللاعب. ويتحقق اختبار تحميل الموارد أيضًا من مسارات عقد مشهد `TouchControls.tscn` مقابل العقد الموجودة فعليًا، لمنع عودة مراجع `$NodePath` المكسورة.
-- اختبارات قتال الشبكة، واتصال ENet loopback بين عمليتين محليتين.
+- اختبارات قتال الشبكة، واتصال ENet loopback بين عمليتين محليتين، واختبارات أمن الحفظ والاستعادة عند تلف الملف الأساسي.
 - اختبارات فهرس حزم المحتوى ومثبتها، واختبارات Python لبناء الحزم وتوقيع الفهرس.
 - فحص سجل الأصول والرخص، والتحقق من الروابط المحلية في ملفات Markdown.
 - تشغّل `.github/workflows/build.yml` تصدير Android وWeb بصورة مستقلة وترفع المخرجات كـ Artifacts.
 
-راجع [تعريف التحقق](../.github/workflows/validate.yml) و[تعريف البناء](../.github/workflows/build.yml) إذا تغيرت قائمة الخطوات؛ هذان الملفان هما المصدر التنفيذي النهائي، وليس هذه القائمة المختصرة.
+راجع [تعريف التحقق](../.github/workflows/validate.yml) و[تعريف البناء](../.github/workflows/build.yml) إذا تغيرت قائمة الخطوات؛ هذان الملفان هما المصدر التنفيذي النهائي، وليس هذه القائمة المختصرة. يشرح [مستند تقوية الحفظ](SAVE_HARDENING_AR.md) استراتيجية الملفات المؤقتة والنسخ الاحتياطي وحالات الاستعادة وحدود ضمانها.
 
 ## عزل أسرار التشخيص في CI
 
@@ -30,10 +30,12 @@
 
 ~~~bash
 python3 tools/validate_docs.py
+python3 -m unittest tools.test_ci_security -v
 godot --headless --path . --editor --quit
 godot --headless --path . --script res://tests/script_load_smoke_test.gd
 godot --headless --path . --script res://tests/gameplay_smoke_test.gd
 godot --headless --path . --script res://tests/gameplay_regression_test.gd
+godot --headless --path . --script res://tests/save_system_security_test.gd
 godot --headless --path . --script res://tests/player_character_smoke_test.gd
 timeout 45s godot --headless --path . res://tests/network_combat_smoke_test.tscn
 bash tools/test-network-loopback.sh
