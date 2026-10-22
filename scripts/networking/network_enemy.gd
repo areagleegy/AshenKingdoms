@@ -56,7 +56,7 @@ func _ready() -> void:
 	material.albedo_color = Color(0.24, 0.30, 0.38, 1.0)
 	material.roughness = 0.85
 	_body_mesh.material_override = material
-	if not multiplayer.is_server():
+	if not multiplayer.is_server() or OS.get_environment("ASHEN_TEST_COMBAT") == "1":
 		set_physics_process(false)
 
 
@@ -112,6 +112,8 @@ func apply_damage_from_server(amount: float, attacker_peer_id: int) -> void:
 	if not multiplayer.is_server() or amount <= 0.0 or is_dead or current_health <= 0.0:
 		return
 	current_health = clampf(current_health - amount, 0.0, max_health)
+	if OS.get_environment("ASHEN_TEST_COMBAT") == "1":
+		print("[combat-server] enemy_health slot=%d health=%.2f" % [enemy_slot, current_health])
 	_last_attacker_peer_id = attacker_peer_id
 	if current_health <= 0.0:
 		is_dead = true
