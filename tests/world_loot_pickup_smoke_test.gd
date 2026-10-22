@@ -48,9 +48,6 @@ func _run_tests() -> void:
 	_expect(is_instance_valid(pickup), "Partially collected pickup must remain available.")
 
 	# Repeating interaction with the remaining two should finish collection.
-	for index in range(inventory.slots.size()):
-		if inventory.slots[index].is_empty():
-			break
 	# Free three units by removing items, then collect the remainder.
 	_expect(inventory.remove_item(item.id, 3), "Inventory should permit making room for the remaining pickup.")
 	pickup.interact()
