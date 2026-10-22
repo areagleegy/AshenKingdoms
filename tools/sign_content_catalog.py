@@ -104,7 +104,8 @@ def validate_catalog(catalog: Any) -> dict[str, Any]:
                     raise PackageError(f"Missing or invalid {field} in {pack_id}: {path}")
                 parsed_url = urlparse(value)
                 if (
-                    parsed_url.scheme not in {"http", "https"}
+                    any(character.isspace() for character in value)
+                    or parsed_url.scheme not in {"http", "https"}
                     or not parsed_url.hostname
                     or parsed_url.username
                     or parsed_url.password
