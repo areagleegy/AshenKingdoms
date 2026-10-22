@@ -1,7 +1,7 @@
 extends Node3D
 
 const SERVER_SCRIPT: Script = preload("res://scripts/core/server.gd")
-const INPUT_SETUP_SCRIPT: Script = preload("res://scripts/core/input_setup.gd")
+const INPUT_SETUP_SCRIPT = preload("res://scripts/core/input_setup.gd")
 const HEALTH_SCRIPT: Script = preload("res://scripts/components/health.gd")
 const PLAYER_SCRIPT: Script = preload("res://scripts/player/player.gd")
 const PLAYER_MODEL_PATH: String = "res://assets/characters/player/player.glb"
