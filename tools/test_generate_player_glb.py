@@ -39,6 +39,7 @@ class FakeResponse:
         self._body = body
         self._offset = 0
         self._final_url = final_url
+        self.headers = {}
 
     def __enter__(self) -> "FakeResponse":
         return self
@@ -146,6 +147,49 @@ class GeneratePlayerGlbTests(unittest.TestCase):
         path.write_bytes(content)
         with self.assertRaises(generate_player_glb.MeshyError):
             generate_player_glb._validate_glb_container(path)
+
+    def test_rejects_cleartext_reference_image_url(self) -> None:
+        with self.assertRaises(generate_player_glb.MeshyError):
+            generate_player_glb._read_image_reference("http://images.example.invalid/reference.png", None)
+
+    def test_accepts_https_reference_image_url(self) -> None:
+        image_url = "https://images.example.invalid/reference.png"
+        self.assertEqual(
+            generate_player_glb._read_image_reference(image_url, None),
+            image_url,
+        )
+
+    def test_accepts_supported_base64_data_uri(self) -> None:
+        image_data = b"fixture"
+        encoded = __import__("base64").b64encode(image_data).decode("ascii")
+        image_url = f"data:image/png;base64,{encoded}"
+        self.assertEqual(generate_player_glb._read_image_reference(image_url, None), image_url)
+
+    def test_rejects_unsupported_data_uri_mime_type(self) -> None:
+        with self.assertRaises(generate_player_glb.MeshyError):
+            generate_player_glb._read_image_reference("data:image/gif;base64,YWJj", None)
+
+    def test_rejects_invalid_base64_data_uri(self) -> None:
+        with self.assertRaises(generate_player_glb.MeshyError):
+            generate_player_glb._read_image_reference("data:image/png;base64,%%%invalid%%%", None)
+
+    def test_rejects_oversized_data_uri_before_decoding(self) -> None:
+        with mock.patch.object(generate_player_glb, "MAX_IMAGE_BYTES", 3):
+            with self.assertRaises(generate_player_glb.MeshyError):
+                generate_player_glb._read_image_reference("data:image/png;base64,YWJjZGVm", None)
+
+    def test_api_json_response_has_a_hard_size_limit(self) -> None:
+        with mock.patch.object(generate_player_glb, "MAX_API_RESPONSE_BYTES", 3):
+            with mock.patch(
+                "tools.generate_player_glb.urllib.request.urlopen",
+                return_value=FakeResponse(b'{"ok":true}'),
+            ):
+                with self.assertRaises(generate_player_glb.MeshyError):
+                    generate_player_glb._request_json(
+                        "https://api.example.invalid/task",
+                        "GET",
+                        "test-key-do-not-log",
+                    )
 
     def test_download_accepts_valid_glb_and_replaces_existing_output(self) -> None:
         output = self.root / "player.glb"
