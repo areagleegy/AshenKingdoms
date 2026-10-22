@@ -11,6 +11,7 @@ import re
 import subprocess
 import tempfile
 from typing import Any
+from urllib.parse import urlparse
 
 try:
     from tools.package_content import (
@@ -91,6 +92,27 @@ def validate_catalog(catalog: Any) -> dict[str, Any]:
                 raise PackageError(f"Invalid asset size in {pack_id}: {path}")
             if not SHA256_RE.fullmatch(str(record.get("sha256", ""))):
                 raise PackageError(f"Invalid asset digest in {pack_id}: {path}")
+
+            for field in ("author", "license", "attribution"):
+                value = record.get(field)
+                if not isinstance(value, str) or not value.strip():
+                    raise PackageError(f"Missing or invalid {field} provenance in {pack_id}: {path}")
+            for field in ("source_url", "license_url"):
+                value = record.get(field)
+                if not isinstance(value, str) or len(value) > 2048:
+                    raise PackageError(f"Missing or invalid {field} in {pack_id}: {path}")
+                parsed_url = urlparse(value)
+                if (
+                    parsed_url.scheme not in {"http", "https"}
+                    or not parsed_url.hostname
+                    or parsed_url.username
+                    or parsed_url.password
+                ):
+                    raise PackageError(f"{field} must be an HTTP(S) URL without embedded credentials: {path}")
+            for field in ("commercial_use", "redistribution_allowed"):
+                if record.get(field) is not True:
+                    raise PackageError(f"{field} permission must be explicitly true in {pack_id}: {path}")
+
             unpacked_size += file_size
             if unpacked_size > MAX_TOTAL_BYTES:
                 raise PackageError(f"Unpacked package size limit exceeded: {pack_id}")
