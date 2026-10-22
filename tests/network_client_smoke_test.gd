@@ -97,7 +97,13 @@ func _run() -> void:
 		var position_after_invalid: Vector3 = local_avatar.global_position
 		local_avatar.set_physics_process(true)
 		_check(position_after_invalid.is_finite(), "non-finite RPC input does not corrupt the replicated avatar position")
-		_check(position_after_invalid.distance_to(position_before_invalid) < 0.25, "non-finite RPC input does not materially move the avatar")
+		# Vertical movement can continue while gravity settles the avatar onto the floor.
+		# The rejected horizontal input should not change the requested X/Z movement.
+		var horizontal_delta := Vector2(
+			position_after_invalid.x - position_before_invalid.x,
+			position_after_invalid.z - position_before_invalid.z
+		)
+		_check(horizontal_delta.length() < 0.25, "non-finite RPC input does not materially move the avatar horizontally")
 	if _failures > 0 and current_scene != null:
 		var entities := current_scene.get_node_or_null("Entities") as Node3D
 		if entities != null:
