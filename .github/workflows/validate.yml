@@ -62,6 +62,7 @@ jobs:
           test -f tools/sign_content_catalog.py
           test -f tools/test_sign_content_catalog.py
           test -f tools/validate_free_assets.py
+          test -f tools/test_validate_free_assets.py
           test -f assets/ashenkingdoms_icon.svg
           test -f scenes/ui/MainMenu.tscn
           test -f scenes/network/MultiplayerArena.tscn
@@ -173,7 +174,7 @@ jobs:
       - name: Run content, signing, and GLB safety tests
         run: |
           set -o pipefail
-          python -m unittest tools.test_package_content tools.test_sign_content_catalog tools.test_generate_player_glb -v 2>&1 | tee "$RUNNER_TEMP/python-tests.log"
+          python -m unittest tools.test_package_content tools.test_sign_content_catalog tools.test_generate_player_glb tools.test_validate_free_assets -v 2>&1 | tee "$RUNNER_TEMP/python-tests.log"
 
       - name: Diagnose test logs
         if: always()
