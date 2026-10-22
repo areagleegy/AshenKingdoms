@@ -33,6 +33,14 @@ static func register_input_actions() -> void:
 	_add_joy_button_action(&"sprint", JOY_BUTTON_LEFT_STICK)
 	_add_joy_button_action(&"pause", JOY_BUTTON_START)
 
+	# Standard controller navigation for menus, dialogs, and focused buttons.
+	_add_joy_button_action(&"ui_accept", JOY_BUTTON_A)
+	_add_joy_button_action(&"ui_cancel", JOY_BUTTON_B)
+	_add_joy_button_action(&"ui_up", JOY_BUTTON_DPAD_UP)
+	_add_joy_button_action(&"ui_down", JOY_BUTTON_DPAD_DOWN)
+	_add_joy_button_action(&"ui_left", JOY_BUTTON_DPAD_LEFT)
+	_add_joy_button_action(&"ui_right", JOY_BUTTON_DPAD_RIGHT)
+
 	if not InputMap.has_action("attack"):
 		InputMap.add_action("attack")
 	var attack_event := InputEventMouseButton.new()
