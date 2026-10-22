@@ -8,6 +8,7 @@ var _address_input: LineEdit
 var _port_input: LineEdit
 var _status_label: Label
 var _join_button: Button
+var _solo_button: Button
 
 
 func _ready() -> void:
@@ -25,6 +26,7 @@ func _ready() -> void:
 		return
 
 	_build_ui()
+	call_deferred("_focus_default_control")
 
 
 func _build_ui() -> void:
@@ -57,11 +59,12 @@ func _build_ui() -> void:
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	layout.add_child(subtitle)
 
-	var solo_button := Button.new()
-	solo_button.text = "اللعب الفردي"
-	solo_button.custom_minimum_size = Vector2(0.0, 48.0)
-	solo_button.pressed.connect(_start_solo)
-	layout.add_child(solo_button)
+	_solo_button = Button.new()
+	_solo_button.text = "اللعب الفردي"
+	_solo_button.custom_minimum_size = Vector2(0.0, 48.0)
+	_solo_button.focus_mode = Control.FOCUS_ALL
+	_solo_button.pressed.connect(_start_solo)
+	layout.add_child(_solo_button)
 
 	var separator := HSeparator.new()
 	layout.add_child(separator)
@@ -101,7 +104,7 @@ func _build_ui() -> void:
 
 	var note := Label.new()
 	if network_supported:
-		note.text = "تشمل هذه المرحلة حركة متزامنة وقتالًا وصحة وأعداءً ومهمة قتل تجريبية. لا تتوفر مزامنة كاملة للجرد والحوار أو حفظ شبكي دائم."
+		note.text = "يد التحكم: العصا اليسرى للحركة، واليمنى للكاميرا، A للقفز، X للهجوم، B للتفاعل، Y للحقيبة، L3 للركض، Start للإيقاف. جلسة الشبكة تجريبية."
 	else:
 		note.text = "نسخة Web تدعم اللعب الفردي في هذه المرحلة. جلسة ENet التجريبية متاحة عبر Desktop أو Android."
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -199,6 +202,13 @@ func _on_connection_failed(reason: String) -> void:
 	_set_status(reason)
 	if is_instance_valid(_join_button):
 		_join_button.disabled = false
+
+
+
+
+func _focus_default_control() -> void:
+	if is_instance_valid(_solo_button) and _solo_button.is_visible_in_tree():
+		_solo_button.grab_focus()
 
 
 func _set_status(message: String) -> void:
