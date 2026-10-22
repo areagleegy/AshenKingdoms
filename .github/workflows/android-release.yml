@@ -124,6 +124,11 @@ jobs:
           version_code = os.environ["ANDROID_VERSION_CODE"].strip()
           if not re.fullmatch(r"[1-9][0-9]*", version_code):
               raise SystemExit("version_code must be a positive integer.")
+          version_name = os.environ["ANDROID_VERSION_NAME"].strip()
+          if not version_name:
+              raise SystemExit("version_name must not be empty.")
+          if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._+-]{0,49}", version_name):
+              raise SystemExit("version_name must be 1-50 characters using letters, digits, dot, underscore, plus, or hyphen.")
           if options.count("version/code=1") != 1:
               raise SystemExit("Expected one default version/code in Android Play preset.")
           options = options.replace("version/code=1", "version/code=" + version_code, 1)
@@ -131,7 +136,7 @@ jobs:
               raise SystemExit("Android Play preset must target API 36 for current Google Play submission requirements.")
           if options.count('version/name="0.1.0"') != 1:
               raise SystemExit("Expected one default version/name in Android Play preset.")
-          options = options.replace('version/name="0.1.0"', "version/name=" + quote_godot_string(os.environ["ANDROID_VERSION_NAME"].strip()), 1)
+          options = options.replace('version/name="0.1.0"', "version/name=" + quote_godot_string(version_name), 1)
 
           values = {
               'keystore/release=""': "keystore/release=" + quote_godot_string(os.environ["RUNNER_TEMP"] + "/ashenkingdoms-release.keystore"),
@@ -150,6 +155,7 @@ jobs:
           test -s build/android/AshenKingdoms.aab
           jarsigner -verify -verbose -certs build/android/AshenKingdoms.aab > "$RUNNER_TEMP/aab-signature-check.log" 2>&1
           grep -Eiq 'jar verified\.' "$RUNNER_TEMP/aab-signature-check.log" || { cat "$RUNNER_TEMP/aab-signature-check.log"; echo "AAB signature verification did not confirm a signed bundle." >&2; exit 1; }
+          unzip -tq build/android/AshenKingdoms.aab
           du -h build/android/AshenKingdoms.aab
           sha256sum build/android/AshenKingdoms.aab
 
