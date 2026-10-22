@@ -34,9 +34,12 @@ func save_game(data: Dictionary) -> bool:
 		return false
 
 	var temp_check := _read_dictionary(TEMP_PATH)
-	if not bool(temp_check.get("ok", false)) or temp_check.get("data", {}) != data:
+	if (
+		not bool(temp_check.get("ok", false))
+		or FileAccess.get_file_as_string(TEMP_PATH) != serialized
+	):
 		_remove_if_exists(TEMP_PATH)
-		push_error("Temporary save failed JSON/dictionary verification.")
+		push_error("Temporary save failed byte-for-byte/JSON verification.")
 		return false
 
 	# Rotate only a verified primary save into the backup. A corrupt primary
@@ -44,7 +47,8 @@ func save_game(data: Dictionary) -> bool:
 	var had_primary := FileAccess.file_exists(SAVE_PATH)
 	var primary_check := _read_dictionary(SAVE_PATH)
 	if had_primary and bool(primary_check.get("ok", false)):
-		if not _refresh_backup_from_primary(primary_check.get("data", {}) as Dictionary):
+		var primary_text := FileAccess.get_file_as_string(SAVE_PATH)
+		if not _refresh_backup_from_primary(primary_text):
 			_remove_if_exists(TEMP_PATH)
 			return false
 
@@ -175,7 +179,7 @@ func delete_save() -> bool:
 	return ok
 
 
-func _refresh_backup_from_primary(primary_data: Dictionary) -> bool:
+func _refresh_backup_from_primary(primary_text: String) -> bool:
 	if not _remove_if_exists(BACKUP_TEMP_PATH):
 		push_error("Could not clear the temporary backup file.")
 		return false
@@ -191,7 +195,7 @@ func _refresh_backup_from_primary(primary_data: Dictionary) -> bool:
 	var temporary_backup := _read_dictionary(BACKUP_TEMP_PATH)
 	if (
 		not bool(temporary_backup.get("ok", false))
-		or temporary_backup.get("data", {}) != primary_data
+		or FileAccess.get_file_as_string(BACKUP_TEMP_PATH) != primary_text
 	):
 		_remove_if_exists(BACKUP_TEMP_PATH)
 		push_error("Temporary backup failed content verification.")
@@ -212,7 +216,7 @@ func _refresh_backup_from_primary(primary_data: Dictionary) -> bool:
 	var backup_check := _read_dictionary(BACKUP_PATH)
 	if (
 		not bool(backup_check.get("ok", false))
-		or backup_check.get("data", {}) != primary_data
+		or FileAccess.get_file_as_string(BACKUP_PATH) != primary_text
 	):
 		_remove_if_exists(BACKUP_TEMP_PATH)
 		push_error("Updated backup failed content verification; primary save was not changed.")
