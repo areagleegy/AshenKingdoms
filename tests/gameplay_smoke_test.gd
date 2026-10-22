@@ -4,6 +4,10 @@ const ProgressionManagerScript: Script = preload("res://scripts/core/progression
 const QuestManagerScript: Script = preload("res://scripts/core/quest_manager.gd")
 const SaveSystemScript: Script = preload("res://scripts/core/save_system.gd")
 const SAVE_PATH: String = "user://savegame.json"
+const TEMP_SAVE_PATH: String = "user://savegame.json.tmp"
+const BACKUP_SAVE_PATH: String = "user://savegame.json.bak"
+
+var _original_aux_files: Dictionary = {}
 
 var _failures: int = 0
 
@@ -67,21 +71,31 @@ func _run() -> void:
 	_check(int(restored_quest.get("progress")) == 3, "quest progress survives save-data round-trip")
 	_check(not bool(restored_quest.get("active")), "completed state survives save-data round-trip")
 
+	for path in [TEMP_SAVE_PATH, BACKUP_SAVE_PATH]:
+		var exists := FileAccess.file_exists(path)
+		_original_aux_files[path] = {"exists": exists, "text": FileAccess.get_file_as_string(path) if exists else ""}
+
 	var save_system: Node = SaveSystemScript.new()
 	root.add_child(save_system)
 	var sample_data: Dictionary = {
 		"version": 1,
-		"smoke_test_marker": "ashen-kingdoms",
-		"nested": {"value": 7}
+		"player_position": {"x": 0.0, "y": 0.92, "z": 0.0},
+		"player_health": 61.5,
+		"level": 2,
+		"experience": 7,
+		"inventory": [],
+		"quest": {"active": false, "progress": 0},
+		"dialogue": {"flags": {"smoke_test_marker": true, "nested_value": true}}
 	}
 	_check(bool(save_system.call("save_game", sample_data)), "save system writes JSON data")
 	var loaded_data = save_system.call("load_game")
 	_check(loaded_data is Dictionary, "save system loads a JSON object")
 	if loaded_data is Dictionary:
-		_check(loaded_data.get("smoke_test_marker", "") == "ashen-kingdoms", "loaded save retains its marker")
-		var loaded_nested = loaded_data.get("nested", {})
-		_check(loaded_nested is Dictionary and int(loaded_nested.get("value", 0)) == 7, "loaded save retains nested values")
+		_check(bool(loaded_data.get("dialogue", {}).get("flags", {}).get("smoke_test_marker", false)), "loaded save retains its marker flag")
+		var loaded_flags: Dictionary = loaded_data.get("dialogue", {}).get("flags", {})
+		_check(bool(loaded_flags.get("nested_value", false)), "loaded save retains additional dialogue flags")
 
+	_remove_if_exists(BACKUP_SAVE_PATH)
 	var corrupt_file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if corrupt_file == null:
 		_check(false, "test can open save file to simulate corruption")
@@ -107,6 +121,22 @@ func _restore_original_save(had_original_save: bool, original_save: String, save
 		restore_file.close()
 	else:
 		_check(bool(save_system.call("delete_save")), "temporary smoke-test save is removed")
+
+	for path in _original_aux_files.keys():
+		_remove_if_exists(path)
+		var original: Dictionary = _original_aux_files[path]
+		if bool(original["exists"]):
+			var restore_aux := FileAccess.open(path, FileAccess.WRITE)
+			if restore_aux == null:
+				_check(false, "original auxiliary save file can be restored: %s" % path)
+			else:
+				restore_aux.store_string(str(original["text"]))
+				restore_aux.close()
+
+
+func _remove_if_exists(path: String) -> void:
+	if FileAccess.file_exists(path):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
 
 func _check(condition: bool, description: String) -> void:

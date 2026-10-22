@@ -14,6 +14,10 @@ const DialogueChoiceScript: Script = preload("res://scripts/dialogue/dialogue_ch
 const MainScript: Script = preload("res://scripts/core/main.gd")
 
 const SAVE_PATH := "user://savegame.json"
+const TEMP_SAVE_PATH := "user://savegame.json.tmp"
+const BACKUP_SAVE_PATH := "user://savegame.json.bak"
+
+var _original_aux_files: Dictionary = {}
 const POTION_PATH := "res://resources/items/health_potion.tres"
 
 var _failures := 0
@@ -36,10 +40,15 @@ func _run() -> void:
 		original_save = original_file.get_as_text()
 		original_file.close()
 
+	for path in [TEMP_SAVE_PATH, BACKUP_SAVE_PATH]:
+		var exists := FileAccess.file_exists(path)
+		_original_aux_files[path] = {"exists": exists, "text": FileAccess.get_file_as_string(path) if exists else ""}
+
 	_test_player_and_health()
 	_test_inventory_and_potions()
 	_test_save_and_load(had_original_save, original_save)
 	_test_dialogue_and_quests()
+	_test_quest_reward_idempotency()
 	_test_android_configuration()
 	_test_runtime_input_registration()
 
@@ -132,15 +141,26 @@ func _test_save_and_load(had_original_save: bool, original_save: String) -> void
 	var save_system: Node = SaveSystemScript.new()
 	root.add_child(save_system)
 
-	_check(bool(save_system.call("save_game", {"level": 4, "health": 61.5, "flags": {"intro_seen": true}})), "save system writes structured data")
+	var sample_data: Dictionary = {
+		"version": 1,
+		"player_position": {"x": 1.0, "y": 0.92, "z": -2.0},
+		"player_health": 61.5,
+		"level": 4,
+		"experience": 12,
+		"inventory": [],
+		"quest": {},
+		"dialogue": {"flags": {"intro_seen": true}},
+	}
+	_check(bool(save_system.call("save_game", sample_data)), "save system writes schema-valid structured data")
 	var loaded = save_system.call("load_game")
 	_check(loaded is Dictionary, "save system returns a dictionary for valid JSON")
 	if loaded is Dictionary:
 		_check(int(loaded.get("level", 0)) == 4, "saved progression values load correctly")
-		_check(is_equal_approx(float(loaded.get("health", 0.0)), 61.5), "saved floating-point health loads correctly")
-		var flags = loaded.get("flags", {})
+		_check(is_equal_approx(float(loaded.get("player_health", 0.0)), 61.5), "saved floating-point health loads correctly")
+		var flags = loaded.get("dialogue", {}).get("flags", {})
 		_check(flags is Dictionary and bool(flags.get("intro_seen", false)), "nested dialogue flags survive save/load")
 
+	_remove_if_exists(BACKUP_SAVE_PATH)
 	var malformed := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if malformed == null:
 		_check(false, "test can create malformed JSON fixture")
@@ -165,6 +185,22 @@ func _restore_original_save(had_original_save: bool, original_save: String, save
 		file.close()
 	else:
 		_check(bool(save_system.call("delete_save")), "temporary save file is removed after test")
+
+	for path in _original_aux_files.keys():
+		_remove_if_exists(path)
+		var original: Dictionary = _original_aux_files[path]
+		if bool(original["exists"]):
+			var restore_aux := FileAccess.open(path, FileAccess.WRITE)
+			if restore_aux == null:
+				_check(false, "original auxiliary save file can be restored: %s" % path)
+			else:
+				restore_aux.store_string(str(original["text"]))
+				restore_aux.close()
+
+
+func _remove_if_exists(path: String) -> void:
+	if FileAccess.file_exists(path):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
 
 func _test_dialogue_and_quests() -> void:
@@ -230,6 +266,44 @@ func _test_dialogue_and_quests() -> void:
 	quests.queue_free()
 	progression.queue_free()
 	player.queue_free()
+
+
+func _test_quest_reward_idempotency() -> void:
+	var progression_before: Node = ProgressionScript.new()
+	progression_before.name = "QuestRewardProgressionBefore"
+	root.add_child(progression_before)
+	var quests_before: Node = QuestManagerScript.new()
+	quests_before.name = "QuestRewardManagerBefore"
+	quests_before.set("progression", progression_before)
+	root.add_child(quests_before)
+
+	_check(bool(quests_before.call("start_quest", &"ash_trail")), "reward idempotency fixture starts the known quest")
+	var completion_events: Array = []
+	quests_before.connect("quest_completed", func(_title: String, _reward_xp: int) -> void: completion_events.append(true))
+	for _kill in range(3):
+		quests_before.call("on_enemy_defeated", &"ash_wraith")
+	_check(int(progression_before.get("experience")) == 75, "quest grants its configured reward exactly once on completion")
+	_check(completion_events.size() == 1, "quest completion signal fires once")
+	var saved_quest: Dictionary = quests_before.call("to_save_data")
+
+	var progression_after: Node = ProgressionScript.new()
+	progression_after.name = "QuestRewardProgressionAfter"
+	root.add_child(progression_after)
+	progression_after.call("restore_state", int(progression_before.get("level")), int(progression_before.get("experience")))
+	var quests_after: Node = QuestManagerScript.new()
+	quests_after.name = "QuestRewardManagerAfter"
+	quests_after.set("progression", progression_after)
+	root.add_child(quests_after)
+	quests_after.call("load_state", saved_quest)
+	quests_after.call("on_enemy_defeated", &"ash_wraith")
+	_check(int(progression_after.get("experience")) == 75, "completed quest cannot grant its reward again after save/reload")
+	_check(not bool(quests_after.call("start_quest", &"ash_trail")), "completed quest cannot be restarted to farm its reward")
+	_check(int(quests_after.get("progress")) == 3 and not bool(quests_after.get("active")), "completed quest state remains completed after reload")
+
+	quests_after.free()
+	progression_after.free()
+	quests_before.free()
+	progression_before.free()
 
 
 func _test_android_configuration() -> void:
