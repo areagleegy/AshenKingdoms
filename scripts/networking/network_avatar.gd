@@ -2,6 +2,9 @@ extends CharacterBody3D
 
 const INPUT_SEND_INTERVAL: float = 0.05
 const INPUT_TIMEOUT_MSEC: int = 350
+const RPC_INPUT_RATE: float = 30.0
+const RPC_INPUT_BURST: float = 60.0
+const MAX_DIRECTION_LENGTH: float = 1.5
 const MAX_LEVEL: int = 50
 const QUEST_TARGET: int = 3
 const QUEST_REWARD_XP: int = 75
@@ -35,6 +38,8 @@ var _attack_requested: bool = false
 var _last_jump_down: bool = false
 var _last_attack_down: bool = false
 var _last_input_msec: int = 0
+var _rpc_input_tokens: float = RPC_INPUT_BURST
+var _rpc_input_last_refill_msec: int = 0
 var _next_attack_msec: int = 0
 var _death_generation: int = 0
 var _input_send_accumulator: float = 0.0
@@ -46,6 +51,8 @@ func configure_owner(peer_id: int) -> void:
 	set_multiplayer_authority(1, true)
 	position = _spawn_position(owner_peer_id)
 	current_health = max_health
+	_rpc_input_tokens = RPC_INPUT_BURST
+	_rpc_input_last_refill_msec = Time.get_ticks_msec()
 
 
 func _ready() -> void:
@@ -105,11 +112,40 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 	if sender_id != owner_peer_id or sender_id <= 1 or is_dead:
 		return
 
+	if not _consume_rpc_input_token():
+		return
+	if (
+		is_nan(direction.x) or is_inf(direction.x)
+		or is_nan(direction.y) or is_inf(direction.y)
+		or is_nan(direction.z) or is_inf(direction.z)
+	):
+		return
+	if direction.length_squared() > MAX_DIRECTION_LENGTH * MAX_DIRECTION_LENGTH:
+		return
+
 	var safe_direction := Vector3(direction.x, 0.0, direction.z)
 	if safe_direction.length_squared() > 1.0:
 		safe_direction = safe_direction.normalized()
 	_set_requested_input(safe_direction, jump_down, sprint_down, attack_down)
 	_last_input_msec = Time.get_ticks_msec()
+
+
+func _consume_rpc_input_token() -> bool:
+	var now := Time.get_ticks_msec()
+	if _rpc_input_last_refill_msec <= 0:
+		_rpc_input_last_refill_msec = now
+	else:
+		var elapsed_msec := maxi(0, now - _rpc_input_last_refill_msec)
+		_rpc_input_tokens = minf(
+			RPC_INPUT_BURST,
+			_rpc_input_tokens + float(elapsed_msec) * RPC_INPUT_RATE / 1000.0
+		)
+		_rpc_input_last_refill_msec = now
+
+	if _rpc_input_tokens < 1.0:
+		return false
+	_rpc_input_tokens -= 1.0
+	return true
 
 
 func _set_requested_input(direction: Vector3, jump_down: bool, sprint_down: bool, attack_down: bool) -> void:

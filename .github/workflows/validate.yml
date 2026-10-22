@@ -78,6 +78,8 @@ jobs:
           test -f docs/NETWORKING.md
           test -f tests/script_load_smoke_test.gd
           test -f tests/network_client_smoke_test.gd
+          test -f tests/network_rpc_security_test.gd
+          test -f tests/network_rpc_rate_limit_test.gd
           test -f tests/network_combat_smoke_test.gd
           test -f tests/network_combat_smoke_test.tscn
           test -f tools/test-network-loopback.sh
@@ -126,6 +128,27 @@ jobs:
         run: |
           set -o pipefail
           godot --headless --path . --script res://tests/script_load_smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/resource-smoke.log"
+
+      - name: Run save system security regression tests
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -o pipefail
+          godot --headless --path . --script res://tests/save_system_security_test.gd 2>&1 | tee "$RUNNER_TEMP/save-system-security.log"
+
+      - name: Run network RPC security regression tests
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -o pipefail
+          godot --headless --path . --script res://tests/network_rpc_security_test.gd 2>&1 | tee "$RUNNER_TEMP/network-rpc-security.log"
+
+      - name: Run network RPC rate-limit behavior tests
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -o pipefail
+          godot --headless --path . --script res://tests/network_rpc_rate_limit_test.gd 2>&1 | tee "$RUNNER_TEMP/network-rpc-rate-limit.log"
 
       - name: Run gameplay smoke tests
         env:

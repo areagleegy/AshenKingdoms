@@ -59,7 +59,9 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  # APK export is intentionally paused until the user explicitly requests a build.
   android:
+    if: ${{ false }}
     name: Export Android APK
     runs-on: ubuntu-latest
     timeout-minutes: 35
