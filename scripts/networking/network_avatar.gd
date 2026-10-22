@@ -113,16 +113,12 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 		return
 
 	var now := Time.get_ticks_msec()
-	if _input_rate_window_start_msec == 0 or now - _input_rate_window_start_msec >= INPUT_RATE_WINDOW_MSEC:
-		_input_rate_window_start_msec = now
-		_input_rate_window_count = 0
 	# Count every authenticated RPC before validating its payload or cadence. Otherwise,
 	# a peer can avoid the rate budget by sending malformed or too-frequent packets.
-	if _input_rate_window_count >= INPUT_RATE_LIMIT:
+	if not _record_input_rate_request(now):
 		if OS.get_environment("ASHEN_TEST_COMBAT") == "1":
 			print("[network-input-test] rejected input rate limit")
 		return
-	_input_rate_window_count += 1
 
 	# Reject malformed numeric input before it reaches movement/physics code.
 	if not is_finite(direction.x) or not is_finite(direction.y) or not is_finite(direction.z):
@@ -142,6 +138,16 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 		_set_test_combat_scenario()
 	_set_requested_input(safe_direction, jump_down, sprint_down, attack_down)
 	_last_input_msec = now
+
+
+func _record_input_rate_request(now_msec: int) -> bool:
+	if _input_rate_window_start_msec == 0 or now_msec - _input_rate_window_start_msec >= INPUT_RATE_WINDOW_MSEC:
+		_input_rate_window_start_msec = now_msec
+		_input_rate_window_count = 0
+	if _input_rate_window_count >= INPUT_RATE_LIMIT:
+		return false
+	_input_rate_window_count += 1
+	return true
 
 
 func _set_test_combat_scenario() -> void:
