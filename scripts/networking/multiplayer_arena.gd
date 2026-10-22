@@ -147,7 +147,7 @@ func _build_hud() -> void:
 	layout.add_child(_combat_label)
 
 	var help := Label.new()
-	help.text = "الحركة: العصا اليسرى أو WASD · الكاميرا: العصا اليمنى أو سحب الجانب الأيمن · A/Cross قفز · X/Square هجوم · L3 ركض · Start/Options القائمة."
+	help.text = "الحركة: العصا اليسرى أو WASD · الكاميرا: العصا اليمنى أو سحب الجانب الأيمن · A/Cross قفز · X/Square أو RT/R2 هجوم · L3 ركض · Start/Options القائمة."
 	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	layout.add_child(help)
 
