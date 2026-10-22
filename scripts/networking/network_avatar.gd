@@ -44,6 +44,7 @@ var _last_input_rate_refill_msec: int = -1
 var _next_attack_msec: int = 0
 var _death_generation: int = 0
 var _input_send_accumulator: float = 0.0
+var _local_input_enabled: bool = true
 var _base_color: Color = Color.WHITE
 
 
@@ -69,12 +70,20 @@ func _ready() -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
+func set_local_input_enabled(enabled: bool) -> void:
+	if not _owns_local_input():
+		return
+	_local_input_enabled = enabled
+	if not enabled and multiplayer.is_server() and owner_peer_id == 1:
+		_set_requested_input(Vector3.ZERO, false, false, false)
+
+
 func _process(delta: float) -> void:
 	var material := visual_mesh.material_override as StandardMaterial3D
 	if material != null:
 		material.albedo_color = Color(0.14, 0.12, 0.16, 1.0) if is_dead else _base_color
 
-	if _owns_local_input() and camera.current:
+	if _owns_local_input() and _local_input_enabled and camera.current:
 		var look_input := Input.get_vector("look_left", "look_right", "look_up", "look_down")
 		if look_input.length_squared() > 0.0001:
 			_apply_camera_rotation(
@@ -86,12 +95,15 @@ func _process(delta: float) -> void:
 func _physics_process(delta: float) -> void:
 	if multiplayer.is_server():
 		if owner_peer_id == 1 and not is_dead:
-			_set_requested_input(
-				_read_world_direction(),
-				Input.is_action_pressed("jump"),
-				Input.is_action_pressed("sprint"),
-				Input.is_action_pressed("attack")
-			)
+			if _local_input_enabled:
+				_set_requested_input(
+					_read_world_direction(),
+					Input.is_action_pressed("jump"),
+					Input.is_action_pressed("sprint"),
+					Input.is_action_pressed("attack")
+				)
+			else:
+				_set_requested_input(Vector3.ZERO, false, false, false)
 		_server_step(delta)
 		return
 
@@ -101,13 +113,14 @@ func _physics_process(delta: float) -> void:
 	_input_send_accumulator += delta
 	if _input_send_accumulator >= INPUT_SEND_INTERVAL:
 		_input_send_accumulator = 0.0
+		var input_enabled := _local_input_enabled
 		rpc_id(
 			1,
 			"_rpc_submit_input",
-			_read_world_direction(),
-			Input.is_action_pressed("jump"),
-			Input.is_action_pressed("sprint"),
-			Input.is_action_pressed("attack")
+			_read_world_direction() if input_enabled else Vector3.ZERO,
+			input_enabled and Input.is_action_pressed("jump"),
+			input_enabled and Input.is_action_pressed("sprint"),
+			input_enabled and Input.is_action_pressed("attack")
 		)
 
 
