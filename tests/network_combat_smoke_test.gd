@@ -26,6 +26,7 @@ func _run() -> void:
 	_check(bool(multiplayer.is_server()), "offline smoke harness is allowed to exercise server logic")
 	_test_input_direction_validation(avatar)
 	_test_input_rate_limit(avatar)
+	_test_stale_input_reset(avatar)
 
 	avatar.call("server_grant_experience", 100)
 	print("[network-smoke] XP tested")
@@ -114,6 +115,29 @@ func _test_input_rate_limit(avatar: Node) -> void:
 		not bool(avatar.call("_consume_input_rate_token", 1100)),
 		"input rate limiter enforces the replenished budget"
 	)
+
+
+func _test_stale_input_reset(avatar: Node) -> void:
+	avatar.set("_requested_direction", Vector3(0.5, 0.0, -0.5))
+	avatar.set("_sprint_requested", true)
+	avatar.set("_jump_buffered", true)
+	avatar.set("_attack_requested", true)
+	avatar.set("_last_jump_down", true)
+	avatar.set("_last_attack_down", true)
+
+	avatar.call("_clear_stale_remote_input")
+
+	var direction_after_reset: Vector3 = avatar.get("_requested_direction")
+	_check(direction_after_reset.is_zero_approx(), "stale input reset clears remote movement direction")
+	_check(not bool(avatar.get("_sprint_requested")), "stale input reset clears sprint")
+	_check(not bool(avatar.get("_jump_buffered")), "stale input reset clears buffered jump")
+	_check(not bool(avatar.get("_attack_requested")), "stale input reset clears queued attack")
+	_check(not bool(avatar.get("_last_jump_down")), "stale input reset clears jump edge state")
+	_check(not bool(avatar.get("_last_attack_down")), "stale input reset clears attack edge state")
+
+	avatar.call("_set_requested_input", Vector3.ZERO, true, false, true)
+	_check(bool(avatar.get("_jump_buffered")), "jump is recognized after input resumes")
+	_check(bool(avatar.get("_attack_requested")), "attack is recognized after input resumes")
 
 
 func _check(condition: bool, description: String) -> void:
