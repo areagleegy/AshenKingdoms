@@ -131,6 +131,22 @@ func _test_inventory_and_potions() -> void:
 	root.add_child(restored)
 	restored.call("restore_save_data", saved_inventory)
 	_check(int(restored.call("count_item", &"health_potion")) == 1, "inventory item ID and count survive serialization round-trip")
+
+	var hostile_inventory: Node = InventoryScript.new()
+	hostile_inventory.name = "HostileInventory"
+	root.add_child(hostile_inventory)
+	var hostile_entries: Array = [
+		{"id": "health_potion", "amount": INF},
+		{"id": "health_potion", "amount": "999"},
+		{"id": "health_potion", "amount": 2.5},
+		{"id": "health_potion", "amount": 99999999999}
+	]
+	hostile_inventory.call("restore_save_data", hostile_entries)
+	_check(
+		int(hostile_inventory.call("count_item", &"health_potion")) == 3 + int(potion.max_stack),
+		"inventory restore rejects malformed stack counts and clamps oversized counts"
+	)
+	hostile_inventory.queue_free()
 	restored.queue_free()
 	player.queue_free()
 
@@ -159,6 +175,10 @@ func _test_save_and_load(had_original_save: bool, original_save: String) -> void
 	var save_system: Node = SaveSystemScript.new()
 	root.add_child(save_system)
 
+	_check(
+		not bool(save_system.call("save_game", {"oversized": "x".repeat(1024 * 1024)})),
+		"save system rejects payloads larger than the configured size limit"
+	)
 	_check(bool(save_system.call("save_game", {"level": 4, "health": 61.5, "flags": {"intro_seen": true}})), "save system writes a validated snapshot")
 	var loaded = save_system.call("load_game")
 	_check(loaded is Dictionary, "save system returns a dictionary for valid JSON")
@@ -349,6 +369,17 @@ func _test_dialogue_and_quests() -> void:
 	_check(not bool(dialogue.call("is_active")), "dialogue ends after the final node")
 	dialogue.call("deserialize", {"flags": {"restored_flag": true}})
 	_check(bool(dialogue.call("get_flag", &"restored_flag")), "dialogue flags deserialize from saved data")
+
+	var long_flag_name := "x".repeat(129)
+	var malformed_flags: Dictionary = {
+		"known_flag": true,
+		"string_flag": "true",
+		long_flag_name: true
+	}
+	dialogue.call("deserialize", {"flags": malformed_flags})
+	_check(bool(dialogue.call("get_flag", &"known_flag")), "dialogue restore retains valid Boolean flags")
+	_check(not bool(dialogue.call("get_flag", &"string_flag")), "dialogue restore rejects non-Boolean flag values")
+	_check(dialogue.get("flags").size() == 1, "dialogue restore rejects overlong flag names")
 
 	var missing_graph: DialogueGraph = DialogueGraphScript.new()
 	missing_graph.entry_node_id = &"missing"
