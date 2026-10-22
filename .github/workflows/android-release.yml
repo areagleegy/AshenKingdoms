@@ -100,6 +100,7 @@ jobs:
           test -n "${ANDROID_VERSION_CODE:-}" || { echo "Missing version_code input" >&2; exit 1; }
           test -n "${ANDROID_VERSION_NAME:-}" || { echo "Missing version_name input" >&2; exit 1; }
           keystore_path="$RUNNER_TEMP/ashenkingdoms-release.keystore"
+          trap 'rm -f "$keystore_path"' EXIT
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$keystore_path"
           test -s "$keystore_path"
           python3 - <<'PY'
