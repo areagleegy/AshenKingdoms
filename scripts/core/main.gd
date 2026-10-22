@@ -78,6 +78,25 @@ func _register_input_actions() -> void:
 	_add_key_action(&"save", [KEY_F5])
 	_add_key_action(&"load", [KEY_F9])
 	_add_key_action(&"interact", [KEY_E, KEY_ENTER])
+
+	# Left stick: movement. Right stick: camera look.
+	_add_joy_axis_action(&"move_left", JOY_AXIS_LEFT_X, -1.0)
+	_add_joy_axis_action(&"move_right", JOY_AXIS_LEFT_X, 1.0)
+	_add_joy_axis_action(&"move_forward", JOY_AXIS_LEFT_Y, -1.0)
+	_add_joy_axis_action(&"move_back", JOY_AXIS_LEFT_Y, 1.0)
+	_add_joy_axis_action(&"look_left", JOY_AXIS_RIGHT_X, -1.0)
+	_add_joy_axis_action(&"look_right", JOY_AXIS_RIGHT_X, 1.0)
+	_add_joy_axis_action(&"look_up", JOY_AXIS_RIGHT_Y, -1.0)
+	_add_joy_axis_action(&"look_down", JOY_AXIS_RIGHT_Y, 1.0)
+
+	# Conventional Xbox / PlayStation face-button and menu layout.
+	_add_joy_button_action(&"jump", JOY_BUTTON_A)
+	_add_joy_button_action(&"interact", JOY_BUTTON_B)
+	_add_joy_button_action(&"attack", JOY_BUTTON_X)
+	_add_joy_button_action(&"inventory", JOY_BUTTON_Y)
+	_add_joy_button_action(&"sprint", JOY_BUTTON_LEFT_STICK)
+	_add_joy_button_action(&"pause", JOY_BUTTON_START)
+
 	if not InputMap.has_action("attack"):
 		InputMap.add_action("attack")
 	var attack_event := InputEventMouseButton.new()
@@ -94,6 +113,25 @@ func _add_key_action(action: StringName, key_codes: Array) -> void:
 		key_event.physical_keycode = int(key_code)
 		if not InputMap.action_has_event(action, key_event):
 			InputMap.action_add_event(action, key_event)
+
+
+func _add_joy_button_action(action: StringName, button_index: int) -> void:
+	if not InputMap.has_action(action):
+		InputMap.add_action(action)
+	var button_event := InputEventJoypadButton.new()
+	button_event.button_index = button_index
+	if not InputMap.action_has_event(action, button_event):
+		InputMap.action_add_event(action, button_event)
+
+
+func _add_joy_axis_action(action: StringName, axis: int, axis_value: float) -> void:
+	if not InputMap.has_action(action):
+		InputMap.add_action(action)
+	var axis_event := InputEventJoypadMotion.new()
+	axis_event.axis = axis
+	axis_event.axis_value = axis_value
+	if not InputMap.action_has_event(action, axis_event):
+		InputMap.action_add_event(action, axis_event)
 
 
 func _create_world() -> void:
