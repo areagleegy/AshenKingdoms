@@ -17,6 +17,11 @@ on:
 permissions:
   contents: read
 
+# Never run two signing/release jobs concurrently with the same environment.
+concurrency:
+  group: android-release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release:
     if: github.ref == 'refs/heads/main'
