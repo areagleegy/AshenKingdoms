@@ -43,46 +43,51 @@ class SignContentCatalogTests(unittest.TestCase):
         self.temp_dir.cleanup()
 
     def test_accepts_catalog_with_multiple_packs_and_dependency(self):
-        catalog = {"schema_version": 1, "packs": [pack("base_pack"), pack("hero_pack", ["base_pack"])]}
+        catalog = {"schema_version": 2, "packs": [pack("base_pack"), pack("hero_pack", ["base_pack"])]}
         self.assertEqual(sign_content_catalog.validate_catalog(catalog), catalog)
 
     def test_rejects_file_missing_provenance_metadata(self):
-        catalog = {"schema_version": 1, "packs": [pack("hero_pack")]}
+        catalog = {"schema_version": 2, "packs": [pack("hero_pack")]}
         del catalog["packs"][0]["files"][0]["author"]
         with self.assertRaises(sign_content_catalog.PackageError):
             sign_content_catalog.validate_catalog(catalog)
 
     def test_rejects_file_without_redistribution_permission(self):
-        catalog = {"schema_version": 1, "packs": [pack("hero_pack")]}
+        catalog = {"schema_version": 2, "packs": [pack("hero_pack")]}
         catalog["packs"][0]["files"][0]["redistribution_allowed"] = False
         with self.assertRaises(sign_content_catalog.PackageError):
             sign_content_catalog.validate_catalog(catalog)
 
     def test_rejects_file_license_url_with_embedded_credentials(self):
-        catalog = {"schema_version": 1, "packs": [pack("hero_pack")]}
+        catalog = {"schema_version": 2, "packs": [pack("hero_pack")]}
         catalog["packs"][0]["files"][0]["license_url"] = "https://user:pass@license.example.invalid/text"
         with self.assertRaises(sign_content_catalog.PackageError):
             sign_content_catalog.validate_catalog(catalog)
 
+    def test_rejects_legacy_schema_without_provenance_contract(self):
+        catalog = {"schema_version": 1, "packs": [pack("hero_pack")]}
+        with self.assertRaises(sign_content_catalog.PackageError):
+            sign_content_catalog.validate_catalog(catalog)
+
     def test_rejects_missing_dependency(self):
-        catalog = {"schema_version": 1, "packs": [pack("hero_pack", ["missing_pack"])]}
+        catalog = {"schema_version": 2, "packs": [pack("hero_pack", ["missing_pack"])]}
         with self.assertRaises(sign_content_catalog.PackageError):
             sign_content_catalog.validate_catalog(catalog)
 
     def test_rejects_dependency_cycle(self):
-        catalog = {"schema_version": 1, "packs": [pack("base_pack", ["hero_pack"]), pack("hero_pack", ["base_pack"])]}
+        catalog = {"schema_version": 2, "packs": [pack("base_pack", ["hero_pack"]), pack("hero_pack", ["base_pack"])]}
         with self.assertRaises(sign_content_catalog.PackageError):
             sign_content_catalog.validate_catalog(catalog)
 
     def test_rejects_reserved_installer_manifest(self):
-        catalog = {"schema_version": 1, "packs": [pack("hero_pack")]}
+        catalog = {"schema_version": 2, "packs": [pack("hero_pack")]}
         catalog["packs"][0]["files"][0]["path"] = "installed_manifest.json"
         with self.assertRaises(sign_content_catalog.PackageError):
             sign_content_catalog.validate_catalog(catalog)
 
     def test_missing_key_fails_closed(self):
         input_path = self.root / "catalog-input.json"
-        input_path.write_text(json.dumps({"schema_version": 1, "packs": [pack("hero_pack")]}), encoding="utf-8")
+        input_path.write_text(json.dumps({"schema_version": 2, "packs": [pack("hero_pack")]}), encoding="utf-8")
         with self.assertRaises(sign_content_catalog.PackageError):
             sign_content_catalog.sign_catalog(input_path, self.root / "signed.json", self.root / "missing.pem")
 
@@ -98,7 +103,7 @@ class SignContentCatalogTests(unittest.TestCase):
         self.assertEqual(generated.returncode, 0)
         input_path = self.root / "catalog-input.json"
         input_path.write_text(json.dumps({
-            "schema_version": 1,
+            "schema_version": 2,
             "packs": [pack("base_pack"), pack("hero_pack", ["base_pack"])],
         }), encoding="utf-8")
         output_path = self.root / "catalog.json"
