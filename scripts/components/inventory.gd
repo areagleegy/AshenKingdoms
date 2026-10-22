@@ -13,6 +13,7 @@ const ITEM_PATHS: Dictionary = {
 
 @export_range(1, 80, 1) var slot_count: int = DEFAULT_SLOTS
 var slots: Array[Dictionary] = []
+var pending_items: Array[Dictionary] = []
 
 
 func _ready() -> void:
@@ -134,28 +135,89 @@ func to_save_data() -> Array:
 			continue
 		var item: ItemResource = slot.get("item") as ItemResource
 		if item == null:
-			data.append(null)
+			# Preserve entries for content IDs that are not installed in this build.
+			var raw: Variant = slot.get("raw", null)
+			if raw is Dictionary:
+				var preserved: Dictionary = (raw as Dictionary).duplicate(true)
+				preserved["id"] = String(slot.get("item_id", preserved.get("id", "")))
+				preserved["amount"] = int(slot.get("amount", preserved.get("amount", 1)))
+				data.append(preserved)
+			else:
+				data.append(null)
 			continue
 		data.append({"id": String(item.id), "amount": int(slot.get("amount", 1))})
+	if not pending_items.is_empty():
+		data.append({"__inventory_pending_items": pending_items.duplicate(true)})
 	return data
 
 
 func restore_save_data(data: Array) -> void:
 	_ensure_slot_count()
+	pending_items.clear()
 	for index in range(slots.size()):
 		slots[index] = {}
+
+	var overflow: Array[Dictionary] = []
 	for index in range(mini(data.size(), slots.size())):
-		var entry = data[index]
-		if not (entry is Dictionary):
+		var entry: Variant = data[index]
+		if not (entry is Dictionary) or entry.has("__inventory_pending_items"):
 			continue
 		var item_id := String(entry.get("id", ""))
+		if item_id.is_empty():
+			continue
+		var amount := maxi(1, int(entry.get("amount", 1)))
 		var path: String = ITEM_PATHS.get(item_id, "")
 		if path.is_empty() or not ResourceLoader.exists(path):
+			# Keep the unknown entry in its original slot. UI/use/drop paths already
+			# ignore slots whose item resource is null, while serialization preserves it.
+			slots[index] = {
+				"item_id": item_id,
+				"amount": amount,
+				"raw": entry.duplicate(true),
+			}
 			continue
+
 		var item := load(path) as ItemResource
-		var amount := maxi(1, int(entry.get("amount", 1)))
-		if item != null:
-			slots[index] = {"item": item, "amount": mini(amount, item.max_stack)}
+		if item == null:
+			slots[index] = {
+				"item_id": item_id,
+				"amount": amount,
+				"raw": entry.duplicate(true),
+			}
+			continue
+		var max_stack := maxi(1, item.max_stack)
+		var placed := mini(amount, max_stack)
+		slots[index] = {"item": item, "amount": placed}
+		if amount > placed:
+			overflow.append({"id": item_id, "amount": amount - placed})
+
+	# Read pending entries after the visible slots, preserving compatibility with
+	# older saves that contain only one dictionary per slot.
+	for entry in data:
+		if not (entry is Dictionary) or not entry.has("__inventory_pending_items"):
+			continue
+		var saved_pending: Variant = entry.get("__inventory_pending_items", [])
+		if saved_pending is Array:
+			for pending in saved_pending:
+				if pending is Dictionary:
+					overflow.append((pending as Dictionary).duplicate(true))
+
+	# Refill compatible stacks and empty slots; any remainder stays serialized as
+	# pending data instead of being silently discarded when the bag is full.
+	for pending in overflow:
+		var pending_id := String(pending.get("id", ""))
+		var pending_amount := maxi(1, int(pending.get("amount", 1)))
+		var pending_path: String = ITEM_PATHS.get(pending_id, "")
+		if pending_path.is_empty() or not ResourceLoader.exists(pending_path):
+			pending_items.append(pending.duplicate(true))
+			continue
+		var pending_item := load(pending_path) as ItemResource
+		if pending_item == null:
+			pending_items.append(pending.duplicate(true))
+			continue
+		var remaining := add_item(pending_item, pending_amount)
+		if remaining > 0:
+			pending_items.append({"id": pending_id, "amount": remaining})
 	inventory_changed.emit()
 
 
