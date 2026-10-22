@@ -83,7 +83,7 @@ python3 tools/validate_free_assets.py
 
 ## GitHub Actions
 
-كل من Workflow التحقق وWorkflow بناء Android/Web يعمل عند فتح أو تحديث Pull Request، كما يعملان عند الدفع إلى `main`. يتوفر تشغيل يدوي عبر `workflow_dispatch`.
+يعمل Workflow التحقق وWorkflow بناء المنصات عند فتح أو تحديث Pull Request، كما يعملان عند الدفع إلى `main`. يتوفر تشغيل يدوي عبر `workflow_dispatch`.
 
 - `Validate Godot Project`: تحليل واستيراد الموارد، تحميل السكربتات والمشاهد، اختبارات اللعب والانحدار واللاعب والشبكة والمحتوى، وفحوص أدوات Python والتوثيق.
 - `Build Game Platforms`: تصدير Web وAPK تجريبي، بالإضافة إلى Windows وLinux وmacOS.
