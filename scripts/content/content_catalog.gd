@@ -146,23 +146,27 @@ func _validate_pack(pack: Dictionary) -> Dictionary:
 
 
 func _is_https_url(value: String) -> bool:
-	if value.is_empty() or value.length() > 2048 or not value.begins_with("https://"):
+	if value.is_empty() or value.length() > 2048 or value.substr(0, 8).to_lower() != "https://":
 		return false
-	if value.strip_edges() != value or value.contains(" ") or value.contains("\\") or value.contains("#") or value.contains("@"):
+	if value.strip_edges() != value or value.contains(" ") or value.contains("\\") or value.contains("#"):
 		return false
 	if value.contains("\t") or value.contains("\n") or value.contains("\r") or value.to_utf8_buffer().has(0):
 		return false
 	var remainder := value.substr(8)
 	var authority := remainder.split("/", true)[0].split("?", true)[0]
-	if authority.is_empty() or authority.ends_with(":"):
+	if authority.is_empty() or authority.ends_with(":") or authority.contains("@"):
 		return false
 	var host := authority
 	if authority.contains(":"):
 		if authority.count(":") != 1:
 			return false
 		var host_and_port := authority.split(":", true)
-		if host_and_port.size() != 2 or not host_and_port[1].is_valid_int():
+		if host_and_port.size() != 2 or host_and_port[1].is_empty():
 			return false
+		for digit in host_and_port[1]:
+			var code := digit.unicode_at(0)
+			if code < 48 or code > 57:
+				return false
 		var port := int(host_and_port[1])
 		if port < 1 or port > 65535:
 			return false
