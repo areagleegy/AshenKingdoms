@@ -31,6 +31,11 @@ class PackageContentTests(unittest.TestCase):
     def test_rejects_backslash_path(self):
         self.assertFalse(package_content.is_safe_relative_path("characters\\..\\outside.json"))
 
+    def test_rejects_empty_path_segments(self):
+        for value in ("characters//hero.glb", "characters/hero.glb/"):
+            with self.subTest(value=value):
+                self.assertFalse(package_content.is_safe_relative_path(value))
+
     def test_collects_allowed_data_asset(self):
         (self.source / "hero.glb").write_bytes(b"glb-fixture")
         records = package_content.collect_files(self.source)
