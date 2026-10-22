@@ -98,6 +98,13 @@ func _run() -> void:
 	_check(not bool(_catalog.call("is_safe_relative_path", "../escape.txt")), "parent traversal is rejected by path helper")
 	_check(not bool(_catalog.call("is_safe_relative_path", "/absolute/path.txt")), "absolute paths are rejected by path helper")
 	_check(bool(_catalog.call("is_safe_relative_path", "characters/hero.glb")), "nested relative asset path is accepted")
+	_check(not bool(_catalog.call("is_safe_relative_path", "characters//hero.glb")), "empty path segments are rejected")
+	_check(not bool(_catalog.call("is_safe_relative_path", "characters/hero.glb/")), "trailing path separators are rejected")
+	_check(not bool(_catalog.call("is_safe_relative_path", "characters/hero.glb.")), "trailing-dot filenames are rejected for cross-platform safety")
+	_check(not bool(_catalog.call("is_safe_relative_path", "characters/CON.png")), "Windows reserved device filenames are rejected even with an extension")
+	_check(not bool(_catalog.call("is_safe_relative_path", "characters/AUX.json")), "Windows auxiliary device filenames are rejected")
+	_check(not bool(_catalog.call("is_safe_relative_path", "characters/bad?.glb")), "Windows-invalid filename characters are rejected")
+	_check(not bool(_catalog.call("is_safe_relative_path", "characters/" + String.chr(1) + "bad.glb")), "control characters are rejected from asset paths")
 
 	var installer_script: Script = load("res://scripts/content/content_package_installer.gd") as Script
 	_check(installer_script != null, "content package installer script exists and loads")
