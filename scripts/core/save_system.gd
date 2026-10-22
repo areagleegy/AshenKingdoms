@@ -127,12 +127,16 @@ func _load_from_path(path: String) -> Dictionary:
 
 	var data: Dictionary = parsed
 	var version_value: Variant = data.get("version", 1)
-	if not _is_number(version_value) or int(version_value) < 1:
+	if not _is_number(version_value):
 		push_warning("SaveSystem: missing or invalid save version in %s." % path)
 		return {}
-	if int(version_value) > SAVE_VERSION:
+	var version_number: float = float(version_value)
+	if not is_finite(version_number) or version_number != float(int(version_number)) or int(version_number) < 1:
+		push_warning("SaveSystem: save version must be a positive integer in %s." % path)
+		return {}
+	if int(version_number) > SAVE_VERSION:
 		_unsupported_future_save = true
-		push_warning("SaveSystem: save version %d is newer than supported version %d." % [int(version_value), SAVE_VERSION])
+		push_warning("SaveSystem: save version %d is newer than supported version %d." % [int(version_number), SAVE_VERSION])
 		return {}
 
 	data = _migrate_payload(data)
@@ -147,7 +151,12 @@ func _validate_payload(data: Dictionary) -> bool:
 		if not data.has(key):
 			return false
 
-	if not _is_number(data["version"]) or int(data["version"]) != SAVE_VERSION:
+	if not _is_number(data["version"]):
+		return false
+	var version_number: float = float(data["version"])
+	if not is_finite(version_number) or version_number != float(int(version_number)):
+		return false
+	if int(version_number) != SAVE_VERSION:
 		return false
 	if not data["player_position"] is Dictionary:
 		return false
