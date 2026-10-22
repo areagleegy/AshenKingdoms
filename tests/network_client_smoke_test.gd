@@ -81,8 +81,9 @@ func _run() -> void:
 	_check(saw_local_avatar, "client receives its own authoritative avatar")
 	_check(enemy_count == 4, "client receives all four existing enemies")
 
-	if OS.get_environment("ASHEN_TEST_COMBAT") == "1" and saw_local_avatar and enemy_count == 4:
-		var local_avatar := entities.get_node_or_null("Peer_%d" % local_peer_id)
+	var arena_entities := current_scene.get_node_or_null("Entities") as Node3D
+	if OS.get_environment("ASHEN_TEST_COMBAT") == "1" and saw_local_avatar and enemy_count == 4 and arena_entities != null:
+		var local_avatar := arena_entities.get_node_or_null("Peer_%d" % local_peer_id)
 		var target := entities.get_node_or_null("Enemy_01")
 		if not is_instance_valid(local_avatar) or not is_instance_valid(target):
 			_fail("combat integration setup entities are missing")
