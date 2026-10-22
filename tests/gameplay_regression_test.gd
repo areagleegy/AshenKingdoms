@@ -182,7 +182,7 @@ func _test_player_position_finite_guard() -> void:
 
 func _cleanup_test_save_files(base_path: String) -> void:
 	for suffix in ["", ".tmp", ".bak", ".bak.tmp", ".restore.tmp"]:
-		var test_path := base_path + suffix
+		var test_path: String = base_path + str(suffix)
 		if FileAccess.file_exists(test_path):
 			var remove_error: Error = DirAccess.remove_absolute(ProjectSettings.globalize_path(test_path))
 			if remove_error != OK:
