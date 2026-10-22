@@ -26,6 +26,7 @@ MAX_FILE_BYTES = 512 * 1024 * 1024
 MAX_TOTAL_BYTES = 4 * 1024 * 1024 * 1024
 MAX_ARCHIVE_BYTES = 2 * 1024 * 1024 * 1024
 PACK_TYPES = {"character", "world", "equipment", "audio", "language"}
+CATALOG_SCHEMA_VERSION = 2
 PACK_ID_RE = re.compile(r"^[a-z0-9_-]{1,64}$")
 VERSION_RE = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
 PROVENANCE_FIELDS = (
@@ -278,7 +279,7 @@ def build_package(
         "files": records,
         "dependencies": [],
     }
-    payload = json.dumps({"schema_version": 1, "packs": [pack_record]}, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    payload = json.dumps({"schema_version": CATALOG_SCHEMA_VERSION, "packs": [pack_record]}, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
     output_envelope = pathlib.Path(output_envelope)
     output_envelope.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="ashen-sign-") as temporary_dir:
