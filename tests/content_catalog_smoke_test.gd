@@ -41,6 +41,9 @@ func _run() -> void:
 	}
 	var valid_result: Dictionary = _catalog.call("validate_catalog", valid_catalog)
 	_check(bool(valid_result.get("ok", false)), "valid catalog is accepted")
+	var at_path_catalog: Dictionary = valid_catalog.duplicate(true)
+	at_path_catalog["packs"][0]["url"] = "https://content.example.invalid/packs/@world.zip"
+	_check(bool(_catalog.call("validate_catalog", at_path_catalog).get("ok", false)), "at-sign in HTTPS path is accepted when authority has no credentials")
 	_check(not bool(_catalog.call("parse_signed_envelope", "{}", "").get("ok", true)), "remote catalog fails closed when no public key is configured")
 	var private_key: CryptoKey = Crypto.new().generate_rsa(2048)
 	var payload_text := JSON.stringify(valid_catalog)
