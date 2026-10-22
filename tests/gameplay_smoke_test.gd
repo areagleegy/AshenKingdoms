@@ -119,7 +119,7 @@ func _run() -> void:
 
 
 func _simulate_partial_write_failure(file: FileAccess, serialized: String) -> bool:
-	var partial_length := maxi(1, serialized.length() / 2)
+	var partial_length := maxi(1, int(serialized.length() / 2))
 	file.store_string(serialized.substr(0, partial_length))
 	return false
 
