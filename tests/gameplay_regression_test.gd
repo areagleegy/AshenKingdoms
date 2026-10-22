@@ -11,7 +11,7 @@ const DialogueManagerScript: Script = preload("res://scripts/dialogue/dialogue_m
 const DialogueGraphScript: Script = preload("res://scripts/dialogue/dialogue_graph.gd")
 const DialogueNodeScript: Script = preload("res://scripts/dialogue/dialogue_node.gd")
 const DialogueChoiceScript: Script = preload("res://scripts/dialogue/dialogue_choice.gd")
-const InputSetupScript: Script = preload("res://scripts/core/input_setup.gd")
+const InputSetupScript = preload("res://scripts/core/input_setup.gd")
 
 const SAVE_PATH := "user://savegame.json"
 const POTION_PATH := "res://resources/items/health_potion.tres"
