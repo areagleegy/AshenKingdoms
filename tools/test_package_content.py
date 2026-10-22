@@ -129,6 +129,7 @@ class PackageContentTests(unittest.TestCase):
         envelope = json.loads(catalog_one.read_text(encoding="utf-8"))
         payload = base64.b64decode(envelope["payload_base64"], validate=True)
         catalog_payload = json.loads(payload.decode("utf-8"))
+        self.assertEqual(catalog_payload["schema_version"], package_content.CATALOG_SCHEMA_VERSION)
         file_record = catalog_payload["packs"][0]["files"][0]
         for provenance_field in ("author", "source_url", "license", "license_url", "attribution"):
             self.assertTrue(file_record[provenance_field])
@@ -188,6 +189,24 @@ class PackageContentTests(unittest.TestCase):
     def test_rejects_non_https_package_url(self):
         with self.assertRaises(package_content.PackageError):
             package_content.validate_package_url("http://content.example.invalid/test.zip")
+
+    def test_rejects_package_url_with_embedded_credentials(self):
+        with self.assertRaises(package_content.PackageError):
+            package_content.validate_package_url("https://user:pass@content.example.invalid/test.zip")
+
+    def test_rejects_package_url_with_whitespace(self):
+        with self.assertRaises(package_content.PackageError):
+            package_content.validate_package_url("https://content.example.invalid/bad url.zip")
+
+    def test_provenance_manifest_rejects_url_with_whitespace(self):
+        (self.source / "hero.glb").write_bytes(b"glb-fixture")
+        records = package_content.collect_files(self.source)
+        manifest_path = self._write_provenance(["hero.glb"])
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["assets"][0]["source_url"] = "https://assets.example.invalid/bad url"
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        with self.assertRaises(package_content.PackageError):
+            package_content.validate_provenance_manifest(manifest_path, self.source, records)
 
     def test_rejects_unsafe_pack_id(self):
         with self.assertRaises(package_content.PackageError):
