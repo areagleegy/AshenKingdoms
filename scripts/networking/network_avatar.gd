@@ -194,10 +194,7 @@ func _server_step(delta: float) -> void:
 		return
 
 	if owner_peer_id > 1 and Time.get_ticks_msec() - _last_input_msec > INPUT_TIMEOUT_MSEC:
-		_requested_direction = Vector3.ZERO
-		_sprint_requested = false
-		_jump_buffered = false
-		_attack_requested = false
+		_clear_stale_remote_input()
 
 	if not is_on_floor():
 		velocity.y -= _gravity * delta
@@ -220,6 +217,15 @@ func _server_step(delta: float) -> void:
 	if _attack_requested:
 		_attack_requested = false
 		_server_try_attack()
+
+
+func _clear_stale_remote_input() -> void:
+	_requested_direction = Vector3.ZERO
+	_sprint_requested = false
+	_jump_buffered = false
+	_attack_requested = false
+	_last_jump_down = false
+	_last_attack_down = false
 
 
 func _server_try_attack() -> void:
