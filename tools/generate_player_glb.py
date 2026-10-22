@@ -25,6 +25,7 @@ API_BASE = "https://api.meshy.ai/openapi/v1"
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = REPO_ROOT / "assets" / "characters" / "player" / "player.glb"
 MAX_IMAGE_BYTES = 20 * 1024 * 1024
+MAX_API_RESPONSE_BYTES = 4 * 1024 * 1024
 MAX_MODEL_BYTES = 300 * 1024 * 1024
 MAX_GLTF_JSON_BYTES = 32 * 1024 * 1024
 GLB_JSON_CHUNK_TYPE = 0x4E4F534A
@@ -38,11 +39,25 @@ class MeshyError(RuntimeError):
 
 def _read_image_reference(image_url: str | None, image_file: Path | None) -> str:
     if image_url:
-        if image_url.startswith("data:image/"):
+        if image_url.startswith("data:"):
+            metadata, separator, encoded = image_url.partition(",")
+            mime_type = metadata[5:].split(";", 1)[0].lower() if metadata.startswith("data:") else ""
+            if not separator or metadata.lower() != f"data:{mime_type};base64" or mime_type not in SUPPORTED_MIME_TYPES:
+                raise MeshyError("--image-url data URI must be base64 JPG, PNG, or WEBP.")
+            max_encoded_length = 4 * ((MAX_IMAGE_BYTES + 2) // 3)
+            if not encoded or len(encoded) > max_encoded_length:
+                raise MeshyError("Reference image data URI exceeds the 20 MiB safety limit.")
+            try:
+                decoded_image = base64.b64decode(encoded, validate=True)
+            except (ValueError, base64.binascii.Error) as exc:
+                raise MeshyError("--image-url data URI contains invalid base64.") from exc
+            if not decoded_image or len(decoded_image) > MAX_IMAGE_BYTES:
+                raise MeshyError("Reference image must be non-empty and no larger than 20 MiB.")
             return image_url
+
         parsed = urlparse(image_url)
-        if parsed.scheme not in {"https", "http"} or not parsed.netloc:
-            raise MeshyError("--image-url must be an HTTP(S) URL or supported data URI.")
+        if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+            raise MeshyError("--image-url must be a public HTTPS URL without embedded credentials or a supported data URI.")
         return image_url
 
     if image_file is None:
@@ -81,7 +96,9 @@ def _request_json(
     request = urllib.request.Request(url, data=data, headers=headers, method=method)
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
-            raw = response.read()
+            raw = response.read(MAX_API_RESPONSE_BYTES + 1)
+            if len(raw) > MAX_API_RESPONSE_BYTES:
+                raise MeshyError("Meshy API response exceeds the 4 MiB safety limit.")
             decoded = json.loads(raw.decode("utf-8"))
             if not isinstance(decoded, dict):
                 raise MeshyError("Meshy returned an unexpected JSON response.")
@@ -316,7 +333,7 @@ def parse_args() -> argparse.Namespace:
         description="Generate assets/characters/player/player.glb from a reference image using Meshy."
     )
     image_group = parser.add_mutually_exclusive_group(required=True)
-    image_group.add_argument("--image-url", help="Public HTTPS image URL or supported base64 data URI.")
+    image_group.add_argument("--image-url", help="Public HTTPS image URL or supported base64 JPG/PNG/WEBP data URI.")
     image_group.add_argument("--image-file", type=Path, help="Local JPG, PNG, or WEBP image.")
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT, help="Output GLB path.")
     parser.add_argument(
