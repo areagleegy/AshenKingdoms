@@ -13,9 +13,13 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Run diagnostics classifier unit tests
         run: |
@@ -177,10 +181,12 @@ jobs:
       - name: Diagnose test logs
         if: always()
         env:
-          ASHEN_AI_DIAGNOSE: ${{ vars.ASHEN_AI_DIAGNOSE }}
-          ASHEN_AI_ENDPOINT: ${{ secrets.ASHEN_AI_ENDPOINT }}
-          ASHEN_AI_API_KEY: ${{ secrets.ASHEN_AI_API_KEY }}
-          ASHEN_AI_MODEL: ${{ vars.ASHEN_AI_MODEL }}
+          # Remote AI diagnostics are opt-in only on trusted main-ref events.
+          # Pull Request runs keep the local classifier but receive no AI credentials.
+          ASHEN_AI_DIAGNOSE: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && vars.ASHEN_AI_DIAGNOSE || 'false' }}
+          ASHEN_AI_ENDPOINT: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && secrets.ASHEN_AI_ENDPOINT || '' }}
+          ASHEN_AI_API_KEY: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && secrets.ASHEN_AI_API_KEY || '' }}
+          ASHEN_AI_MODEL: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && vars.ASHEN_AI_MODEL || '' }}
         run: python3 tools/ai_test_diagnostics.py --log "$RUNNER_TEMP/diagnostics-unit-tests.log" --log "$RUNNER_TEMP/diagnostic-benchmark.log" --log "$RUNNER_TEMP/godot-setup.log" --log "$RUNNER_TEMP/godot-import.log" --log "$RUNNER_TEMP/gameplay-tests.log" --log "$RUNNER_TEMP/gameplay-regression.log" --log "$RUNNER_TEMP/content-tests.log" --log "$RUNNER_TEMP/python-tests.log" --log "$RUNNER_TEMP/player-character-tests.log" --log "$RUNNER_TEMP/resource-smoke.log" --log "$RUNNER_TEMP/network-combat.log" --log "$RUNNER_TEMP/network-loopback.log" --output "$RUNNER_TEMP/ashen-test-diagnostics.json"
 
       - name: Upload diagnostic report
