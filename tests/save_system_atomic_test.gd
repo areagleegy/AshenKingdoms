@@ -32,6 +32,7 @@ func _run() -> void:
 	_test_corrupt_json(save_system)
 	_test_wrong_root(save_system)
 	_test_invalid_schema_rejected(save_system)
+	_test_fractional_version_rejected(save_system)
 	_test_future_version_rejected(save_system)
 	_test_oversized_payload_rejected(save_system)
 	_test_delete_cleans_recovery_files(save_system)
@@ -133,6 +134,19 @@ func _test_invalid_schema_rejected(save_system: Node) -> void:
 	invalid = _valid_payload()
 	invalid["quest"] = {"active": false, "progress": 0}
 	_check(bool(save_system.call("save_game", invalid)), "legacy quest payload with active/progress remains valid")
+
+
+func _test_fractional_version_rejected(save_system: Node) -> void:
+	var invalid := _valid_payload()
+	invalid["version"] = 2.5
+	_check(not bool(save_system.call("_validate_payload", invalid)), "schema rejects a fractional version value")
+
+	var fractional_save := _valid_payload()
+	fractional_save["version"] = 2.5
+	_write_text(SAVE_PATH, JSON.stringify(fractional_save))
+	_remove_if_exists(BACKUP_PATH)
+	var loaded: Dictionary = save_system.call("load_game")
+	_check(loaded.is_empty(), "loading a save with a fractional version is rejected")
 
 
 func _test_future_version_rejected(save_system: Node) -> void:
