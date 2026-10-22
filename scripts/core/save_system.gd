@@ -185,7 +185,7 @@ func _validate_payload(data: Dictionary) -> bool:
 		return false
 	if not data["quest"] is Dictionary or not _validate_quest(data["quest"]):
 		return false
-	if not data["dialogue"] is Dictionary:
+	if not data["dialogue"] is Dictionary or not _validate_dialogue(data["dialogue"]):
 		return false
 	return true
 
@@ -235,6 +235,28 @@ func _validate_quest(quest_data: Dictionary) -> bool:
 		return false
 	if quest_data.has("title") and str(quest_data["title"]).length() > 512:
 		return false
+	return true
+
+
+func _validate_dialogue(dialogue_data: Dictionary) -> bool:
+	# DialogueManager serializes flags as { "flags": { "flag_name": bool } }.
+	# Keep legacy empty dictionaries valid while bounding untrusted save content.
+	if not dialogue_data.has("flags"):
+		return dialogue_data.is_empty()
+	var raw_flags: Variant = dialogue_data["flags"]
+	if not raw_flags is Dictionary:
+		return false
+	var flags: Dictionary = raw_flags
+	if flags.size() > 256:
+		return false
+	for raw_key in flags.keys():
+		if not raw_key is String:
+			return false
+		var flag_name: String = raw_key
+		if flag_name.is_empty() or flag_name.length() > 96:
+			return false
+		if typeof(flags[raw_key]) != TYPE_BOOL:
+			return false
 	return true
 
 
