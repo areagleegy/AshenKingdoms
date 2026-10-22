@@ -316,7 +316,7 @@ jobs:
           cp -a "$RUNNER_TEMP/godot-templates/templates/." "$template_root/"
           test -f "$template_root/ios.zip"
 
-      - name: Configure optional Apple Team ID in export preset
+      - name: Configure optional Apple Team ID and disable Android deploy probing
         shell: bash
         run: |
           set -euo pipefail
@@ -325,48 +325,63 @@ jobs:
           import re
           from pathlib import Path
 
-          team_id = os.environ.get("IOS_TEAM_ID", "").strip()
           config = Path("export_presets.cfg")
           content = config.read_text(encoding="utf-8")
           marker = 'application/app_store_team_id=""'
           if content.count(marker) != 1:
               raise SystemExit("Expected exactly one empty iOS app_store_team_id setting.")
+
+          team_id = os.environ.get("IOS_TEAM_ID", "").strip()
           if team_id:
               if not re.fullmatch(r"[A-Z0-9]{10}", team_id):
                   raise SystemExit("IOS_TEAM_ID must be the 10-character Apple Developer Team ID.")
               selected_team_id = team_id
               print("Using the configured Apple Developer Team ID.")
           else:
-              # Godot 4.6 requires a non-empty, 10-character Team ID even when
-              # exporting an Xcode project only. This placeholder is not a signing identity.
+              # A placeholder permits unsigned Xcode project generation only;
+              # it is not a signing identity and must never be used for release signing.
               selected_team_id = "AAAAAAAAAA"
-              print("IOS_TEAM_ID is unset; using placeholder AAAAAAAAAA for unsigned Xcode project generation.")
-          content = content.replace(marker, f'application/app_store_team_id="{selected_team_id}"', 1)
+              print("IOS_TEAM_ID is unset; generating an unsigned project-only Xcode export.")
 
-          # The Android preset is only needed in the Android job. Leaving it
-          # runnable makes the macOS Godot editor probe an unrelated ADB device
-          # at shutdown; the iOS project-only export must not deploy to devices.
+          content = content.replace(
+              marker,
+              f'application/app_store_team_id="{selected_team_id}"',
+              1,
+          )
+
           lines = content.splitlines()
-          current_preset_start = -1
+          preset_starts = [
+              index for index, line in enumerate(lines)
+              if re.fullmatch(r"\\[preset\\.\\d+\\]", line)
+          ]
           android_found = False
-          for index, line in enumerate(lines):
-              if line.startswith("[preset.") and line.endswith("]"):
-                  current_preset_start = index
-              if line == 'name="Android"':
-                  if current_preset_start < 0:
-                      raise SystemExit("Android export preset section was not found.")
-                  runnable_index = next(
-                      (position for position in range(current_preset_start + 1, index)
-                       if lines[position].startswith("runnable=")),
-                      None,
-                  )
-                  if runnable_index is None:
-                      raise SystemExit("Android export preset has no runnable option.")
-                  lines[runnable_index] = "runnable=false"
-                  android_found = True
-                  break
+          for section_index, section_start in enumerate(preset_starts):
+              section_end = (
+                  preset_starts[section_index + 1]
+                  if section_index + 1 < len(preset_starts)
+                  else len(lines)
+              )
+              section_lines = lines[section_start:section_end]
+              if 'name="Android"' not in section_lines:
+                  continue
+
+              runnable_index = next(
+                  (
+                      position for position in range(section_start, section_end)
+                      if lines[position].startswith("runnable=")
+                  ),
+                  None,
+              )
+              if runnable_index is None:
+                  raise SystemExit("Android export preset has no runnable option.")
+              lines[runnable_index] = "runnable=false"
+              android_found = True
+              print("Disabled Android one-click deploy probing for the iOS-only job.")
+              break
+
           if not android_found:
               raise SystemExit("Android export preset was not found.")
+
           config.write_text("\\n".join(lines) + "\\n", encoding="utf-8")
           PY
 
