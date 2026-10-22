@@ -3,7 +3,7 @@ extends Control
 const SOLO_SCENE: String = "res://scenes/boot/Main.tscn"
 const NETWORK_SCENE: String = "res://scenes/network/MultiplayerArena.tscn"
 const DEFAULT_PORT: int = 7777
-const INPUT_SETUP_SCRIPT: Script = preload("res://scripts/core/input_setup.gd")
+const INPUT_SETUP_SCRIPT = preload("res://scripts/core/input_setup.gd")
 
 var _address_input: LineEdit
 var _port_input: LineEdit
