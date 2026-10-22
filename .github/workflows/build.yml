@@ -230,7 +230,6 @@ jobs:
           retention-days: 7
 
       - name: Validate Google Play App Bundle export (ephemeral signing key)
-        if: ${{ vars.ANDROID_RELEASE_SIGNING_ENABLED != 'true' }}
         env:
           GODOT_SILENCE_ROOT_WARNING: "1"
         shell: bash
@@ -256,44 +255,6 @@ jobs:
           unzip -tq build/android/AshenKingdoms-validation.aab
           rm -f "$keystore_path" build/android/AshenKingdoms-validation.aab
           echo "Temporary signed AAB validation succeeded; this test key is not for distribution."
-
-      - name: Export signed Google Play App Bundle
-        if: ${{ vars.ANDROID_RELEASE_SIGNING_ENABLED == 'true' }}
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEYSTORE_ALIAS: ${{ secrets.ANDROID_KEYSTORE_ALIAS }}
-          GODOT_SILENCE_ROOT_WARNING: "1"
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -n "${ANDROID_KEYSTORE_BASE64:-}" || { echo "Missing secret ANDROID_KEYSTORE_BASE64" >&2; exit 1; }
-          test -n "${ANDROID_KEYSTORE_PASSWORD:-}" || { echo "Missing secret ANDROID_KEYSTORE_PASSWORD" >&2; exit 1; }
-          test -n "${ANDROID_KEYSTORE_ALIAS:-}" || { echo "Missing secret ANDROID_KEYSTORE_ALIAS" >&2; exit 1; }
-          keystore_path="$RUNNER_TEMP/ashenkingdoms-release.keystore"
-          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$keystore_path"
-          test -s "$keystore_path"
-          keytool -list -keystore "$keystore_path" -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEYSTORE_ALIAS" >/dev/null
-          mkdir -p build/android
-          GODOT_ANDROID_KEYSTORE_RELEASE_PATH="$keystore_path" \
-          GODOT_ANDROID_KEYSTORE_RELEASE_USER="$ANDROID_KEYSTORE_ALIAS" \
-          GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD="$ANDROID_KEYSTORE_PASSWORD" \
-            godot --headless --path . --install-android-build-template --export-release "Android Play" build/android/AshenKingdoms.aab
-          test -s build/android/AshenKingdoms.aab
-          jarsigner -verify -verbose -certs build/android/AshenKingdoms.aab > "$RUNNER_TEMP/aab-release-signature.log" 2>&1
-          grep -Eiq 'jar verified\.' "$RUNNER_TEMP/aab-release-signature.log" || { cat "$RUNNER_TEMP/aab-release-signature.log"; echo "AAB signature verification did not confirm a signed bundle." >&2; exit 1; }
-          unzip -tq build/android/AshenKingdoms.aab
-          du -h build/android/AshenKingdoms.aab
-          sha256sum build/android/AshenKingdoms.aab
-
-      - name: Upload Google Play App Bundle
-        if: ${{ vars.ANDROID_RELEASE_SIGNING_ENABLED == 'true' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: ashen-kingdoms-android-play-release
-          path: build/android/AshenKingdoms.aab
-          if-no-files-found: error
-          retention-days: 7
 
   ios:
     name: Export iOS Xcode project
