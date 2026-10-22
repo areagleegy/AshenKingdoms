@@ -467,6 +467,22 @@ func _test_android_configuration() -> void:
 		_check(generic_workflow.contains('--install-android-build-template --export-release "Android Play"'), "generic AAB validation installs the Gradle template in the export command")
 		_check(not generic_workflow.contains("Install Android Gradle build template"), "generic AAB validation does not run a separate template-install process")
 		_check(generic_workflow.contains('trap \'rm -f "$keystore_path" build/android/AshenKingdoms-validation.aab\' EXIT'), "ephemeral AAB signing files are removed even if validation fails")
+		_check(generic_workflow.contains("actions/checkout@v7"), "build workflow uses Node 24 compatible checkout")
+		_check(generic_workflow.contains("actions/upload-artifact@v7"), "build workflow uses Node 24 compatible artifact upload")
+		_check(generic_workflow.contains("actions/setup-java@v6"), "Android build uses current setup-java action")
+		_check(generic_workflow.contains("android-actions/setup-android@v4"), "Android build uses current setup-android action")
+		_check(not generic_workflow.contains("actions/checkout@v4"), "build workflow does not pin deprecated Node 20 checkout")
+		_check(not generic_workflow.contains("actions/upload-artifact@v4"), "build workflow does not pin deprecated Node 20 artifact upload")
+
+	var validation_workflow_file := FileAccess.open("res://.github/workflows/validate.yml", FileAccess.READ)
+	_check(validation_workflow_file != null, "validation workflow is readable for action-runtime checks")
+	if validation_workflow_file != null:
+		var validation_workflow := validation_workflow_file.get_as_text()
+		validation_workflow_file.close()
+		_check(validation_workflow.contains("actions/checkout@v7"), "validation workflow uses Node 24 compatible checkout")
+		_check(validation_workflow.contains("actions/upload-artifact@v7"), "validation workflow uses Node 24 compatible artifact upload")
+		_check(not validation_workflow.contains("actions/checkout@v4"), "validation workflow does not pin deprecated Node 20 checkout")
+		_check(not validation_workflow.contains("actions/upload-artifact@v4"), "validation workflow does not pin deprecated Node 20 artifact upload")
 
 	var main_source_file := FileAccess.open("res://scripts/core/input_setup.gd", FileAccess.READ)
 	_check(main_source_file != null, "shared input setup source is readable")
