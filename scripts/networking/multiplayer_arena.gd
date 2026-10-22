@@ -4,6 +4,7 @@ const MENU_SCENE: String = "res://scenes/ui/MainMenu.tscn"
 const NETWORK_AVATAR_SCENE: PackedScene = preload("res://scenes/network/NetworkAvatar.tscn")
 const NETWORK_ENEMY_SCENE: PackedScene = preload("res://scenes/network/NetworkEnemy.tscn")
 const TOUCH_CONTROLS_SCENE: PackedScene = preload("res://scenes/ui/VirtualJoystick.tscn")
+const ASHEN_RUINS_SCENE: PackedScene = preload("res://scenes/world/AshenRuinsEnvironment.tscn")
 const INITIAL_ENEMY_COUNT: int = 4
 const ENEMY_RESPAWN_SECONDS: float = 5.0
 const INPUT_SETUP_SCRIPT = preload("res://scripts/core/input_setup.gd")
@@ -63,13 +64,21 @@ func _build_world() -> void:
 	var environment_node := WorldEnvironment.new()
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_COLOR
-	environment.background_color = Color(0.035, 0.035, 0.055, 1.0)
+	environment.background_color = Color(0.026, 0.031, 0.043, 1.0)
+	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	environment.ambient_light_color = Color(0.24, 0.25, 0.29, 1.0)
+	environment.ambient_light_energy = 0.55
+	environment.fog_enabled = true
+	environment.fog_light_color = Color(0.15, 0.16, 0.19, 1.0)
+	environment.fog_density = 0.006
 	environment_node.environment = environment
 	add_child(environment_node)
 
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-48.0, -32.0, 0.0)
-	sun.light_energy = 1.25
+	sun.light_color = Color(0.88, 0.81, 0.70, 1.0)
+	sun.light_energy = 1.2
+	sun.shadow_enabled = true
 	add_child(sun)
 
 	var ground := StaticBody3D.new()
@@ -93,29 +102,9 @@ func _build_world() -> void:
 	ground_visual.material_override = material
 	add_child(ground_visual)
 
-	_add_landmark(Vector3(0.0, 1.0, -8.0), Vector3(1.0, 2.0, 1.0))
-	_add_landmark(Vector3(8.0, 1.0, 0.0), Vector3(1.0, 2.0, 1.0))
-	_add_landmark(Vector3(-8.0, 1.0, 0.0), Vector3(1.0, 2.0, 1.0))
-
-
-func _add_landmark(world_position: Vector3, size: Vector3) -> void:
-	var body := StaticBody3D.new()
-	body.position = world_position
-	var shape_node := CollisionShape3D.new()
-	var shape := BoxShape3D.new()
-	shape.size = size
-	shape_node.shape = shape
-	body.add_child(shape_node)
-	add_child(body)
-
-	var mesh_node := MeshInstance3D.new()
-	var box_mesh := BoxMesh.new()
-	box_mesh.size = size
-	mesh_node.mesh = box_mesh
-	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(0.24, 0.19, 0.15, 1.0)
-	mesh_node.material_override = material
-	body.add_child(mesh_node)
+	var ruins_instance := ASHEN_RUINS_SCENE.instantiate()
+	ruins_instance.name = "AshenRuins"
+	add_child(ruins_instance)
 
 
 func _build_hud() -> void:
