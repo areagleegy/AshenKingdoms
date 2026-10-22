@@ -124,6 +124,33 @@ class PackageContentTests(unittest.TestCase):
         with self.assertRaises(package_content.PackageError):
             package_content.validate_package_url("http://content.example.invalid/test.zip")
 
+    def test_accepts_valid_https_package_url(self):
+        self.assertEqual(
+            package_content.validate_package_url("https://cdn.example.invalid:443/packs/world.zip?version=1"),
+            "https://cdn.example.invalid:443/packs/world.zip?version=1",
+        )
+
+    def test_rejects_https_url_without_host(self):
+        for value in ("https://", "https:///packs/world.zip", "https://?download=1"):
+            with self.subTest(value=value), self.assertRaises(package_content.PackageError):
+                package_content.validate_package_url(value)
+
+    def test_rejects_https_url_with_credentials(self):
+        with self.assertRaises(package_content.PackageError):
+            package_content.validate_package_url("https://user:password@cdn.example.invalid/world.zip")
+
+    def test_rejects_invalid_https_host_or_port(self):
+        for value in (
+            "https://bad..host/world.zip",
+            "https://-bad.example/world.zip",
+            "https://cdn.example.invalid:99999/world.zip",
+            "https://cdn.example.invalid:/world.zip",
+            "https://cdn.example.invalid/world.zip#fragment",
+            "https://cdn.example.invalid/a b.zip",
+        ):
+            with self.subTest(value=value), self.assertRaises(package_content.PackageError):
+                package_content.validate_package_url(value)
+
     def test_rejects_unsafe_pack_id(self):
         with self.assertRaises(package_content.PackageError):
             package_content.validate_pack_id("../bad-id")
