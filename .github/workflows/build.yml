@@ -605,10 +605,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf build/ios
-          mkdir -p build/ios/unpacked
+          rm -rf build/ios-output build/ios-project build/ios-xcode-project.zip
+          mkdir -p build
           set +e
-          godot --headless --path . --export-release "iOS" build/ios/AshenKingdoms.zip > "$RUNNER_TEMP/ios-export.log" 2>&1
+          godot --headless --path . --export-release "iOS" build/ios-output > "$RUNNER_TEMP/ios-export.log" 2>&1
           export_status=$?
           cat "$RUNNER_TEMP/ios-export.log"
           set -e
@@ -616,18 +616,26 @@ jobs:
             echo "Godot iOS project export failed (exit $export_status)." >&2
             exit "$export_status"
           fi
-          test -s build/ios/AshenKingdoms.zip
-          python3 tools/validate_platform_exports.py ios build/ios/AshenKingdoms.zip
-          unzip -q build/ios/AshenKingdoms.zip -d build/ios/unpacked
-          project_path="$(find build/ios/unpacked -type d -name '*.xcodeproj' -print -quit)"
+          if [[ -f build/ios-output ]]; then
+            python3 tools/validate_platform_exports.py ios build/ios-output
+            mkdir -p build/ios-project
+            unzip -q build/ios-output -d build/ios-project
+          elif [[ -d build/ios-output ]]; then
+            mv build/ios-output build/ios-project
+          else
+            find build -maxdepth 4 -print
+            echo "Godot iOS export produced neither a ZIP file nor a project directory." >&2
+            exit 1
+          fi
+          project_path="$(find build/ios-project -type d -name '*.xcodeproj' -print -quit)"
           if [[ -z "$project_path" ]]; then
-            find build/ios/unpacked -maxdepth 4 -print
-            echo "iOS ZIP did not contain an Xcode project directory." >&2
+            find build/ios-project -maxdepth 5 -print
+            echo "iOS export did not contain an Xcode project directory." >&2
             exit 1
           fi
           python3 - <<'PY'
           from pathlib import Path
-          root = Path("build/ios/unpacked")
+          root = Path("build/ios-project")
           required_patterns = [
               "**/AshenKingdoms.xcodeproj/project.pbxproj",
               "**/AshenKingdoms.xcframework/Info.plist",
@@ -639,14 +647,17 @@ jobs:
           ]
           if missing:
               raise SystemExit("Missing required iOS project files: " + ", ".join(missing))
-          print("[PASS] iOS Xcode project ZIP layout and engine frameworks verified")
+          print("[PASS] iOS Xcode project layout and engine frameworks verified")
           PY
+          ditto -c -k --sequesterRsrc --keepParent build/ios-project build/ios-xcode-project.zip
+          test -s build/ios-xcode-project.zip
+          python3 tools/validate_platform_exports.py ios build/ios-xcode-project.zip
 
       - name: Build exported iOS project for device SDK (unsigned compile)
         shell: bash
         run: |
           set -euo pipefail
-          project_path="$(find build/ios -maxdepth 1 -type d -name '*.xcodeproj' -print -quit)"
+          project_path="$(find build/ios-project -type d -name '*.xcodeproj' -print -quit)"
           test -n "$project_path"
           xcodebuild -list -json -project "$project_path" > "$RUNNER_TEMP/ios-xcode-list.json"
           scheme="$(python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); schemes=data["project"].get("schemes",[]); print(schemes[0] if schemes else "")' "$RUNNER_TEMP/ios-xcode-list.json")"
@@ -672,6 +683,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: ashen-kingdoms-ios-xcode-project
-          path: build/ios/AshenKingdoms.zip
+          path: build/ios-xcode-project.zip
           if-no-files-found: error
           retention-days: 7
