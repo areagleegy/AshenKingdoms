@@ -1,6 +1,14 @@
 # حالة تنفيذ ممالك الرماد
 
-> آخر مراجعة تحريرية: 2026-10-19. هذه الصفحة ملخص للحالة وليست سجلًا حيًا لنتائج CI؛ تحقّق من تشغيل GitHub Actions المرتبط بالـ commit الذي تراجعه.
+> آخر مراجعة تحريرية: 2026-10-20. هذه الصفحة ملخص للحالة وليست سجلًا حيًا؛ تحقّق من تشغيل GitHub Actions المرتبط بالـ commit الذي تراجعه.
+
+## خط الأساس الحالي — Android أولًا
+
+- مرجع الفحص: [`d1a727a0e3a2fc177136e1ed89f0e14e1992039c`](https://github.com/areagleegy/AshenKingdoms/commit/d1a727a0e3a2fc177136e1ed89f0e14e1992039c).
+- [Validate Godot Project #261](https://github.com/areagleegy/AshenKingdoms/actions/runs/39490195007): **Success** على المرجع أعلاه.
+- [Build Android and Web #179](https://github.com/areagleegy/AshenKingdoms/actions/runs/39490194778): **Success** على المرجع نفسه؛ نجح تصدير Android APK وWeb.
+- هذه النتائج تثبت نجاح خطوات CI المحددة فقط، ولا تثبت قبول APK على هاتف فعلي أو توقيع الإنتاج.
+- سجل التفاصيل: [سجل خط الأساس التنفيذي](BASELINE.md).
 
 ## ملخص المنصات والميزات
 
