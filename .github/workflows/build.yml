@@ -59,6 +59,74 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  desktop:
+    name: Export \${{ matrix.platform }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: Windows
+            preset: Windows Desktop
+            output: build/windows/AshenKingdoms.exe
+            artifact: ashen-kingdoms-windows
+          - platform: Linux
+            preset: Linux
+            output: build/linux/AshenKingdoms.x86_64
+            artifact: ashen-kingdoms-linux
+          - platform: macOS
+            preset: macOS
+            output: build/macos/AshenKingdoms.zip
+            artifact: ashen-kingdoms-macos
+    env:
+      GODOT_TEMPLATE_DIR: 4.6.stable
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Godot CLI
+        run: bash tools/setup-godot-cli.sh
+
+      - name: Add Godot to PATH
+        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install matching export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          template_root="$HOME/.local/share/godot/export_templates/4.6.stable"
+          mkdir -p "$template_root" "$RUNNER_TEMP/godot-templates"
+          curl --fail --location --silent --show-error "https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_export_templates.tpz" --output "$RUNNER_TEMP/templates.tpz"
+          unzip -oq "$RUNNER_TEMP/templates.tpz" -d "$RUNNER_TEMP/godot-templates"
+          test -d "$RUNNER_TEMP/godot-templates/templates"
+          cp -a "$RUNNER_TEMP/godot-templates/templates/." "$template_root/"
+
+      - name: Import project
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: godot --headless --path . --editor --quit
+
+      - name: Export \${{ matrix.platform }}
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+          EXPORT_PRESET: \${{ matrix.preset }}
+          EXPORT_PATH: \${{ matrix.output }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$(dirname "$EXPORT_PATH")"
+          godot --headless --path . --export-release "$EXPORT_PRESET" "$EXPORT_PATH"
+          test -s "$EXPORT_PATH"
+
+      - name: Upload \${{ matrix.platform }} artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: \${{ matrix.artifact }}
+          path: \${{ matrix.output }}
+          if-no-files-found: error
+          retention-days: 7
+
   android:
     name: Export Android APK
     runs-on: ubuntu-latest
@@ -145,5 +213,79 @@ jobs:
         with:
           name: ashen-kingdoms-android-debug
           path: build/android/AshenKingdoms.apk
+          if-no-files-found: error
+          retention-days: 7
+
+  ios:
+    name: Export iOS Xcode project
+    if: \${{ vars.IOS_TEAM_ID != '' }}
+    runs-on: macos-latest
+    timeout-minutes: 35
+    env:
+      IOS_TEAM_ID: \${{ vars.IOS_TEAM_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Godot CLI for macOS
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/godot"
+          curl --fail --location --silent --show-error "https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_macos.universal.zip" --output "$RUNNER_TEMP/godot.zip"
+          unzip -oq "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP/godot"
+          test -x "$RUNNER_TEMP/godot/Godot.app/Contents/MacOS/Godot"
+          echo "$RUNNER_TEMP/godot/Godot.app/Contents/MacOS" >> "$GITHUB_PATH"
+
+      - name: Install matching iOS export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          template_root="$HOME/Library/Application Support/Godot/export_templates/4.6.stable"
+          mkdir -p "$template_root" "$RUNNER_TEMP/godot-templates"
+          curl --fail --location --silent --show-error "https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_export_templates.tpz" --output "$RUNNER_TEMP/templates.tpz"
+          unzip -oq "$RUNNER_TEMP/templates.tpz" -d "$RUNNER_TEMP/godot-templates"
+          test -d "$RUNNER_TEMP/godot-templates/templates"
+          cp -a "$RUNNER_TEMP/godot-templates/templates/." "$template_root/"
+          test -f "$template_root/ios.zip"
+
+      - name: Configure Apple Team ID in export preset
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          team_id = os.environ["IOS_TEAM_ID"].strip()
+          if not re.fullmatch(r"[A-Z0-9]{10}", team_id):
+              raise SystemExit("IOS_TEAM_ID must be the 10-character Apple Developer Team ID.")
+          config = Path("export_presets.cfg")
+          content = config.read_text(encoding="utf-8")
+          marker = 'application/app_store_team_id=""'
+          if content.count(marker) != 1:
+              raise SystemExit("Expected exactly one empty iOS app_store_team_id setting.")
+          config.write_text(content.replace(marker, f'application/app_store_team_id="{team_id}"', 1), encoding="utf-8")
+          PY
+
+      - name: Import project
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: godot --headless --path . --editor --quit
+
+      - name: Export iOS Xcode project
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          mkdir -p build/ios
+          godot --headless --path . --export-release "iOS" build/ios/AshenKingdoms.zip
+          test -s build/ios/AshenKingdoms.zip
+
+      - name: Upload iOS Xcode project artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ashen-kingdoms-ios-xcode-project
+          path: build/ios/AshenKingdoms.zip
           if-no-files-found: error
           retention-days: 7
