@@ -60,6 +60,18 @@ func _run() -> void:
 	avatar.call("_server_try_attack")
 	_check(is_equal_approx(float(enemy.get("current_health")), 65.0), "server attack cooldown rejects an immediate repeat")
 
+	await get_tree().create_timer(0.7).timeout
+	enemy.global_position = avatar.global_position + Vector3(0.0, 0.0, -4.0)
+	avatar.call("_server_try_attack")
+	_check(is_equal_approx(float(enemy.get("current_health")), 65.0), "server attack rejects an enemy outside attack range")
+
+	await get_tree().create_timer(0.7).timeout
+	enemy.global_position = avatar.global_position + Vector3(0.0, 0.0, 2.0)
+	avatar.call("_server_try_attack")
+	_check(is_equal_approx(float(enemy.get("current_health")), 65.0), "server attack rejects an enemy behind the avatar")
+
+	enemy.global_position = avatar.global_position + Vector3(0.0, 0.0, -2.0)
+	await get_tree().create_timer(0.7).timeout
 	enemy.call("apply_damage_from_server", 999.0, 1)
 	print("[network-smoke] lethal hit applied")
 	_check(bool(enemy.get("is_dead")), "lethal server damage marks the enemy dead")
