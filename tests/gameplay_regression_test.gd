@@ -183,6 +183,29 @@ func _test_save_and_load(had_original_save: bool, original_save: String) -> void
 		)
 		_check(bool(save_system.call("has_save")), "backup recovery leaves a usable save")
 
+	# Simulate a crash after the temporary snapshot was flushed but before it
+	# replaced the primary file. Preserve existing developer fixtures above.
+	_check(bool(save_system.call("delete_save")), "backup-recovery fixture is cleared for temp recovery test")
+	var flushed_temp := FileAccess.open(SAVE_TEMP_PATH, FileAccess.WRITE)
+	if flushed_temp == null:
+		_check(false, "test can create a flushed temporary save fixture")
+	else:
+		flushed_temp.store_string(JSON.stringify({"level": 6, "health": 73.0}))
+		flushed_temp.flush()
+		var temp_write_error: Error = flushed_temp.get_error()
+		flushed_temp.close()
+		_check(temp_write_error == OK, "temporary save fixture is fully written")
+		var recovered_temp = save_system.call("load_game")
+		_check(
+			recovered_temp is Dictionary
+			and int(recovered_temp.get("level", 0)) == 6
+			and is_equal_approx(float(recovered_temp.get("health", 0.0)), 73.0),
+			"missing primary recovers the latest valid flushed temporary snapshot"
+		)
+		_check(FileAccess.file_exists(SAVE_PATH), "temporary snapshot recovery recreates the primary save")
+		_check(not FileAccess.file_exists(SAVE_TEMP_PATH), "temporary snapshot is removed after successful recovery")
+		_check(bool(save_system.call("has_save")), "temporary snapshot recovery leaves a usable save")
+
 	_restore_original_save(
 		had_original_save, original_save,
 		had_original_backup, original_backup,
