@@ -94,14 +94,14 @@ func _build_ui() -> void:
 	quest_panel.add_child(_quest_label)
 
 	var inventory_button := Button.new()
-	inventory_button.text = "الحقيبة (I / Y)"
+	inventory_button.text = "الحقيبة (I / Y/Triangle)"
 	inventory_button.position = Vector2(16, 136)
 	inventory_button.custom_minimum_size = Vector2(132, 42)
 	inventory_button.pressed.connect(toggle_inventory)
 	_root.add_child(inventory_button)
 
 	var pause_button := Button.new()
-	pause_button.text = "إيقاف (Esc / Start)"
+	pause_button.text = "إيقاف (Esc / Start/Options)"
 	pause_button.position = Vector2(156, 136)
 	pause_button.custom_minimum_size = Vector2(132, 42)
 	pause_button.pressed.connect(toggle_pause)
