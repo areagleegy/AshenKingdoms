@@ -302,7 +302,7 @@ func _test_controller_navigation_configuration() -> void:
 		var menu_source := menu_file.get_as_text()
 		menu_file.close()
 		_check(menu_source.contains("_solo_button.grab_focus()"), "main menu focuses the initial game action")
-		_check(menu_source.contains("call_deferred(\\"_focus_default_control\\")"), "main menu waits until layout before focusing")
+		_check(menu_source.contains("_focus_default_control"), "main menu defers focus until layout is ready")
 		_check(menu_source.contains("العصا اليسرى للحركة"), "main menu displays controller instructions")
 
 	var hud_file := FileAccess.open("res://scripts/ui/hud.gd", FileAccess.READ)
@@ -319,7 +319,7 @@ func _test_controller_navigation_configuration() -> void:
 	if camera_file != null:
 		var camera_source := camera_file.get_as_text()
 		camera_file.close()
-		_check(camera_source.contains("Input.get_vector(\\"look_left\\""), "camera reads right-stick input actions")
+		_check(camera_source.contains("look_left"), "camera reads right-stick input actions")
 
 
 func _has_joypad_button(action: StringName, expected_button: int) -> bool:
