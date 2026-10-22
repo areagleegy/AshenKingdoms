@@ -80,6 +80,24 @@ func _run() -> void:
 	enemy.call("apply_damage_from_server", 999.0, 1)
 	_check(int(death_event["count"]) == 1, "repeated lethal damage cannot emit a duplicate death event")
 
+	var player_max_health := float(avatar.get("max_health"))
+	avatar.call("apply_damage_from_server", player_max_health + 1.0, 2)
+	var death_generation := int(avatar.get("_death_generation"))
+	_check(
+		bool(avatar.get("is_dead")) and is_equal_approx(float(avatar.get("current_health")), 0.0),
+		"lethal server damage marks the player dead at zero health"
+	)
+	avatar.call("_server_respawn", death_generation - 1)
+	_check(
+		bool(avatar.get("is_dead")) and is_equal_approx(float(avatar.get("current_health")), 0.0),
+		"stale respawn generation cannot revive a dead player"
+	)
+	await get_tree().create_timer(2.1).timeout
+	_check(
+		not bool(avatar.get("is_dead")) and is_equal_approx(float(avatar.get("current_health")), player_max_health),
+		"player respawns at full health after the current death timer"
+	)
+
 	print("[network-smoke] failures: %d" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
 
