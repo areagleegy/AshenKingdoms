@@ -4,6 +4,7 @@ extends Node
 const SAVE_PATH: String = "user://savegame.json"
 const BACKUP_PATH: String = "user://savegame.bak.json"
 const TEMP_PATH: String = "user://savegame.tmp"
+const BACKUP_TEMP_PATH: String = "user://savegame.bak.tmp"
 const MAX_SAVE_SIZE: int = 1_048_576
 
 
@@ -90,7 +91,7 @@ func has_save() -> bool:
 
 func delete_save() -> bool:
 	var ok := true
-	for path in [SAVE_PATH, BACKUP_PATH, TEMP_PATH, SAVE_PATH + ".old"]:
+	for path in [SAVE_PATH, BACKUP_PATH, TEMP_PATH, BACKUP_TEMP_PATH, SAVE_PATH + ".old"]:
 		if not _remove_if_exists(path):
 			ok = false
 	return ok
