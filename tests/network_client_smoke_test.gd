@@ -114,6 +114,10 @@ func _run() -> void:
 					await process_frame
 				Input.action_release("attack")
 				_check(not is_instance_valid(target) or float(target.get("current_health")) < health_before, "server-authoritative combat hit %d is replicated" % (hit_index + 1))
+				if is_instance_valid(target) and float(target.get("current_health")) <= 0.0:
+					await process_frame
+					target = entities.get_node_or_null("Enemy_01")
+					break
 
 			if not is_instance_valid(target):
 				var respawn_deadline := Time.get_ticks_msec() + 7000
