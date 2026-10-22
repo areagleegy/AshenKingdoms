@@ -169,6 +169,21 @@ class PackageContentTests(unittest.TestCase):
         with self.assertRaises(package_content.PackageError):
             package_content.validate_provenance_manifest(manifest_path, self.source, records)
 
+    def test_provenance_manifest_must_be_external_to_source_directory(self):
+        (self.source / "hero.glb").write_bytes(b"glb-fixture")
+        manifest_path = self.source / "provenance.json"
+        manifest_path.write_text("{}", encoding="utf-8")
+        records = package_content.collect_files(self.source)
+        with self.assertRaises(package_content.PackageError):
+            package_content.validate_provenance_manifest(manifest_path, self.source, records)
+
+    def test_provenance_manifest_rejects_case_insensitive_duplicate_paths(self):
+        (self.source / "hero.glb").write_bytes(b"glb-fixture")
+        records = package_content.collect_files(self.source)
+        manifest_path = self._write_provenance(["hero.glb", "HERO.glb"])
+        with self.assertRaises(package_content.PackageError):
+            package_content.validate_provenance_manifest(manifest_path, self.source, records)
+
     def test_provenance_manifest_rejects_path_outside_package(self):
         (self.source / "hero.glb").write_bytes(b"glb-fixture")
         records = package_content.collect_files(self.source)
