@@ -117,18 +117,10 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 		_log_test_input_rejection("non_finite", sender_id)
 		return
 
-	var now := Time.get_ticks_msec()
-	if _input_rate_window_start_msec == 0 or now - _input_rate_window_start_msec >= INPUT_RATE_WINDOW_MSEC:
-		_input_rate_window_start_msec = now
-		_input_rate_window_count = 0
-	if _input_rate_window_count >= INPUT_RATE_LIMIT:
-		_log_test_input_rejection("rate_window", sender_id)
+	var rejection_reason := _input_rate_rejection_reason(Time.get_ticks_msec())
+	if not rejection_reason.is_empty():
+		_log_test_input_rejection(rejection_reason, sender_id)
 		return
-	if _last_input_packet_msec > 0 and now - _last_input_packet_msec < INPUT_MIN_INTERVAL_MSEC:
-		_log_test_input_rejection("min_interval", sender_id)
-		return
-	_input_rate_window_count += 1
-	_last_input_packet_msec = now
 
 	var safe_direction := Vector3(direction.x, 0.0, direction.z)
 	if not is_finite(safe_direction.length_squared()):
@@ -139,6 +131,19 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 		_set_test_combat_scenario()
 	_set_requested_input(safe_direction, jump_down, sprint_down, attack_down)
 	_last_input_msec = now
+
+
+func _input_rate_rejection_reason(now_msec: int) -> String:
+	if _input_rate_window_start_msec == 0 or now_msec - _input_rate_window_start_msec >= INPUT_RATE_WINDOW_MSEC:
+		_input_rate_window_start_msec = now_msec
+		_input_rate_window_count = 0
+	if _input_rate_window_count >= INPUT_RATE_LIMIT:
+		return "rate_window"
+	if _last_input_packet_msec > 0 and now_msec - _last_input_packet_msec < INPUT_MIN_INTERVAL_MSEC:
+		return "min_interval"
+	_input_rate_window_count += 1
+	_last_input_packet_msec = now_msec
+	return ""
 
 
 func _log_test_input_rejection(reason: String, sender_id: int) -> void:
