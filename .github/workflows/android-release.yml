@@ -129,8 +129,8 @@ jobs:
               return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
           version_code = os.environ["ANDROID_VERSION_CODE"].strip()
-          if not re.fullmatch(r"[1-9][0-9]*", version_code):
-              raise SystemExit("version_code must be a positive integer.")
+          if not re.fullmatch(r"[1-9][0-9]*", version_code) or int(version_code) > 2100000000:
+              raise SystemExit("version_code must be a positive integer no greater than 2100000000.")
           if int(version_code) > 2100000000:
               raise SystemExit("version_code cannot exceed Google Play's maximum of 2100000000.")
           version_name = os.environ["ANDROID_VERSION_NAME"].strip()
