@@ -78,6 +78,10 @@ func _run() -> void:
 		var loaded_nested = loaded_data.get("nested", {})
 		_check(loaded_nested is Dictionary and int(loaded_nested.get("value", 0)) == 7, "loaded save retains nested values")
 
+	_check(not bool(save_system.call("save_game", {"payload": "x".repeat(1_048_577)})), "oversized save payload is rejected")
+	var after_oversized_write = save_system.call("load_game")
+	_check(after_oversized_write is Dictionary and after_oversized_write.get("smoke_test_marker", "") == "ashen-kingdoms", "oversized payload does not replace the previous valid save")
+
 	# Inject a short write after the temporary file has opened. The original save must survive.
 	save_system.set("write_hook_for_testing", Callable(self, "_simulate_partial_write_failure"))
 	_check(not bool(save_system.call("save_game", {"smoke_test_marker": "partial-write-must-fail"})), "partial write failure is not reported as a successful save")
