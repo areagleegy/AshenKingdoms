@@ -24,7 +24,7 @@
 - scripts/core/progression_manager.gd: نقاط الخبرة ورفع المستوى.
 - scripts/core/quest_manager.gd: تتبع هدف المهمة ومكافأتها.
 - scripts/ui/hud.gd: HUD والتحكم باللمس وقائمتي الإيقاف والجرد.
-- scripts/core/save_system.gd: حفظ واسترجاع JSON داخل user://savegame.json.
+- scripts/core/save_system.gd: حفظ JSON بإصدار مخطط محدد داخل `user://savegame.json`؛ يكتب إلى ملف مؤقت، ويتحقق من البنية والأنواع والنطاقات، ويحتفظ بنسخة `.bak` ويسترد منها عند تلف الملف الأساسي.
 
 ## التحكم
 
