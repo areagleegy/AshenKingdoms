@@ -32,6 +32,7 @@ func _run() -> void:
 	_test_inventory_and_potions()
 	_test_save_and_load()
 	_test_player_position_finite_guard()
+	_test_autosave_notifications()
 	_test_dialogue_and_quests()
 	_test_android_configuration()
 	_test_runtime_input_registration()
@@ -179,6 +180,65 @@ func _test_player_position_finite_guard() -> void:
 	_check(bool(main_for_test.call("_restore_player_position", {"x": 1.0, "y": 2.0, "z": 3.0})), "finite numeric coordinates are accepted")
 	_check(test_player.global_position.is_equal_approx(Vector3(1.0, 2.0, 3.0)), "valid saved position is restored")
 	test_player.queue_free()
+	main_for_test.free()
+
+
+func _test_autosave_notifications() -> void:
+	var autosave_path := "user://ashen_autosave_regression_%d.json" % OS.get_process_id()
+	_cleanup_test_save_files(autosave_path)
+	var main_for_test := MainScript.new() as Node3D
+	var test_player := _make_player()
+	var progression: Node = ProgressionScript.new()
+	root.add_child(progression)
+	var quests: Node = QuestManagerScript.new()
+	quests.set("progression", progression)
+	root.add_child(quests)
+	var save_system: Node = SaveSystemScript.new()
+	save_system.set("save_path", autosave_path)
+	root.add_child(save_system)
+	main_for_test.set("player", test_player)
+	main_for_test.set("progression", progression)
+	main_for_test.set("quests", quests)
+	main_for_test.set("save_system", save_system)
+
+	main_for_test.call("_notification", MainLoop.NOTIFICATION_APPLICATION_PAUSED)
+	_check(FileAccess.file_exists(autosave_path), "application pause autosaves a valid live session")
+
+	test_player.global_position = Vector3(6.0, 1.5, -4.0)
+	main_for_test.call("_notification", Node.NOTIFICATION_WM_GO_BACK_REQUEST)
+	var loaded_after_back: Dictionary = save_system.call("load_game")
+	var position_after_back: Dictionary = loaded_after_back.get("player_position", {})
+	_check(
+		is_equal_approx(float(position_after_back.get("x", 0.0)), 6.0)
+		and is_equal_approx(float(position_after_back.get("y", 0.0)), 1.5)
+		and is_equal_approx(float(position_after_back.get("z", 0.0)), -4.0),
+		"Android back-button request autosaves the current player position"
+	)
+
+	test_player.global_position = Vector3(2.0, 3.0, 4.0)
+	main_for_test.call("_notification", Node.NOTIFICATION_WM_CLOSE_REQUEST)
+	var loaded_after_close: Dictionary = save_system.call("load_game")
+	var position_after_close: Dictionary = loaded_after_close.get("player_position", {})
+	_check(
+		is_equal_approx(float(position_after_close.get("x", 0.0)), 2.0)
+		and is_equal_approx(float(position_after_close.get("y", 0.0)), 3.0)
+		and is_equal_approx(float(position_after_close.get("z", 0.0)), 4.0),
+		"window close request autosaves the current player position"
+	)
+
+	var bytes_before_death := FileAccess.get_file_as_string(autosave_path)
+	test_player.call("take_damage", 100000.0)
+	main_for_test.call("_notification", MainLoop.NOTIFICATION_APPLICATION_PAUSED)
+	_check(
+		FileAccess.get_file_as_string(autosave_path) == bytes_before_death,
+		"application pause does not overwrite the save after player death"
+	)
+
+	_cleanup_test_save_files(autosave_path)
+	save_system.free()
+	quests.free()
+	progression.free()
+	test_player.free()
 	main_for_test.free()
 
 
