@@ -124,7 +124,7 @@ func _physics_process(delta: float) -> void:
 		)
 
 
-@rpc("any_peer", "call_remote", "unreliable")
+@rpc("any_peer", "call_remote", "unreliable_ordered")
 func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, attack_down: bool) -> void:
 	if not multiplayer.is_server():
 		return
