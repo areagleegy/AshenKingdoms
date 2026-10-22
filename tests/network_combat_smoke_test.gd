@@ -37,6 +37,9 @@ func _run() -> void:
 		_check(not bool(network_manager.call("_accept_rpc_rate_limit_at", 987654, &"test_input", 50, 1020)), "requests inside a peer rate-limit window are rejected")
 		_check(bool(network_manager.call("_accept_rpc_rate_limit_at", 987654, &"test_input", 50, 1050)), "request is accepted at the rate-limit boundary")
 		_check(bool(network_manager.call("_accept_rpc_rate_limit_at", 987655, &"test_input", 50, 1020)), "rate limits are isolated per peer")
+		_check(not bool(network_manager.call("accept_rpc_rate_limit", 987654, &"unconnected_peer", 50)), "live RPC rate limiter rejects unconnected peers")
+		network_manager.call("_clear_peer_rpc_rate_limits", 987654)
+		_check(bool(network_manager.call("_accept_rpc_rate_limit_at", 987654, &"test_input", 50, 1020)), "disconnect cleanup clears a peer's rate-limit state")
 
 	avatar.call("server_grant_experience", 100)
 	print("[network-smoke] XP tested")
@@ -52,6 +55,19 @@ func _run() -> void:
 	_check(int(avatar.get("level")) >= 3, "one-time quest reward can advance the player level")
 	avatar.call("register_enemy_defeat")
 	_check(int(avatar.get("quest_progress")) == 3, "completed network quest progress stays capped")
+
+	avatar.set("current_health", 0.0)
+	avatar.global_position = Vector3(50.0, 50.0, 50.0)
+	avatar.call("_server_begin_respawn")
+	var stale_generation := int(avatar.get("_death_generation"))
+	avatar.call("_server_begin_respawn")
+	var current_generation := int(avatar.get("_death_generation"))
+	avatar.call("_server_respawn", stale_generation)
+	_check(bool(avatar.get("is_dead")), "stale respawn generation cannot revive a newer death state")
+	avatar.call("_server_respawn", current_generation)
+	_check(not bool(avatar.get("is_dead")), "current respawn generation restores the player")
+	_check(is_equal_approx(float(avatar.get("current_health")), float(avatar.get("max_health"))), "respawn restores authoritative health")
+	_check((avatar.global_position - Vector3.ZERO).length() < 2.0, "respawn returns the host avatar to its spawn point")
 
 	var enemy := NetworkEnemyScene.instantiate() as CharacterBody3D
 	if enemy == null or not enemy.has_method("configure_spawn"):
