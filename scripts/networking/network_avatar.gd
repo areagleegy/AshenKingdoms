@@ -41,6 +41,7 @@ var _last_input_msec: int = 0
 var _last_input_packet_msec: int = 0
 var _input_rate_window_start_msec: int = 0
 var _input_rate_window_count: int = 0
+var _test_attack_count: int = 0
 var _next_attack_msec: int = 0
 var _death_generation: int = 0
 var _input_send_accumulator: float = 0.0
@@ -131,8 +132,18 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 		return
 	if safe_direction.length_squared() > 1.0:
 		safe_direction = safe_direction.normalized()
+	if attack_down and not _last_attack_down and OS.get_environment("ASHEN_TEST_COMBAT") == "1":
+		_set_test_combat_scenario()
 	_set_requested_input(safe_direction, jump_down, sprint_down, attack_down)
 	_last_input_msec = now
+
+
+func _set_test_combat_scenario() -> void:
+	for arena in get_tree().get_nodes_in_group("network_arenas"):
+		if is_instance_valid(arena) and arena.has_method("_set_test_combat_scenario"):
+			arena.call("_set_test_combat_scenario", owner_peer_id, _test_attack_count)
+			_test_attack_count += 1
+			return
 
 
 func _set_requested_input(direction: Vector3, jump_down: bool, sprint_down: bool, attack_down: bool) -> void:
