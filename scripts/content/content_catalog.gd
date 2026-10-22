@@ -1,7 +1,7 @@
 extends RefCounted
 class_name ContentCatalog
 
-const SCHEMA_VERSION := 1
+const SCHEMA_VERSION := 2
 const MAX_PACKS := 500
 const MAX_FILES_PER_PACK := 10000
 const MAX_DOWNLOAD_BYTES := 2 * 1024 * 1024 * 1024
