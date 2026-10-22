@@ -97,8 +97,8 @@ func _validate_pack(pack: Dictionary) -> Dictionary:
 	if not ALLOWED_PACK_TYPES.has(str(pack.get("type", ""))):
 		return _error("Pack %s has an unsupported type." % pack_id)
 	var url := str(pack.get("url", ""))
-	if not url.begins_with("https://") or url.length() > 2048:
-		return _error("Pack %s must use an HTTPS URL." % pack_id)
+	if not _is_http_url(url) or not url.to_lower().begins_with("https://"):
+		return _error("Pack %s must use a valid HTTPS URL without embedded credentials." % pack_id)
 	var download_size := int(pack.get("download_size", -1))
 	if download_size < 1 or download_size > MAX_DOWNLOAD_BYTES:
 		return _error("Pack %s has an invalid download size." % pack_id)
