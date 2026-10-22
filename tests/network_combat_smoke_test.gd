@@ -26,6 +26,34 @@ func _run() -> void:
 	_check(float(avatar.get("current_health")) == 100.0, "network avatar starts with expected health")
 	_check(bool(multiplayer.is_server()), "offline smoke harness is allowed to exercise server logic")
 
+	# Test the exact rolling-window policy with controlled timestamps instead
+	# of relying on frame scheduling in the remote ENet integration harness.
+	var rate_window_start := 100000
+	avatar.set("_input_rate_window_start_msec", rate_window_start)
+	avatar.set("_input_rate_window_count", 40)
+	avatar.set("_last_input_packet_msec", rate_window_start + 100)
+	_check(
+		str(avatar.call("_input_rate_rejection_reason", rate_window_start + 200)) == "rate_window",
+		"input RPC rate guard rejects packets after forty accepted requests in one window"
+	)
+
+	avatar.set("_input_rate_window_start_msec", rate_window_start)
+	avatar.set("_input_rate_window_count", 0)
+	avatar.set("_last_input_packet_msec", rate_window_start + 100)
+	_check(
+		str(avatar.call("_input_rate_rejection_reason", rate_window_start + 110)) == "min_interval",
+		"input RPC rate guard rejects packets inside the minimum interval"
+	)
+
+	avatar.set("_input_rate_window_start_msec", rate_window_start)
+	avatar.set("_input_rate_window_count", 40)
+	avatar.set("_last_input_packet_msec", rate_window_start + 900)
+	var reset_window_reason := str(avatar.call("_input_rate_rejection_reason", rate_window_start + 1000))
+	_check(
+		reset_window_reason.is_empty() and int(avatar.get("_input_rate_window_count")) == 1,
+		"input RPC rate window resets after one second and accepts the next packet"
+	)
+
 	avatar.call("server_grant_experience", 100)
 	print("[network-smoke] XP tested")
 	_check(int(avatar.get("level")) == 2, "server-granted XP advances the network avatar")
