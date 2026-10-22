@@ -21,6 +21,9 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Guard CI secret isolation
+        run: python3 -m unittest tools.test_ci_security -v
+
       - name: Run diagnostics classifier unit tests
         run: |
           set -o pipefail
@@ -104,6 +107,7 @@ jobs:
           test -f addons/ashen_asset_bridge/plugin.gd
           test -f addons/ashen_asset_bridge/plugin.cfg
           test -f tools/test_ai_test_diagnostics.py
+          test -f tools/test_ci_security.py
           test -f tools/diagnostic_cases.json
           test -f tools/diagnostic_benchmark.py
           test -f tools/ai_test_diagnostics.py
@@ -178,15 +182,11 @@ jobs:
           set -o pipefail
           python -m unittest tools.test_package_content tools.test_sign_content_catalog -v 2>&1 | tee "$RUNNER_TEMP/python-tests.log"
 
-      - name: Diagnose test logs
+      - name: Diagnose test logs (local-only)
         if: always()
         env:
-          # Remote AI diagnostics are opt-in only on trusted main-ref events.
-          # Pull Request runs keep the local classifier but receive no AI credentials.
-          ASHEN_AI_DIAGNOSE: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && vars.ASHEN_AI_DIAGNOSE || 'false' }}
-          ASHEN_AI_ENDPOINT: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && secrets.ASHEN_AI_ENDPOINT || '' }}
-          ASHEN_AI_API_KEY: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && secrets.ASHEN_AI_API_KEY || '' }}
-          ASHEN_AI_MODEL: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && vars.ASHEN_AI_MODEL || '' }}
+          # This validation workflow runs pull-request code. Never expose external AI credentials here.
+          ASHEN_AI_DIAGNOSE: "false"
         run: python3 tools/ai_test_diagnostics.py --log "$RUNNER_TEMP/diagnostics-unit-tests.log" --log "$RUNNER_TEMP/diagnostic-benchmark.log" --log "$RUNNER_TEMP/godot-setup.log" --log "$RUNNER_TEMP/godot-import.log" --log "$RUNNER_TEMP/gameplay-tests.log" --log "$RUNNER_TEMP/gameplay-regression.log" --log "$RUNNER_TEMP/content-tests.log" --log "$RUNNER_TEMP/python-tests.log" --log "$RUNNER_TEMP/player-character-tests.log" --log "$RUNNER_TEMP/resource-smoke.log" --log "$RUNNER_TEMP/network-combat.log" --log "$RUNNER_TEMP/network-loopback.log" --output "$RUNNER_TEMP/ashen-test-diagnostics.json"
 
       - name: Upload diagnostic report
