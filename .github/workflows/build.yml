@@ -258,7 +258,6 @@ jobs:
 
   ios:
     name: Export iOS Xcode project
-    if: ${{ vars.IOS_TEAM_ID != '' }}
     runs-on: macos-latest
     timeout-minutes: 35
     env:
@@ -289,7 +288,7 @@ jobs:
           cp -a "$RUNNER_TEMP/godot-templates/templates/." "$template_root/"
           test -f "$template_root/ios.zip"
 
-      - name: Configure Apple Team ID in export preset
+      - name: Configure optional Apple Team ID in export preset
         shell: bash
         run: |
           set -euo pipefail
@@ -298,15 +297,19 @@ jobs:
           import re
           from pathlib import Path
 
-          team_id = os.environ["IOS_TEAM_ID"].strip()
-          if not re.fullmatch(r"[A-Z0-9]{10}", team_id):
-              raise SystemExit("IOS_TEAM_ID must be the 10-character Apple Developer Team ID.")
+          team_id = os.environ.get("IOS_TEAM_ID", "").strip()
           config = Path("export_presets.cfg")
           content = config.read_text(encoding="utf-8")
           marker = 'application/app_store_team_id=""'
           if content.count(marker) != 1:
               raise SystemExit("Expected exactly one empty iOS app_store_team_id setting.")
-          config.write_text(content.replace(marker, f'application/app_store_team_id="{team_id}"', 1), encoding="utf-8")
+          if not team_id:
+              print("IOS_TEAM_ID is unset; exporting an unsigned Xcode project only.")
+          else:
+              if not re.fullmatch(r"[A-Z0-9]{10}", team_id):
+                  raise SystemExit("IOS_TEAM_ID must be the 10-character Apple Developer Team ID.")
+              content = content.replace(marker, f'application/app_store_team_id="{team_id}"', 1)
+              config.write_text(content, encoding="utf-8")
           PY
 
       - name: Import project
