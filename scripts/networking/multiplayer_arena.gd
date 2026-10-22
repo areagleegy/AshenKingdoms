@@ -344,6 +344,13 @@ func _on_enemy_respawn_timer_timeout(slot: int, timer: Timer) -> void:
 
 func _on_peer_arena_ready(peer_id: int) -> void:
 	_spawn_avatar(peer_id)
+	# The loopback integration harness opts into a deterministic combat setup.
+	# Never enabled during normal gameplay.
+	if multiplayer.is_server() and OS.get_environment("ASHEN_TEST_COMBAT") == "1":
+		var avatar := _entities.get_node_or_null("Peer_%d" % peer_id) as Node3D
+		var enemy := _entities.get_node_or_null("Enemy_01") as Node3D
+		if is_instance_valid(avatar) and is_instance_valid(enemy):
+			enemy.global_position = avatar.global_position + Vector3(0.0, 0.0, -2.0)
 
 
 func _on_peer_left(peer_id: int) -> void:
