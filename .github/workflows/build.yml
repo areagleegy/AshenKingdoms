@@ -60,25 +60,9 @@ jobs:
           retention-days: 7
 
   desktop:
-    name: Export ${{ matrix.platform }}
+    name: Export Windows Linux and macOS
     runs-on: ubuntu-latest
-    timeout-minutes: 25
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: Windows
-            preset: Windows Desktop
-            output: build/windows/AshenKingdoms.exe
-            artifact: ashen-kingdoms-windows
-          - platform: Linux
-            preset: Linux
-            output: build/linux/AshenKingdoms.x86_64
-            artifact: ashen-kingdoms-linux
-          - platform: macOS
-            preset: macOS
-            output: build/macos/AshenKingdoms.zip
-            artifact: ashen-kingdoms-macos
+    timeout-minutes: 35
     env:
       GODOT_TEMPLATE_DIR: 4.6.stable
     steps:
@@ -107,23 +91,51 @@ jobs:
           GODOT_SILENCE_ROOT_WARNING: "1"
         run: godot --headless --path . --editor --quit
 
-      - name: Export ${{ matrix.platform }}
+      - name: Export Windows
         env:
           GODOT_SILENCE_ROOT_WARNING: "1"
-          EXPORT_PRESET: ${{ matrix.preset }}
-          EXPORT_PATH: ${{ matrix.output }}
-        shell: bash
         run: |
-          set -euo pipefail
-          mkdir -p "$(dirname "$EXPORT_PATH")"
-          godot --headless --path . --export-release "$EXPORT_PRESET" "$EXPORT_PATH"
-          test -s "$EXPORT_PATH"
+          mkdir -p build/windows
+          godot --headless --path . --export-release "Windows Desktop" build/windows/AshenKingdoms.exe
+          test -s build/windows/AshenKingdoms.exe
 
-      - name: Upload ${{ matrix.platform }} artifact
+      - name: Export Linux
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          mkdir -p build/linux
+          godot --headless --path . --export-release "Linux" build/linux/AshenKingdoms.x86_64
+          test -s build/linux/AshenKingdoms.x86_64
+
+      - name: Export macOS
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          mkdir -p build/macos
+          godot --headless --path . --export-release "macOS" build/macos/AshenKingdoms.zip
+          test -s build/macos/AshenKingdoms.zip
+
+      - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
-          path: ${{ matrix.output }}
+          name: ashen-kingdoms-windows
+          path: build/windows/AshenKingdoms.exe
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ashen-kingdoms-linux
+          path: build/linux/AshenKingdoms.x86_64
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ashen-kingdoms-macos
+          path: build/macos/AshenKingdoms.zip
           if-no-files-found: error
           retention-days: 7
 
