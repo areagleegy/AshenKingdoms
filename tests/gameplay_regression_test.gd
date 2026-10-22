@@ -13,11 +13,11 @@ const DialogueNodeScript: Script = preload("res://scripts/dialogue/dialogue_node
 const DialogueChoiceScript: Script = preload("res://scripts/dialogue/dialogue_choice.gd")
 const MainScript: Script = preload("res://scripts/core/main.gd")
 
-const SAVE_PATH := "user://savegame.json"
 const POTION_PATH := "res://resources/items/health_potion.tres"
 
 var _failures := 0
 var _checks := 0
+var _test_save_path: String = ""
 
 
 func _initialize() -> void:
@@ -25,24 +25,18 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	var had_original_save := FileAccess.file_exists(SAVE_PATH)
-	var original_save := ""
-	if had_original_save:
-		var original_file := FileAccess.open(SAVE_PATH, FileAccess.READ)
-		if original_file == null:
-			_check(false, "existing save can be backed up before regression tests")
-			quit(1)
-			return
-		original_save = original_file.get_as_text()
-		original_file.close()
+	_test_save_path = "user://ashen_regression_save_%d.json" % OS.get_process_id()
+	_cleanup_test_save_files(_test_save_path)
 
 	_test_player_and_health()
 	_test_inventory_and_potions()
-	_test_save_and_load(had_original_save, original_save)
+	_test_save_and_load()
+	_test_player_position_finite_guard()
 	_test_dialogue_and_quests()
 	_test_android_configuration()
 	_test_runtime_input_registration()
 
+	_cleanup_test_save_files(_test_save_path)
 	print("[regression] checks: %d, failures: %d" % [_checks, _failures])
 	quit(1 if _failures > 0 else 0)
 
@@ -128,11 +122,12 @@ func _test_inventory_and_potions() -> void:
 	player.queue_free()
 
 
-func _test_save_and_load(had_original_save: bool, original_save: String) -> void:
+func _test_save_and_load() -> void:
 	var save_system: Node = SaveSystemScript.new()
+	save_system.set("save_path", _test_save_path)
 	root.add_child(save_system)
 
-	_check(bool(save_system.call("save_game", {"level": 4, "health": 61.5, "flags": {"intro_seen": true}})), "save system writes structured data")
+	_check(bool(save_system.call("save_game", {"level": 4, "health": 61.5, "flags": {"intro_seen": true}})), "save system writes structured data to an isolated path")
 	var loaded = save_system.call("load_game")
 	_check(loaded is Dictionary, "save system returns a dictionary for valid JSON")
 	if loaded is Dictionary:
@@ -141,30 +136,57 @@ func _test_save_and_load(had_original_save: bool, original_save: String) -> void
 		var flags = loaded.get("flags", {})
 		_check(flags is Dictionary and bool(flags.get("intro_seen", false)), "nested dialogue flags survive save/load")
 
-	var malformed := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	var malformed := FileAccess.open(_test_save_path, FileAccess.WRITE)
 	if malformed == null:
 		_check(false, "test can create malformed JSON fixture")
 	else:
 		malformed.store_string("{not valid JSON")
 		malformed.close()
 		var corrupt = save_system.call("load_game")
-		_check(corrupt is Dictionary and corrupt.is_empty(), "malformed JSON safely returns an empty dictionary")
+		_check(corrupt is Dictionary and corrupt.is_empty(), "malformed JSON without backup safely returns an empty dictionary")
+		_check(str(save_system.get("last_load_status")) == "invalid_json", "load status distinguishes invalid JSON")
 
-	_restore_original_save(had_original_save, original_save, save_system)
-	_check(not bool(save_system.call("has_save")) if not had_original_save else bool(save_system.call("has_save")), "save fixture is cleaned up or original save is restored")
+	_check(bool(save_system.call("save_game", {"marker": "backup-state", "level": 5})), "save system writes a valid recovery baseline")
+	_check(bool(save_system.call("save_game", {"marker": "latest-state", "level": 6})), "save system preserves the previous valid state as backup")
+	var latest := FileAccess.open(_test_save_path, FileAccess.WRITE)
+	if latest == null:
+		_check(false, "test can corrupt the latest primary save")
+	else:
+		latest.store_string("{latest save is corrupt")
+		latest.close()
+	var recovered = save_system.call("load_game")
+	_check(recovered is Dictionary and recovered.get("marker", "") == "backup-state", "load recovers data from a valid backup")
+	_check(str(save_system.get("last_load_status")) == "recovered_backup", "load status identifies backup recovery")
+
 	save_system.queue_free()
 
 
-func _restore_original_save(had_original_save: bool, original_save: String, save_system: Node) -> void:
-	if had_original_save:
-		var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-		if file == null:
-			_check(false, "original save can be restored after test")
-			return
-		file.store_string(original_save)
-		file.close()
-	else:
-		_check(bool(save_system.call("delete_save")), "temporary save file is removed after test")
+func _test_player_position_finite_guard() -> void:
+	var main_for_test := MainScript.new() as Node3D
+	var test_player := CharacterBody3D.new()
+	root.add_child(test_player)
+	main_for_test.set("player", test_player)
+
+	test_player.global_position = Vector3(4.0, 5.0, 6.0)
+	var original_position := test_player.global_position
+	_check(not bool(main_for_test.call("_restore_player_position", {"x": NAN, "y": 0.92, "z": 0.0})), "non-finite X coordinate is rejected")
+	_check(not bool(main_for_test.call("_restore_player_position", {"x": 0.0, "y": INF, "z": 0.0})), "infinite Y coordinate is rejected")
+	_check(not bool(main_for_test.call("_restore_player_position", {"x": 0.0, "y": 0.92, "z": -INF})), "negative infinite Z coordinate is rejected")
+	_check(not bool(main_for_test.call("_restore_player_position", {"x": "NaN", "y": 0.92, "z": 0.0})), "string coordinate is rejected")
+	_check(test_player.global_position.is_equal_approx(original_position), "rejected coordinates do not change the player's position")
+
+	_check(bool(main_for_test.call("_restore_player_position", {"x": 1.0, "y": 2.0, "z": 3.0})), "finite numeric coordinates are accepted")
+	_check(test_player.global_position.is_equal_approx(Vector3(1.0, 2.0, 3.0)), "valid saved position is restored")
+	test_player.queue_free()
+
+
+func _cleanup_test_save_files(base_path: String) -> void:
+	for suffix in ["", ".tmp", ".bak", ".bak.tmp", ".restore.tmp"]:
+		var test_path := base_path + suffix
+		if FileAccess.file_exists(test_path):
+			var remove_error: Error = DirAccess.remove_absolute(ProjectSettings.globalize_path(test_path))
+			if remove_error != OK:
+				push_error("Could not clean isolated regression save file: %s" % test_path)
 
 
 func _test_dialogue_and_quests() -> void:
