@@ -3,7 +3,8 @@ extends SceneTree
 const ProgressionManagerScript: Script = preload("res://scripts/core/progression_manager.gd")
 const QuestManagerScript: Script = preload("res://scripts/core/quest_manager.gd")
 const SaveSystemScript: Script = preload("res://scripts/core/save_system.gd")
-const SAVE_PATH: String = "user://savegame.json"
+const SAVE_PATH: String = "user://ashenkingdoms_smoke/savegame.json"
+const SAVE_DIR: String = "user://ashenkingdoms_smoke"
 
 var _failures: int = 0
 
@@ -13,6 +14,10 @@ func _initialize() -> void:
 
 
 func _run() -> void:
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(SAVE_DIR))
+	for path in [SAVE_PATH, SAVE_PATH + ".tmp", SAVE_PATH + ".bak"]:
+		if FileAccess.file_exists(path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 	var had_original_save := FileAccess.file_exists(SAVE_PATH)
 	var original_save := ""
 	if had_original_save:
@@ -68,9 +73,17 @@ func _run() -> void:
 	_check(not bool(restored_quest.get("active")), "completed state survives save-data round-trip")
 
 	var save_system: Node = SaveSystemScript.new()
+	save_system.set("save_path", SAVE_PATH)
 	root.add_child(save_system)
 	var sample_data: Dictionary = {
 		"version": 1,
+		"player_position": {"x": 0.0, "y": 0.92, "z": 0.0},
+		"player_health": 100.0,
+		"level": 1,
+		"experience": 0,
+		"inventory": [],
+		"quest": {"id": "", "title": "لا توجد مهمة نشطة", "progress": 0, "active": false},
+		"dialogue": {},
 		"smoke_test_marker": "ashen-kingdoms",
 		"nested": {"value": 7}
 	}
@@ -82,6 +95,7 @@ func _run() -> void:
 		var loaded_nested = loaded_data.get("nested", {})
 		_check(loaded_nested is Dictionary and int(loaded_nested.get("value", 0)) == 7, "loaded save retains nested values")
 
+	save_system.call("delete_save")
 	var corrupt_file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if corrupt_file == null:
 		_check(false, "test can open save file to simulate corruption")
