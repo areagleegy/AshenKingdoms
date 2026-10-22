@@ -259,7 +259,7 @@ func _show_qa_report_window(summary: Dictionary, export_result: Dictionary, repo
 	qa_window.title = "تقرير QA — ممالك الرماد"
 	qa_window.size = Vector2i(920, 640)
 	qa_window.min_size = Vector2i(360, 360)
-	qa_window.close_requested.connect(func() -> void: qa_window.queue_free())
+	qa_window.close_requested.connect(qa_window.queue_free)
 
 	var layout := VBoxContainer.new()
 	layout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
