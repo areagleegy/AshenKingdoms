@@ -12,6 +12,7 @@ import base64
 import json
 import mimetypes
 import os
+import struct
 import sys
 import time
 import urllib.error
@@ -24,7 +25,11 @@ API_BASE = "https://api.meshy.ai/openapi/v1"
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = REPO_ROOT / "assets" / "characters" / "player" / "player.glb"
 MAX_IMAGE_BYTES = 20 * 1024 * 1024
+MAX_API_RESPONSE_BYTES = 4 * 1024 * 1024
 MAX_MODEL_BYTES = 300 * 1024 * 1024
+MAX_GLTF_JSON_BYTES = 32 * 1024 * 1024
+GLB_JSON_CHUNK_TYPE = 0x4E4F534A
+GLB_BIN_CHUNK_TYPE = 0x004E4942
 SUPPORTED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
 
 
@@ -34,11 +39,25 @@ class MeshyError(RuntimeError):
 
 def _read_image_reference(image_url: str | None, image_file: Path | None) -> str:
     if image_url:
-        if image_url.startswith("data:image/"):
+        if image_url.lower().startswith("data:"):
+            metadata, separator, encoded = image_url.partition(",")
+            mime_type = metadata[5:].split(";", 1)[0].lower() if metadata.lower().startswith("data:") else ""
+            if not separator or metadata.lower() != f"data:{mime_type};base64" or mime_type not in SUPPORTED_MIME_TYPES:
+                raise MeshyError("--image-url data URI must be base64 JPG, PNG, or WEBP.")
+            max_encoded_length = 4 * ((MAX_IMAGE_BYTES + 2) // 3)
+            if not encoded or len(encoded) > max_encoded_length:
+                raise MeshyError("Reference image data URI exceeds the 20 MiB safety limit.")
+            try:
+                decoded_image = base64.b64decode(encoded, validate=True)
+            except (ValueError, base64.binascii.Error) as exc:
+                raise MeshyError("--image-url data URI contains invalid base64.") from exc
+            if not decoded_image or len(decoded_image) > MAX_IMAGE_BYTES:
+                raise MeshyError("Reference image must be non-empty and no larger than 20 MiB.")
             return image_url
+
         parsed = urlparse(image_url)
-        if parsed.scheme not in {"https", "http"} or not parsed.netloc:
-            raise MeshyError("--image-url must be an HTTP(S) URL or supported data URI.")
+        if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+            raise MeshyError("--image-url must be a public HTTPS URL without embedded credentials or a supported data URI.")
         return image_url
 
     if image_file is None:
@@ -77,7 +96,9 @@ def _request_json(
     request = urllib.request.Request(url, data=data, headers=headers, method=method)
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
-            raw = response.read()
+            raw = response.read(MAX_API_RESPONSE_BYTES + 1)
+            if len(raw) > MAX_API_RESPONSE_BYTES:
+                raise MeshyError("Meshy API response exceeds the 4 MiB safety limit.")
             decoded = json.loads(raw.decode("utf-8"))
             if not isinstance(decoded, dict):
                 raise MeshyError("Meshy returned an unexpected JSON response.")
@@ -102,8 +123,8 @@ def _request_json(
 
 def _download_glb(url: str, output: Path, force: bool) -> None:
     parsed = urlparse(url)
-    if parsed.scheme != "https" or not parsed.netloc:
-        raise MeshyError("The returned model URL was not a valid HTTPS URL.")
+    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+        raise MeshyError("The returned model URL must be HTTPS without embedded credentials.")
     output.parent.mkdir(parents=True, exist_ok=True)
     if output.exists() and not force:
         raise MeshyError(f"Output already exists: {output}. Use --force to replace it.")
@@ -115,24 +136,24 @@ def _download_glb(url: str, output: Path, force: bool) -> None:
     )
     total = 0
     try:
-        with urllib.request.urlopen(request, timeout=180) as response, partial.open("wb") as target:
-            while True:
-                chunk = response.read(1024 * 1024)
-                if not chunk:
-                    break
-                total += len(chunk)
-                if total > MAX_MODEL_BYTES:
-                    raise MeshyError("Downloaded model exceeds the 300 MiB safety limit.")
-                target.write(chunk)
+        with urllib.request.urlopen(request, timeout=180) as response:
+            # urllib follows redirects; reject a final HTTP URL to prevent a TLS downgrade.
+            final_url = urlparse(response.geturl())
+            if final_url.scheme != "https" or not final_url.hostname or final_url.username or final_url.password:
+                raise MeshyError("The final model download URL must remain HTTPS without URL credentials.")
+            with partial.open("wb") as target:
+                while True:
+                    chunk = response.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    total += len(chunk)
+                    if total > MAX_MODEL_BYTES:
+                        raise MeshyError("Downloaded model exceeds the 300 MiB safety limit.")
+                    target.write(chunk)
 
-        with partial.open("rb") as model_file:
-            header = model_file.read(12)
-        if len(header) < 12 or header[:4] != b"glTF":
-            raise MeshyError("Downloaded file is not a binary glTF (GLB) model.")
-        if total < 1024:
-            raise MeshyError("Downloaded GLB is unexpectedly small; refusing to install it.")
-        if output.exists() and force:
-            output.unlink()
+        _validate_glb_container(partial)
+        # os.replace performs the final atomic promotion. Keep any previous good
+        # output intact unless the validated replacement can actually be committed.
         os.replace(partial, output)
     except Exception:
         try:
@@ -140,6 +161,94 @@ def _download_glb(url: str, output: Path, force: bool) -> None:
         except OSError:
             pass
         raise
+
+
+def _validate_glb_container(path: Path) -> None:
+    """Validate GLB 2.0 framing, chunk bounds, and the mandatory glTF JSON document."""
+    try:
+        actual_size = path.stat().st_size
+    except OSError as exc:
+        raise MeshyError("Downloaded GLB could not be inspected.") from exc
+    if actual_size < 20 or actual_size > MAX_MODEL_BYTES:
+        raise MeshyError("Downloaded GLB size is outside the valid safety bounds.")
+
+    try:
+        with path.open("rb") as model_file:
+            header = model_file.read(12)
+            if len(header) != 12:
+                raise MeshyError("Downloaded GLB has a truncated header.")
+            magic, version, declared_length = struct.unpack("<4sII", header)
+            if magic != b"glTF":
+                raise MeshyError("Downloaded file is not a binary glTF (GLB) model.")
+            if version != 2:
+                raise MeshyError("Downloaded GLB must use binary glTF version 2.")
+            if declared_length != actual_size:
+                raise MeshyError("GLB declared length does not match the downloaded file size.")
+
+            offset = 12
+            chunk_index = 0
+            saw_json = False
+            saw_binary = False
+            while offset < declared_length:
+                remaining = declared_length - offset
+                if remaining < 8:
+                    raise MeshyError("GLB contains a truncated chunk header.")
+                chunk_header = model_file.read(8)
+                if len(chunk_header) != 8:
+                    raise MeshyError("GLB contains a truncated chunk header.")
+                chunk_length, chunk_type = struct.unpack("<II", chunk_header)
+                offset += 8
+
+                if chunk_length % 4 != 0:
+                    raise MeshyError("GLB chunk lengths must be aligned to four bytes.")
+                if chunk_length > declared_length - offset:
+                    raise MeshyError("GLB chunk extends beyond the declared container length.")
+                if chunk_index == 0 and chunk_type != GLB_JSON_CHUNK_TYPE:
+                    raise MeshyError("The first GLB chunk must contain the glTF JSON document.")
+
+                if chunk_type == GLB_JSON_CHUNK_TYPE:
+                    if saw_json or chunk_index != 0:
+                        raise MeshyError("GLB must contain exactly one JSON chunk, first in the container.")
+                    if chunk_length == 0 or chunk_length > MAX_GLTF_JSON_BYTES:
+                        raise MeshyError("GLB JSON chunk is empty or exceeds the JSON safety limit.")
+                    json_bytes = model_file.read(chunk_length)
+                    if len(json_bytes) != chunk_length:
+                        raise MeshyError("GLB JSON chunk is truncated.")
+                    try:
+                        document = json.loads(json_bytes.decode("utf-8"))
+                    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                        raise MeshyError("GLB JSON chunk is not valid UTF-8 JSON.") from exc
+                    if not isinstance(document, dict):
+                        raise MeshyError("GLB JSON document must be an object.")
+                    asset = document.get("asset")
+                    if not isinstance(asset, dict) or asset.get("version") != "2.0":
+                        raise MeshyError("GLB JSON document must declare asset.version '2.0'.")
+                    saw_json = True
+                else:
+                    if not saw_json:
+                        raise MeshyError("GLB contains data before the mandatory JSON chunk.")
+                    if chunk_type == GLB_BIN_CHUNK_TYPE:
+                        if saw_binary:
+                            raise MeshyError("GLB may contain at most one BIN chunk.")
+                        if chunk_index != 1:
+                            raise MeshyError("The optional GLB BIN chunk must appear second.")
+                        saw_binary = True
+                    # Read in bounded blocks instead of seeking: seeking beyond EOF
+                    # can hide a truncated BIN/extension chunk.
+                    remaining_chunk_bytes = chunk_length
+                    while remaining_chunk_bytes:
+                        block = model_file.read(min(1024 * 1024, remaining_chunk_bytes))
+                        if not block:
+                            raise MeshyError("GLB chunk data is truncated.")
+                        remaining_chunk_bytes -= len(block)
+
+                offset += chunk_length
+                chunk_index += 1
+
+            if offset != declared_length or not saw_json:
+                raise MeshyError("GLB chunk layout does not fill the declared container.")
+    except OSError as exc:
+        raise MeshyError("Downloaded GLB could not be read completely.") from exc
 
 
 def generate(args: argparse.Namespace) -> Path:
@@ -226,7 +335,7 @@ def parse_args() -> argparse.Namespace:
         description="Generate assets/characters/player/player.glb from a reference image using Meshy."
     )
     image_group = parser.add_mutually_exclusive_group(required=True)
-    image_group.add_argument("--image-url", help="Public HTTPS image URL or supported base64 data URI.")
+    image_group.add_argument("--image-url", help="Public HTTPS image URL or supported base64 JPG/PNG/WEBP data URI.")
     image_group.add_argument("--image-file", type=Path, help="Local JPG, PNG, or WEBP image.")
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT, help="Output GLB path.")
     parser.add_argument(
