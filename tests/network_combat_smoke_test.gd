@@ -21,6 +21,7 @@ func _run() -> void:
 		return
 	avatar.call("configure_owner", 1)
 	add_child(avatar)
+	avatar.set_physics_process(false)
 	print("[network-smoke] avatar ready")
 	_check(float(avatar.get("current_health")) == 100.0, "network avatar starts with expected health")
 	_check(bool(multiplayer.is_server()), "offline smoke harness is allowed to exercise server logic")
