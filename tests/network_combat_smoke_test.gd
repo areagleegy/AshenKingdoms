@@ -20,7 +20,21 @@ func _run() -> void:
 		get_tree().quit(1)
 		return
 	avatar.call("configure_owner", 1)
+	avatar.call("set_local_input_enabled", false)
+	_check(
+		not bool(avatar.get("_local_input_enabled")),
+		"network input can be disabled safely before multiplayer tree attachment"
+	)
 	add_child(avatar)
+	_check(
+		bool(avatar.call("_owns_local_input")),
+		"local ownership resolves after the avatar enters the SceneTree"
+	)
+	avatar.call("set_local_input_enabled", true)
+	_check(
+		bool(avatar.get("_local_input_enabled")),
+		"local network input can be re-enabled after attachment"
+	)
 	print("[network-smoke] avatar ready")
 	_check(float(avatar.get("current_health")) == 100.0, "network avatar starts with expected health")
 	_check(bool(multiplayer.is_server()), "offline smoke harness is allowed to exercise server logic")
