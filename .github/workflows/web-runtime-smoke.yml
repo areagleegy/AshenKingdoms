@@ -140,10 +140,10 @@ jobs:
             if (canvas.width <= 0 || canvas.height <= 0 || canvas.cssWidth <= 0 || canvas.cssHeight <= 0) {
               problems.push("Godot canvas is empty or has no visible layout: " + JSON.stringify(canvas));
             }
-            if (!resources.some(item => /\\.wasm$/i.test(item.path) && item.status < 400)) {
+            if (!resources.some(item => /\.wasm$/i.test(item.path) && item.status < 400)) {
               problems.push("The WebAssembly engine resource did not return a successful HTTP response.");
             }
-            if (!resources.some(item => /\\.pck$/i.test(item.path) && item.status < 400)) {
+            if (!resources.some(item => /\.pck$/i.test(item.path) && item.status < 400)) {
               problems.push("The Godot PCK resource did not return a successful HTTP response.");
             }
 
