@@ -127,13 +127,19 @@ func _safe_saved_int(value: Variant, fallback: int, minimum: int, maximum: int) 
 			var numeric := float(value)
 			if not is_finite(numeric):
 				return fallback
-			number = roundi(numeric)
-			if not is_equal_approx(numeric, float(number)):
+			if numeric <= float(minimum):
+				return minimum
+			if numeric >= float(maximum):
+				return maximum
+			if not is_equal_approx(numeric, roundf(numeric)):
 				return fallback
+			number = int(roundf(numeric))
 		_:
 			return fallback
 	return clampi(number, minimum, maximum)
 
 
 func _safe_saved_bool(value: Variant, fallback: bool) -> bool:
-	return value if typeof(value) == TYPE_BOOL else fallback
+	if typeof(value) == TYPE_BOOL:
+		return bool(value)
+	return fallback
