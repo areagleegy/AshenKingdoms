@@ -10,10 +10,12 @@
 - [حالة التنفيذ الحالية](PROJECT_STATUS_AR.md): ما هو موجود حاليًا، وما هو تجريبي أو مؤجل أو غير متحقق يدويًا.
 - [دليل كتابة وصيانة الوثائق](DOCUMENTATION_GUIDE_AR.md): قواعد التحديث والروابط والأدلة المطلوبة.
 - [تدقيق التوثيق وخطة الاستكمال](DOCUMENTATION_AUDIT_AR.md): سجل الفجوات والأولويات ومعايير الأدلة وحدود المراجعة.
-- [سجل أدلة التدقيق التقني](AUDIT_EVIDENCE_AR.md): commits ومسارات وSHA ونوع الدليل وحدود ما تم التحقق منه.\n- [تدقيق Issues وPull Requests](ISSUE_AUDIT_AR.md): لقطة مؤرخة لحالات GitHub، والحالة الفعلية المعلنة، وبوابات قبول الإصدار.
+- [سجل أدلة التدقيق التقني](AUDIT_EVIDENCE_AR.md): commits ومسارات وSHA ونوع الدليل وحدود ما تم التحقق منه.
+- [تدقيق Issues وPull Requests](ISSUE_AUDIT_AR.md): لقطة مؤرخة لحالات GitHub، والحالة الفعلية المعلنة، وبوابات قبول الإصدار.
 - [نموذج تهديدات الشبكة](NETWORK_THREAT_MODEL_AR.md): مراجعة ساكنة لحدود الثقة والمخاطر وضوابط ما قبل النشر.
 - [البنية المختصرة وحالة التنفيذ](ARCHITECTURE.md): ملخص تقني بالإنجليزية.
 - [البنية التقنية التفصيلية](TECHNICAL_ARCHITECTURE.md): المشاهد والأنظمة والسكربتات وحدود التكامل.
+- [Project architecture briefing](PROJECT_ARCHITECTURE_BRIEFING.md): scene trees, runtime loading, server-authoritative synchronization, content pipeline, asset status and snapshot-specific verification evidence.
 - [خطة الاختبار والقبول](TEST_PLAN.md): الاختبارات الآلية، الاختبارات اليدوية وبوابات الإصدار.
 - [تقوية الحفظ المحلي](SAVE_HARDENING_AR.md): استراتيجية الملف المؤقت والنسخة الاحتياطية والاستعادة وحدود ضمانها.
 
