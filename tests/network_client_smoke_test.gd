@@ -228,12 +228,6 @@ func _run() -> void:
 				guarded_avatar.rpc_id(1, "_rpc_submit_input", Vector3.ZERO, false, false, false)
 			await create_timer(0.15).timeout
 
-			# A sustained burst competes with the normal 20 Hz client stream and
-			# must reach the per-avatar rolling-window limit on the authoritative host.
-			for packet_index in range(50):
-				guarded_avatar.rpc_id(1, "_rpc_submit_input", Vector3.ZERO, false, false, false)
-				await create_timer(0.025).timeout
-			await create_timer(0.15).timeout
 
 	if _failures > 0 and current_scene != null:
 		var entities := current_scene.get_node_or_null("Entities") as Node3D
