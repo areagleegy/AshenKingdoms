@@ -20,20 +20,28 @@ godot --headless --path . -- --server --server-port="$ASHEN_TEST_PORT" >"$server
 server_pid=$!
 
 server_ready=0
+socket_tool_unavailable=0
 for _ in $(seq 1 40); do
   if ! kill -0 "$server_pid" >/dev/null 2>&1; then
     echo "Host process exited before binding its UDP port."
     cat "$server_log"
     exit 1
   fi
-  if ss -lun | grep -Eq "[:.]$ASHEN_TEST_PORT[[:space:]]"; then
-    server_ready=1
+  if command -v ss >/dev/null 2>&1; then
+    if ss -lun | grep -Eq "[:.]$ASHEN_TEST_PORT[[:space:]]"; then server_ready=1; break; fi
+  elif command -v lsof >/dev/null 2>&1; then
+    if lsof -nP -iUDP:"$ASHEN_TEST_PORT" >/dev/null 2>&1; then server_ready=1; break; fi
+  elif command -v netstat >/dev/null 2>&1; then
+    if netstat -an 2>/dev/null | grep -Eq "[:.]$ASHEN_TEST_PORT[[:space:]]"; then server_ready=1; break; fi
+  else
+    echo "No UDP inspection utility found; proceeding to the real client connection test."
+    socket_tool_unavailable=1
     break
   fi
   sleep 0.25
 done
 
-if [[ "$server_ready" -ne 1 ]]; then
+if [[ "$server_ready" -ne 1 && "$socket_tool_unavailable" -ne 1 ]]; then
   echo "Host did not bind its UDP port in time."
   cat "$server_log"
   exit 1

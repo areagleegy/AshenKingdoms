@@ -128,10 +128,12 @@ func _test_inventory_and_potions() -> void:
 	player.queue_free()
 
 
-func _test_save_and_load(had_original_save: bool, original_save: String) -> void:
+func _test_save_and_load(_had_original_save: bool, _original_save: String) -> void:
+	# All fixtures use an isolated path; never mutate the player's real save/backup.
 	var save_system: Node = SaveSystemScript.new()
+	save_system.set("save_path", "user://gameplay_regression_test_save.json")
 	root.add_child(save_system)
-
+	save_system.call("delete_save")
 	_check(bool(save_system.call("save_game", {"level": 4, "health": 61.5, "flags": {"intro_seen": true}})), "save system writes structured data")
 	var loaded = save_system.call("load_game")
 	_check(loaded is Dictionary, "save system returns a dictionary for valid JSON")
@@ -140,32 +142,19 @@ func _test_save_and_load(had_original_save: bool, original_save: String) -> void
 		_check(is_equal_approx(float(loaded.get("health", 0.0)), 61.5), "saved floating-point health loads correctly")
 		var flags = loaded.get("flags", {})
 		_check(flags is Dictionary and bool(flags.get("intro_seen", false)), "nested dialogue flags survive save/load")
-
-	var malformed := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	_check(bool(save_system.call("save_game", {})), "empty dictionary can be saved")
+	_check((save_system.call("load_game") as Dictionary).is_empty(), "valid empty primary does not roll back to stale backup")
+	var malformed := FileAccess.open("user://gameplay_regression_test_save.json", FileAccess.WRITE)
 	if malformed == null:
 		_check(false, "test can create malformed JSON fixture")
 	else:
 		malformed.store_string("{not valid JSON")
 		malformed.close()
 		var corrupt = save_system.call("load_game")
-		_check(corrupt is Dictionary and corrupt.is_empty(), "malformed JSON safely returns an empty dictionary")
-
-	_restore_original_save(had_original_save, original_save, save_system)
-	_check(not bool(save_system.call("has_save")) if not had_original_save else bool(save_system.call("has_save")), "save fixture is cleaned up or original save is restored")
+		_check(corrupt is Dictionary and int(corrupt.get("level", 0)) == 4, "malformed primary falls back to the previous good backup")
+	_check(bool(save_system.call("delete_save")), "isolated save fixtures are cleaned up")
+	_check(not bool(save_system.call("has_save")), "test save and backup are removed")
 	save_system.queue_free()
-
-
-func _restore_original_save(had_original_save: bool, original_save: String, save_system: Node) -> void:
-	if had_original_save:
-		var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-		if file == null:
-			_check(false, "original save can be restored after test")
-			return
-		file.store_string(original_save)
-		file.close()
-	else:
-		_check(bool(save_system.call("delete_save")), "temporary save file is removed after test")
-
 
 func _test_dialogue_and_quests() -> void:
 	var player := _make_player()
