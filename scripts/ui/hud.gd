@@ -244,6 +244,14 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("inventory") and not _is_echo(event):
 		toggle_inventory()
 		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("ui_cancel") and not _is_echo(event):
+		if _pause_panel.visible:
+			_set_paused(false)
+		elif _inventory_panel.visible:
+			_set_inventory_visible(false)
+		else:
+			return
+		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("save") and not _is_echo(event):
 		save_requested.emit()
 		get_viewport().set_input_as_handled()
