@@ -440,6 +440,29 @@
       "relations": {
         "saltwake_freecrews": "hostile"
       }
+    },
+    {
+      "id": "tide_monastery",
+      "name": {
+        "en": "Monastery of Tides",
+        "ar": "دير المد"
+      },
+      "goal": "Study the relationship between tidal cycles and the Bell Engine without allowing either to become a weapon.",
+      "methods": [
+        "navigation charts",
+        "ritual lenses",
+        "neutral sanctuary"
+      ],
+      "relations": {
+        "bell_keepers": "allied",
+        "reed_court": "uneasy_allies",
+        "isle_reavers": "hostile"
+      },
+      "player_choices": [
+        "restore the tide lens",
+        "share or conceal the navigation charts",
+        "defend the sanctuary"
+      ]
     }
   ],
   "characters": [
