@@ -103,6 +103,10 @@ jobs:
           test -f tools/diagnostic_cases.json
           test -f tools/diagnostic_benchmark.py
           test -f tools/ai_test_diagnostics.py
+          test -f content/world/world_catalog.json
+          test -f docs/WORLD_BIBLE_AR.md
+          test -f tools/validate_world_catalog.py
+          test -f tools/test_world_catalog.py
 
       - name: Validate local Markdown links
         run: python3 tools/validate_docs.py
@@ -173,6 +177,12 @@ jobs:
         run: |
           set -o pipefail
           python -m unittest tools.test_package_content tools.test_sign_content_catalog -v 2>&1 | tee "$RUNNER_TEMP/python-tests.log"
+
+      - name: Validate world catalog data
+        run: |
+          python3 -m py_compile tools/validate_world_catalog.py tools/test_world_catalog.py
+          python3 tools/validate_world_catalog.py
+          python3 -m unittest tools.test_world_catalog -v
 
       - name: Diagnose test logs
         if: always()
