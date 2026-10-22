@@ -20,6 +20,7 @@
 - [البناء إلى Android وWeb](BUILD_ANDROID_WEB_AR.md): إصدارات الأدوات ومخرجات البناء ومعايير التثبيت والنشر.
 - [التطوير من متصفح هاتف Android](CLOUD_PHONE_GUIDE_AR.md): استخدام Codespaces وطرفية Godot وإدارة الموارد.
 - [سير عمل التحقق](../.github/workflows/validate.yml) و[سير عمل بناء المنصات](../.github/workflows/build.yml): التعريفات التنفيذية الفعلية لفحوص CI.
+- [تشغيل فحوصات QA محليًا](LOCAL_QA_AR.md): تشغيل فحوص Python وGodot والشبكة محليًا، مع توضيح الفحوص المتخطاة.
 - [اختبارات اللعب والانحدار](../tests/gameplay_regression_test.gd) و[اختبار تحميل الموارد](../tests/script_load_smoke_test.gd).
 - [اختبار القتال الشبكي](../tests/network_combat_smoke_test.tscn) و[اختبار اتصال العميل/المضيف](../tests/network_client_smoke_test.gd).
 
