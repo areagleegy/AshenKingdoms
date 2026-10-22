@@ -14,8 +14,12 @@
 
 ## المنصات والحالة
 
-- **Android:** يبني GitHub Actions ملف APK تجريبيًا لمعمارية ARM64. ملف CI غير موقّع كمخرج إصدار إنتاجي؛ يلزم اختباره على هاتف فعلي.
-- **Web:** تصدير HTML5 يصلح للاستضافة الثابتة عبر HTTP/HTTPS. اللعب الفردي هو المسار المدعوم في Web؛ استضافة ENet والاتصال به معطلان في هذا التصدير.
+- **Android:** يبني GitHub Actions ملف APK تجريبيًا لمعمارية ARM64. هذا ليس إصدار Google Play موقّعًا، ويلزم اختباره على هاتف فعلي.
+- **Windows:** مخرج CI هو `AshenKingdoms.exe` مع حزم موارد اللعبة مضمّنة.
+- **Linux:** مخرج CI هو `AshenKingdoms.x86_64` لمعمارية x86_64 مع حزم الموارد مضمّنة.
+- **macOS:** مخرج CI هو `AshenKingdoms.zip` يحتوي حزمة تطبيق macOS. المخرج غير موثّق وغير موثّق الهوية للتوزيع؛ يلزم التوقيع واتباع إجراءات Apple قبل التوزيع العام.
+- **iOS:** يمكن لـ Godot تصدير مشروع Xcode مضغوطًا باسم `AshenKingdoms.zip`، وليس ملف IPA جاهزًا للنشر. يتطلب تشغيل مهمة CI إضافة متغير مستودع باسم `IOS_TEAM_ID` يحتوي معرّف Apple Developer Team المكوّن من 10 أحرف/أرقام. إنشاء IPA وتوقيعه وتوزيعه يتطلب إعدادات Apple/Xcode إضافية.
+- **Web:** تصدير HTML5 ينتج `index.html` وملفات WebAssembly/JavaScript والموارد؛ يجب استضافة المجلد عبر HTTP/HTTPS. اللعب الفردي هو المسار المدعوم في Web؛ استضافة ENet والاتصال به معطلان في هذا التصدير.
 - **Desktop / Android — شبكة تجريبية:** تتضمن القائمة الرئيسية الاستضافة أو الانضمام عبر ENet، مع ساحة منفصلة لحركة وقتال وصحة وأعداء ومهمة قتل تجريبية. يوجد اختبار اتصال محلي آلي في CI.
 - **الخادم المخصص:** يمكن تشغيل مسار الاستضافة في وضع headless عبر القائمة الرئيسية. ليست هناك مصادقة حسابات أو حفظ شبكي دائم أو استضافة عامة مُدارة أو ضمان أمان إنتاجي. الملف `scripts/core/server.gd` ما زال هيكلًا تمهيديًا قديمًا؛ مسار أمر الخادم الحالي يمر عبر `scenes/ui/MainMenu.tscn` و`scripts/ui/main_menu.gd` و`NetworkManager`.
 
@@ -83,8 +87,9 @@ python3 tools/validate_free_assets.py
 كل من Workflow التحقق وWorkflow بناء Android/Web يعمل عند فتح أو تحديث Pull Request، كما يعملان عند الدفع إلى `main`. يتوفر تشغيل يدوي عبر `workflow_dispatch`.
 
 - `Validate Godot Project`: تحليل واستيراد الموارد، تحميل السكربتات والمشاهد، اختبارات اللعب والانحدار واللاعب والشبكة والمحتوى، وفحوص أدوات Python والتوثيق.
-- `Build Android and Web`: تصدير Web وAPK تجريبي ورفع المخرجات كـ Artifacts.
-- أسماء Artifacts: `ashen-kingdoms-web` و`ashen-kingdoms-android-debug`.
+- `Build Android and Web`: تصدير Web وAPK تجريبي، بالإضافة إلى Windows وLinux وmacOS.
+- أسماء Artifacts: `ashen-kingdoms-web`، `ashen-kingdoms-android-debug`، `ashen-kingdoms-windows`، `ashen-kingdoms-linux`، و`ashen-kingdoms-macos`.
+- مهمة iOS منفصلة تعمل على macOS فقط عند ضبط متغير المستودع `IOS_TEAM_ID`؛ ترفع مشروع Xcode مضغوطًا باسم `ashen-kingdoms-ios-xcode-project`، ولا تنتج IPA موقّعًا.
 - الاحتفاظ بملفات البناء والتشخيص مؤقت؛ صلاحيتها الحالية 7 أيام.
 
 لا تعتبر نجاح CI بديلًا عن تثبيت APK على جهاز Android حقيقي أو اختبار اتصال عميلين عبر الشبكة المطلوبة للإصدار.
