@@ -110,6 +110,8 @@ func _run() -> void:
 
 	_check(not bool(_catalog.call("is_safe_relative_path", "../escape.txt")), "parent traversal is rejected by path helper")
 	_check(not bool(_catalog.call("is_safe_relative_path", "/absolute/path.txt")), "absolute paths are rejected by path helper")
+	_check(not bool(_catalog.call("is_safe_relative_path", "characters//hero.glb")), "empty path segments are rejected by path helper")
+	_check(not bool(_catalog.call("is_safe_relative_path", "characters/hero.glb/")), "trailing empty path segments are rejected by path helper")
 	_check(bool(_catalog.call("is_safe_relative_path", "characters/hero.glb")), "nested relative asset path is accepted")
 
 	var installer_script: Script = load("res://scripts/content/content_package_installer.gd") as Script
