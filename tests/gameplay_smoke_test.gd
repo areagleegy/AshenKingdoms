@@ -91,6 +91,17 @@ func _run() -> void:
 	_check(int(restored_quest.get("progress")) == 3, "quest progress survives save-data round-trip")
 	_check(not bool(restored_quest.get("active")), "completed state survives save-data round-trip")
 
+	var malformed_quest: Node = QuestManagerScript.new()
+	malformed_quest.set("progression", progression)
+	root.add_child(malformed_quest)
+	malformed_quest.call("load_state", {"id": "ash_trail", "progress": INF, "active": "true"})
+	_check(int(malformed_quest.get("progress")) == 0, "quest restore rejects non-finite progress values")
+	_check(bool(malformed_quest.get("active")), "malformed active flag falls back to state derived from progress")
+	malformed_quest.call("load_state", {"id": "ash_trail", "progress": 999999, "active": "true"})
+	_check(int(malformed_quest.get("progress")) == 3, "quest restore clamps progress to the quest target")
+	_check(not bool(malformed_quest.get("active")), "quest at its target cannot be restored as active")
+	malformed_quest.queue_free()
+
 	var save_system: Node = SaveSystemScript.new()
 	root.add_child(save_system)
 	var sample_data: Dictionary = {
