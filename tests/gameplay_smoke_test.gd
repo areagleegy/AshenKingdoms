@@ -4,6 +4,8 @@ const ProgressionManagerScript: Script = preload("res://scripts/core/progression
 const QuestManagerScript: Script = preload("res://scripts/core/quest_manager.gd")
 const SaveSystemScript: Script = preload("res://scripts/core/save_system.gd")
 const SAVE_PATH: String = "user://savegame.json"
+const SAVE_BACKUP_PATH: String = "user://savegame.json.bak"
+const SAVE_TEMP_PATH: String = "user://savegame.json.tmp"
 
 var _failures: int = 0
 
@@ -18,11 +20,33 @@ func _run() -> void:
 	if had_original_save:
 		var original_file := FileAccess.open(SAVE_PATH, FileAccess.READ)
 		if original_file == null:
-			push_error("Could not back up existing save before running smoke tests.")
+			push_error("Could not back up existing primary save before running smoke tests.")
 			quit(1)
 			return
 		original_save = original_file.get_as_text()
 		original_file.close()
+
+	var had_original_backup := FileAccess.file_exists(SAVE_BACKUP_PATH)
+	var original_backup := ""
+	if had_original_backup:
+		var backup_file := FileAccess.open(SAVE_BACKUP_PATH, FileAccess.READ)
+		if backup_file == null:
+			push_error("Could not back up existing backup save before running smoke tests.")
+			quit(1)
+			return
+		original_backup = backup_file.get_as_text()
+		backup_file.close()
+
+	var had_original_temp := FileAccess.file_exists(SAVE_TEMP_PATH)
+	var original_temp := ""
+	if had_original_temp:
+		var temp_file := FileAccess.open(SAVE_TEMP_PATH, FileAccess.READ)
+		if temp_file == null:
+			push_error("Could not back up existing temporary save before running smoke tests.")
+			quit(1)
+			return
+		original_temp = temp_file.get_as_text()
+		temp_file.close()
 
 	var network_manager: Node = root.get_node_or_null("NetworkManager")
 	_check(network_manager != null, "network manager autoload is present for smoke tests")
@@ -82,31 +106,68 @@ func _run() -> void:
 		var loaded_nested = loaded_data.get("nested", {})
 		_check(loaded_nested is Dictionary and int(loaded_nested.get("value", 0)) == 7, "loaded save retains nested values")
 
+	var newer_data: Dictionary = {
+		"version": 1,
+		"smoke_test_marker": "newer-snapshot",
+		"nested": {"value": 99}
+	}
+	_check(bool(save_system.call("save_game", newer_data)), "second save preserves the prior valid snapshot as backup")
+
 	var corrupt_file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if corrupt_file == null:
 		_check(false, "test can open save file to simulate corruption")
 	else:
 		corrupt_file.store_string("{invalid json")
+		corrupt_file.flush()
 		corrupt_file.close()
-		var corrupt_data = save_system.call("load_game")
-		_check(corrupt_data is Dictionary and corrupt_data.is_empty(), "malformed JSON is rejected safely")
+		var recovered_data = save_system.call("load_game")
+		_check(
+			recovered_data is Dictionary
+			and recovered_data.get("smoke_test_marker", "") == "ashen-kingdoms"
+			and recovered_data.get("nested", {}).get("value", 0) == 7,
+			"malformed primary save recovers the last known-good backup"
+		)
+		_check(bool(save_system.call("has_save")), "recovered backup remains a usable save")
 
-	_restore_original_save(had_original_save, original_save, save_system)
+	_restore_original_save(
+		had_original_save, original_save,
+		had_original_backup, original_backup,
+		had_original_temp, original_temp,
+		save_system
+	)
 
 	print("[smoke] failures: %d" % _failures)
 	quit(1 if _failures > 0 else 0)
 
 
-func _restore_original_save(had_original_save: bool, original_save: String, save_system: Node) -> void:
-	if had_original_save:
-		var restore_file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-		if restore_file == null:
-			_check(false, "existing save file can be restored after the test")
-			return
-		restore_file.store_string(original_save)
-		restore_file.close()
-	else:
-		_check(bool(save_system.call("delete_save")), "temporary smoke-test save is removed")
+func _restore_original_save(
+	had_original_save: bool,
+	original_save: String,
+	had_original_backup: bool,
+	original_backup: String,
+	had_original_temp: bool,
+	original_temp: String,
+	save_system: Node
+) -> void:
+	_check(bool(save_system.call("delete_save")), "save test files are removed before restoring fixtures")
+	_restore_text_fixture(SAVE_PATH, had_original_save, original_save, "primary save")
+	_restore_text_fixture(SAVE_BACKUP_PATH, had_original_backup, original_backup, "backup save")
+	_restore_text_fixture(SAVE_TEMP_PATH, had_original_temp, original_temp, "temporary save")
+
+
+func _restore_text_fixture(path: String, should_exist: bool, contents: String, description: String) -> void:
+	if not should_exist:
+		_check(not FileAccess.file_exists(path), "%s is absent after cleanup" % description)
+		return
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		_check(false, "original %s can be restored" % description)
+		return
+	file.store_string(contents)
+	file.flush()
+	var write_error: Error = file.get_error()
+	file.close()
+	_check(write_error == OK, "original %s content is restored" % description)
 
 
 func _check(condition: bool, description: String) -> void:
