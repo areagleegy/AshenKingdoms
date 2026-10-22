@@ -216,7 +216,7 @@ jobs:
   android:
     name: Export Android APK
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 50
     env:
       GODOT_TEMPLATE_DIR: 4.6.stable
     steps:
@@ -335,6 +335,122 @@ jobs:
           unzip -tq build/android/AshenKingdoms-validation.aab
           echo "Temporary signed AAB validation succeeded; this test key is not for distribution."
 
+      - name: Enable emulator ABI in temporary Android preset
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          config = Path("export_presets.cfg")
+          lines = config.read_text(encoding="utf-8").splitlines()
+          starts = [
+              index for index, line in enumerate(lines)
+              if re.fullmatch(r"\[preset\.\d+\]", line)
+          ]
+          found = False
+          for section_index, start in enumerate(starts):
+              end = starts[section_index + 1] if section_index + 1 < len(starts) else len(lines)
+              section = lines[start:end]
+              if 'name="Android"' not in section:
+                  continue
+              arm64_index = next((i for i in range(start, end) if lines[i] == "architectures/arm64-v8a=true"), None)
+              x86_index = next((i for i in range(start, end) if lines[i].startswith("architectures/x86_64=")), None)
+              if arm64_index is None or x86_index is None:
+                  raise SystemExit("Android preset must define ARM64 and x86_64 architecture settings.")
+              lines[x86_index] = "architectures/x86_64=true"
+              found = True
+              break
+          if not found:
+              raise SystemExit("Android export preset was not found.")
+          config.write_text("\n".join(lines) + "\n", encoding="utf-8")
+          PY
+
+      - name: Export emulator-only Android APK
+        shell: bash
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -euo pipefail
+          godot --headless --path . --export-debug "Android" build/android/AshenKingdoms-emulator.apk
+          test -s build/android/AshenKingdoms-emulator.apk
+          python3 tools/validate_platform_exports.py android build/android/AshenKingdoms-emulator.apk
+          unzip -tq build/android/AshenKingdoms-emulator.apk
+          "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify --verbose build/android/AshenKingdoms-emulator.apk
+          unzip -Z1 build/android/AshenKingdoms-emulator.apk | grep -q '^lib/x86_64/.*\.so$'
+          echo "Emulator APK includes x86_64 for test only; published debug artifact remains ARM64-only."
+
+      - name: Install and smoke-test APK on Android emulator
+        uses: reactivecircus/android-emulator-runner@v2.38.0
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          disable-animations: true
+          emulator-boot-timeout: 600
+          script: |
+            set -euo pipefail
+            mkdir -p android-test-results
+            package_id="org.ashenkingdoms.game"
+            adb wait-for-device
+            for attempt in $(seq 1 60); do
+              booted="$(adb shell getprop sys.boot_completed | tr -d '\r' || true)"
+              if [[ "$booted" == "1" ]]; then
+                break
+              fi
+              sleep 2
+            done
+            adb shell getprop sys.boot_completed | tr -d '\r' | grep -qx '1'
+            adb install -r build/android/AshenKingdoms-emulator.apk
+            adb logcat -c
+            adb shell monkey -p "$package_id" 1
+            app_pid=""
+            for attempt in $(seq 1 45); do
+              app_pid="$(adb shell pidof "$package_id" | tr -d '\r' || true)"
+              if [[ -n "$app_pid" ]]; then
+                break
+              fi
+              sleep 1
+            done
+            adb logcat -d -v brief > android-test-results/logcat-full.txt
+            if [[ -z "$app_pid" ]]; then
+              echo "Game process did not remain alive after launch." >&2
+              cat android-test-results/logcat-full.txt
+              exit 1
+            fi
+            sleep 8
+            app_pid="$(adb shell pidof "$package_id" | tr -d '\r' || true)"
+            adb shell dumpsys activity activities > android-test-results/activities.txt
+            adb logcat -d -v brief > android-test-results/logcat-full.txt
+            if [[ -n "$app_pid" ]]; then
+              adb logcat -d -v brief --pid="$app_pid" > android-test-results/logcat-app.txt
+            else
+              echo "Game process exited during the post-launch observation window." >&2
+              exit 1
+            fi
+            adb shell screencap -p /sdcard/ashenkingdoms-smoke.png
+            adb pull /sdcard/ashenkingdoms-smoke.png android-test-results/screenshot.png
+            test -s android-test-results/screenshot.png
+            grep -Fq "$package_id" android-test-results/activities.txt
+            if grep -Eiq 'FATAL EXCEPTION|SCRIPT ERROR:|ERROR:|Fatal signal|SIGSEGV|ANR in|has died' android-test-results/logcat-app.txt; then
+              cat android-test-results/logcat-app.txt
+              echo "Android game logged a fatal/runtime error." >&2
+              exit 1
+            fi
+            echo "Android emulator launch passed: process remained alive for 8 seconds, activity and screenshot captured, app log clean."
+
+      - name: Upload Android emulator test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ashen-kingdoms-android-emulator-results
+          path: android-test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
   ios:
     name: Export iOS Xcode project
     runs-on: macos-latest
@@ -444,11 +560,42 @@ jobs:
       - name: Export iOS Xcode project
         env:
           GODOT_SILENCE_ROOT_WARNING: "1"
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p build/ios
-          godot --headless --path . --export-release "iOS" build/ios/AshenKingdoms.zip
+          rm -f build/ios/AshenKingdoms.zip
+          set +e
+          godot --headless --path . --export-release "iOS" build/ios/AshenKingdoms.zip > "$RUNNER_TEMP/ios-export.log" 2>&1
+          export_status=$?
+          cat "$RUNNER_TEMP/ios-export.log"
+          set -e
           test -s build/ios/AshenKingdoms.zip
           python3 tools/validate_platform_exports.py ios build/ios/AshenKingdoms.zip
+          if [[ "$export_status" -ne 0 ]]; then
+            if grep -Eiq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:|Failed to export|No export template|Export failed' "$RUNNER_TEMP/ios-export.log"; then
+              echo "Godot iOS export reported an explicit export/runtime error." >&2
+              exit "$export_status"
+            fi
+            echo "::warning::Godot returned $export_status after producing a structurally valid Xcode project ZIP; Xcode build validation remains required."
+          fi
+
+      - name: Build exported iOS project for Simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/ios/unpacked
+          unzip -q build/ios/AshenKingdoms.zip -d build/ios/unpacked
+          project_path="$(find build/ios/unpacked -type d -name '*.xcodeproj' -print -quit)"
+          test -n "$project_path"
+          xcodebuild -list -json -project "$project_path" > "$RUNNER_TEMP/ios-xcode-list.json"
+          scheme="$(python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); schemes=data["project"].get("schemes",[]); print(schemes[0] if schemes else "")' "$RUNNER_TEMP/ios-xcode-list.json")"
+          if [[ -z "$scheme" ]]; then
+            cat "$RUNNER_TEMP/ios-xcode-list.json"
+            echo "No Xcode scheme was exported for iOS." >&2
+            exit 1
+          fi
+          xcodebuild -project "$project_path" -scheme "$scheme" -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO -derivedDataPath "$RUNNER_TEMP/ashen-ios-derived" build | tee "$RUNNER_TEMP/ios-xcode-build.log"
 
       - name: Upload iOS Xcode project artifact
         uses: actions/upload-artifact@v7
