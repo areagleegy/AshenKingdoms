@@ -112,30 +112,32 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 	if sender_id != owner_peer_id or sender_id <= 1 or is_dead:
 		return
 
+	var now := Time.get_ticks_msec()
+	if _input_rate_window_start_msec == 0 or now - _input_rate_window_start_msec >= INPUT_RATE_WINDOW_MSEC:
+		_input_rate_window_start_msec = now
+		_input_rate_window_count = 0
+	# Count every authenticated RPC before validating its payload or cadence. Otherwise,
+	# a peer can avoid the rate budget by sending malformed or too-frequent packets.
+	if _input_rate_window_count >= INPUT_RATE_LIMIT:
+		if OS.get_environment("ASHEN_TEST_COMBAT") == "1":
+			print("[network-input-test] rejected input rate limit")
+		return
+	_input_rate_window_count += 1
+
 	# Reject malformed numeric input before it reaches movement/physics code.
 	if not is_finite(direction.x) or not is_finite(direction.y) or not is_finite(direction.z):
 		if OS.get_environment("ASHEN_TEST_COMBAT") == "1":
 			print("[network-input-test] rejected non-finite direction")
 		return
-
-	var now := Time.get_ticks_msec()
-	if _input_rate_window_start_msec == 0 or now - _input_rate_window_start_msec >= INPUT_RATE_WINDOW_MSEC:
-		_input_rate_window_start_msec = now
-		_input_rate_window_count = 0
-	if _input_rate_window_count >= INPUT_RATE_LIMIT:
-		if OS.get_environment("ASHEN_TEST_COMBAT") == "1":
-			print("[network-input-test] rejected input rate limit")
-		return
 	if _last_input_packet_msec > 0 and now - _last_input_packet_msec < INPUT_MIN_INTERVAL_MSEC:
 		return
-	_input_rate_window_count += 1
-	_last_input_packet_msec = now
 
 	var safe_direction := Vector3(direction.x, 0.0, direction.z)
 	if not is_finite(safe_direction.length_squared()):
 		return
 	if safe_direction.length_squared() > 1.0:
 		safe_direction = safe_direction.normalized()
+	_last_input_packet_msec = now
 	if attack_down and not _last_attack_down and OS.get_environment("ASHEN_TEST_COMBAT") == "1":
 		_set_test_combat_scenario()
 	_set_requested_input(safe_direction, jump_down, sprint_down, attack_down)
