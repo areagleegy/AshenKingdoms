@@ -193,7 +193,7 @@ func is_safe_relative_path(path: String) -> bool:
 		return false
 	if path.begins_with("/") or path.begins_with("\\") or path.contains(":") or path.contains("\\") or path.to_utf8_buffer().has(0):
 		return false
-	var segments := path.split("/", false)
+	var segments := path.split("/", true)
 	if segments.is_empty():
 		return false
 	for segment in segments:
