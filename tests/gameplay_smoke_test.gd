@@ -112,6 +112,17 @@ func _isolate_save_files() -> Dictionary:
 			return snapshots
 		snapshots[path] = file.get_buffer(file.get_length())
 		file.close()
+
+	# Tests must run against an empty isolated save namespace, not the user's saves.
+	for path in SAVE_RELATED_FILES:
+		if not FileAccess.file_exists(path):
+			continue
+		var remove_error := DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+		if remove_error != OK:
+			push_error("Could not isolate save-related file: %s" % path)
+			_restore_save_files(snapshots)
+			snapshots["__snapshot_error"] = true
+			return snapshots
 	return snapshots
 
 
