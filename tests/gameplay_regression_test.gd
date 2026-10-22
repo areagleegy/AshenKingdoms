@@ -317,6 +317,9 @@ func _test_controller_navigation_configuration() -> void:
 		hud_file.close()
 		_check(hud_source.contains("_focus_resume_button"), "pause overlay focuses resume action")
 		_check(hud_source.contains("_focus_inventory_default"), "inventory overlay focuses an actionable control")
+		_check(hud_source.contains('event.is_action_pressed("ui_cancel")'), "controller cancel action is handled by the HUD")
+		_check(hud_source.contains("_set_paused(false)"), "controller cancel can close the pause overlay")
+		_check(hud_source.contains("_set_inventory_visible(false)"), "controller cancel can close the inventory overlay")
 		_check(hud_source.contains("Start"), "HUD includes the controller pause hint")
 
 	var camera_file := FileAccess.open("res://scripts/player/player_camera.gd", FileAccess.READ)
