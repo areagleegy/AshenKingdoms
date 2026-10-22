@@ -344,7 +344,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventScreenDrag:
 		var drag := event as InputEventScreenDrag
 		if drag.position.x >= get_viewport().get_visible_rect().size.x * 0.42:
-			_apply_camera_rotation(drag.relative.x * 0.005, drag.relative.y * 0.005)
+			_apply_camera_rotation(drag.screen_relative.x * 0.005, drag.screen_relative.y * 0.005)
 
 
 func _apply_camera_rotation(dx: float, dy: float) -> void:
