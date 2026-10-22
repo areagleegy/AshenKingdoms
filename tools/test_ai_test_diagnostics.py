@@ -55,6 +55,30 @@ class DiagnosticsClassifierTests(unittest.TestCase):
         self.assertEqual(findings[-1]["category"], "generic_error")
         self.assertTrue(any("other-tests.log" in line for line in findings[-1]["evidence"]))
 
+    def test_expected_oversized_save_rejection_is_not_reported(self):
+        log = (
+            "ERROR: Refusing to save data larger than the local save-size limit.\\n"
+            "[PASS] save system rejects payloads larger than the configured size limit\\n"
+        )
+        self.assertEqual(classify_text(log), [])
+
+    def test_expected_save_error_does_not_hide_another_log_error(self):
+        log = (
+            "gameplay-regression.log: ERROR: Refusing to save data larger than the local save-size limit.\\n"
+            "gameplay-regression.log: [PASS] save system rejects payloads larger than the configured size limit\\n"
+            "network-loopback.log: SCRIPT ERROR: Cannot call method 'get_unique_id' on a null value.\\n"
+        )
+        findings = classify_text(log)
+        self.assertTrue(findings)
+        self.assertTrue(any(item["category"] == "generic_error" for item in findings))
+        evidence = [line for item in findings for line in item["evidence"]]
+        self.assertTrue(any("network-loopback.log" in line for line in evidence))
+        self.assertFalse(any("save-size limit" in line for line in evidence))
+
+    def test_pass_line_for_missing_optional_player_model_is_not_an_error(self):
+        log = "[PASS] missing player.glb selects the documented placeholder path"
+        self.assertEqual(classify_text(log), [])
+
     def test_missing_resource_is_detected(self):
         findings = classify_text("Failed loading resource: res://assets/hero/player.glb")
         categories = {item["category"] for item in findings}
