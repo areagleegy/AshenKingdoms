@@ -92,7 +92,7 @@ func _build_visuals() -> void:
 	visual.position.y = 0.28
 
 	var material := StandardMaterial3D.new()
-	material.albedo_color = item.icon_color if item.icon_color != Color.TRANSPARENT else Color(0.75, 0.18, 0.12, 1.0)
+	material.albedo_color = Color(0.75, 0.18, 0.12, 1.0)
 	material.roughness = 0.35
 	material.metallic = 0.15
 	visual.material_override = material
