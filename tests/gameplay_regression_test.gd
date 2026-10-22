@@ -14,11 +14,18 @@ const DialogueNodeScript: Script = preload("res://scripts/dialogue/dialogue_node
 const DialogueChoiceScript: Script = preload("res://scripts/dialogue/dialogue_choice.gd")
 const MainScript: Script = preload("res://scripts/core/main.gd")
 
-const SAVE_PATH := "user://savegame.json"
+const SAVE_RELATED_FILES: Array[String] = [
+	"user://savegame.json",
+	"user://savegame.bak.json",
+	"user://savegame.tmp",
+	"user://savegame.bak.tmp",
+	"user://savegame.json.old",
+]
 const POTION_PATH := "res://resources/items/health_potion.tres"
 
 var _failures := 0
 var _checks := 0
+var _save_snapshots: Dictionary = {}
 
 
 func _initialize() -> void:
@@ -26,24 +33,19 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	var had_original_save := FileAccess.file_exists(SAVE_PATH)
-	var original_save := ""
-	if had_original_save:
-		var original_file := FileAccess.open(SAVE_PATH, FileAccess.READ)
-		if original_file == null:
-			_check(false, "existing save can be backed up before regression tests")
-			quit(1)
-			return
-		original_save = original_file.get_as_text()
-		original_file.close()
+	_save_snapshots = _isolate_save_files()
+	if _save_snapshots.has("__snapshot_error"):
+		quit(1)
+		return
 
 	_test_player_and_health()
 	_test_inventory_and_potions()
 	_test_world_item_drop()
-	_test_save_and_load(had_original_save, original_save)
+	_test_save_and_load()
 	_test_dialogue_and_quests()
 	_test_android_configuration()
 	_test_runtime_input_registration()
+	_restore_save_files(_save_snapshots)
 
 	print("[regression] checks: %d, failures: %d" % [_checks, _failures])
 	quit(1 if _failures > 0 else 0)
@@ -167,7 +169,7 @@ func _test_world_item_drop() -> void:
 	player.queue_free()
 
 
-func _test_save_and_load(had_original_save: bool, original_save: String) -> void:
+func _test_save_and_load() -> void:
 	var save_system: Node = SaveSystemScript.new()
 	root.add_child(save_system)
 
@@ -189,21 +191,43 @@ func _test_save_and_load(had_original_save: bool, original_save: String) -> void
 		var corrupt = save_system.call("load_game")
 		_check(corrupt is Dictionary and corrupt.is_empty(), "malformed JSON safely returns an empty dictionary")
 
-	_restore_original_save(had_original_save, original_save, save_system)
-	_check(not bool(save_system.call("has_save")) if not had_original_save else bool(save_system.call("has_save")), "save fixture is cleaned up or original save is restored")
 	save_system.queue_free()
 
 
-func _restore_original_save(had_original_save: bool, original_save: String, save_system: Node) -> void:
-	if had_original_save:
-		var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+func _isolate_save_files() -> Dictionary:
+	var snapshots: Dictionary = {}
+	for path in SAVE_RELATED_FILES:
+		if not FileAccess.file_exists(path):
+			snapshots[path] = null
+			continue
+		var file := FileAccess.open(path, FileAccess.READ)
 		if file == null:
-			_check(false, "original save can be restored after test")
-			return
-		file.store_string(original_save)
+			push_error("Could not snapshot save-related file: %s" % path)
+			snapshots["__snapshot_error"] = true
+			return snapshots
+		snapshots[path] = file.get_buffer(file.get_length())
 		file.close()
-	else:
-		_check(bool(save_system.call("delete_save")), "temporary save file is removed after test")
+	return snapshots
+
+
+func _restore_save_files(snapshots: Dictionary) -> void:
+	for path in SAVE_RELATED_FILES:
+		var absolute_path := ProjectSettings.globalize_path(path)
+		var original: Variant = snapshots.get(path, null)
+		if original == null:
+			if FileAccess.file_exists(path):
+				var remove_error := DirAccess.remove_absolute(absolute_path)
+				_check(remove_error == OK, "new save-related file is removed: %s" % path)
+			continue
+		var file := FileAccess.open(path, FileAccess.WRITE)
+		if file == null:
+			_check(false, "original save-related file can be restored: %s" % path)
+			continue
+		file.store_buffer(original as PackedByteArray)
+		file.flush()
+		var write_error: Error = file.get_error()
+		file.close()
+		_check(write_error == OK, "original save-related file is restored: %s" % path)
 
 
 func _test_dialogue_and_quests() -> void:
