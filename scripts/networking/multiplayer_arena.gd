@@ -50,6 +50,10 @@ func _ready() -> void:
 	_refresh_session_status()
 
 
+	if "--ashen-ci-smoke" in OS.get_cmdline_user_args():
+		call_deferred("_run_ci_smoke_and_exit")
+
+
 func _process(_delta: float) -> void:
 	_refresh_combat_hud()
 
@@ -58,6 +62,34 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
 		NetworkManager.leave_session()
 		get_tree().quit()
+
+
+func _run_ci_smoke_and_exit() -> void:
+	# Exercise the exported game loop, then remove physics bodies in an orderly
+	# fashion before process shutdown. This mode is used only by CI.
+	await get_tree().create_timer(1.5).timeout
+	if not is_inside_tree():
+		return
+
+	for shape_node in find_children("*", "CollisionShape3D", true, false):
+		(shape_node as CollisionShape3D).set_deferred("disabled", true)
+	for body_node in find_children("*", "CollisionObject3D", true, false):
+		var collision_body := body_node as CollisionObject3D
+		collision_body.set_deferred("collision_layer", 0)
+		collision_body.set_deferred("collision_mask", 0)
+
+	# Give PhysicsServer a tick to drop current contact pairs before removal.
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+
+	for entity in _entities.get_children():
+		if is_instance_valid(entity):
+			entity.queue_free()
+			await get_tree().physics_frame
+
+	NetworkManager.leave_session(false)
+	await get_tree().physics_frame
+	get_tree().quit()
 
 
 func _build_world() -> void:
