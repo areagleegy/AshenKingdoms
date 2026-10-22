@@ -145,7 +145,51 @@ func _run() -> void:
 	_check(content_manager != null, "content manager autoload exists")
 	if content_manager != null:
 		_check(str(content_manager.call("get_catalog_state")) == "not_configured", "base game starts with content downloads disabled when no service is configured")
+		_test_content_manager_progress(content_manager)
+		var manager_source_file := FileAccess.open("res://scripts/content/content_manager.gd", FileAccess.READ)
+		_check(manager_source_file != null, "content manager source is readable for catalog failure regression checks")
+		if manager_source_file != null:
+			var manager_source := manager_source_file.get_as_text()
+			manager_source_file.close()
+			_check(manager_source.contains("var previous_ids: Array = _catalog.keys()"), "catalog failure snapshots the previous pack IDs before clearing")
+			_check(manager_source.contains("for pack_id in previous_ids:"), "catalog failure emits unavailable state for the previous pack IDs")
 	_finish()
+
+
+func _test_content_manager_progress(content_manager: Node) -> void:
+	var request_a := HTTPRequest.new()
+	var request_b := HTTPRequest.new()
+	var events: Array = []
+	var capture_progress := func(pack_id: String, downloaded_bytes: int, total_bytes: int) -> void:
+		events.append([pack_id, downloaded_bytes, total_bytes])
+	content_manager.download_progress.connect(capture_progress)
+	content_manager.set("_downloads", {
+		"progress_a": {"request": request_a, "record": {"download_size": 100}},
+		"progress_b": {"request": request_b, "record": {"download_size": 200}}
+	})
+	content_manager.set("_next_progress_msec", 0)
+	content_manager.call("_process", 0.0)
+	_check(events.size() == 2, "progress is emitted for each active download")
+	content_manager.call("_process", 0.0)
+	_check(events.size() == 2, "progress signal emission is throttled between 500 ms intervals")
+	content_manager.download_progress.disconnect(capture_progress)
+
+	var mutation_events: Array = []
+	var clear_downloads_during_signal := func(pack_id: String, downloaded_bytes: int, total_bytes: int) -> void:
+		mutation_events.append(pack_id)
+		content_manager.set("_downloads", {})
+	content_manager.download_progress.connect(clear_downloads_during_signal)
+	content_manager.set("_downloads", {
+		"cancel_first": {"request": request_a, "record": {"download_size": 100}},
+		"cancel_second": {"request": request_b, "record": {"download_size": 200}}
+	})
+	content_manager.set("_next_progress_msec", 0)
+	content_manager.call("_process", 0.0)
+	_check(mutation_events.size() == 1, "progress listeners can cancel downloads while iterating a snapshot")
+	content_manager.download_progress.disconnect(clear_downloads_during_signal)
+	content_manager.set("_downloads", {})
+	request_a.free()
+	request_b.free()
 
 
 func _sha256_bytes(bytes: PackedByteArray) -> PackedByteArray:
