@@ -132,7 +132,7 @@ jobs:
           set -euo pipefail
           chmod +x build/linux/AshenKingdoms.x86_64
           runtime_log="$RUNNER_TEMP/exported-linux-runtime.log"
-          timeout 30s build/linux/AshenKingdoms.x86_64 --headless --quit-after 120 2>&1 | tee "$runtime_log"
+          timeout 30s build/linux/AshenKingdoms.x86_64 --headless -- --server --server-port=47653 --ashen-ci-smoke 2>&1 | tee "$runtime_log"
           if grep -Eq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:|\\[FAIL\\]' "$runtime_log"; then
             echo "Exported Linux binary logged a runtime error." >&2
             exit 1
