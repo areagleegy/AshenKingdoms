@@ -56,6 +56,21 @@ func load_game() -> Dictionary:
 	if bool(primary.get("valid", false)):
 		return primary.get("data", {})
 
+	# A valid temp snapshot is the newest write that was flushed before a crash.
+	# Prefer it over the older backup, but only after verifying the JSON object.
+	var temporary := _read_dictionary_file(TEMP_PATH)
+	if bool(temporary.get("valid", false)):
+		push_warning("Primary save is missing or invalid; recovered the flushed temporary snapshot.")
+		var temp_restore_error := DirAccess.copy_absolute(
+			ProjectSettings.globalize_path(TEMP_PATH),
+			ProjectSettings.globalize_path(SAVE_PATH)
+		)
+		if temp_restore_error == OK:
+			_remove_file_if_exists(TEMP_PATH)
+		else:
+			push_warning("Recovered temporary save in memory, but could not restore the primary file: %s" % error_string(temp_restore_error))
+		return temporary.get("data", {})
+
 	var backup := _read_dictionary_file(BACKUP_PATH)
 	if bool(backup.get("valid", false)):
 		push_warning("Primary save is missing or invalid; recovered the last known-good backup.")
@@ -73,6 +88,7 @@ func load_game() -> Dictionary:
 func has_save() -> bool:
 	return (
 		bool(_read_dictionary_file(SAVE_PATH).get("valid", false))
+		or bool(_read_dictionary_file(TEMP_PATH).get("valid", false))
 		or bool(_read_dictionary_file(BACKUP_PATH).get("valid", false))
 	)
 
