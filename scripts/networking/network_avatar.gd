@@ -71,10 +71,15 @@ func _ready() -> void:
 
 
 func set_local_input_enabled(enabled: bool) -> void:
+	# MultiplayerAPI is unavailable until the spawned node enters the SceneTree.
+	# Preserve the requested gate now; ownership checks are safe only after attachment.
+	if not is_inside_tree():
+		_local_input_enabled = enabled
+		return
 	if not _owns_local_input():
 		return
 	_local_input_enabled = enabled
-	if not enabled and multiplayer.is_server() and owner_peer_id == 1:
+	if not enabled and multiplayer != null and multiplayer.is_server() and owner_peer_id == 1:
 		_set_requested_input(Vector3.ZERO, false, false, false)
 
 
@@ -354,6 +359,8 @@ func _apply_camera_rotation(dx: float, dy: float) -> void:
 
 
 func _owns_local_input() -> bool:
+	if not is_inside_tree() or multiplayer == null:
+		return false
 	return owner_peer_id == multiplayer.get_unique_id()
 
 
