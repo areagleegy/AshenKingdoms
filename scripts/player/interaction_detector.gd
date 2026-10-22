@@ -80,7 +80,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if _dialogue_active() or not is_instance_valid(current_target):
 		return
-	current_target.interact()
+	current_target.call("interact")
 	get_viewport().set_input_as_handled()
 
 
