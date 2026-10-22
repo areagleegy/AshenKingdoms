@@ -50,6 +50,14 @@ func _test_player_without_animations() -> void:
 	root.add_child(player)
 
 	_check(player.get("_animation_player") == null, "player tolerates missing AnimationPlayer")
+
+	var slow_direction: Vector3 = player.call("_movement_direction", Vector2(0.25, 0.0))
+	_check(is_equal_approx(slow_direction.x, 0.25), "analog movement preserves partial stick magnitude")
+	_check(is_equal_approx(slow_direction.length(), 0.25), "analog movement allows controlled slow walking")
+
+	var oversized_direction: Vector3 = player.call("_movement_direction", Vector2(1.0, 1.0))
+	_check(is_equal_approx(oversized_direction.length(), 1.0), "diagonal input is clamped to unit movement speed")
+
 	player.call("_play_animation", &"idle")
 	player.call("_update_animation", Vector3.ZERO)
 	_check(true, "missing animation clips do not block idle update")
