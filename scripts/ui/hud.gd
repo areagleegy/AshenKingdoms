@@ -305,7 +305,7 @@ func _focus_inventory_default() -> void:
 		return
 	if _inventory_list != null:
 		for child in _inventory_list.get_children():
-			if child is Button:
+			if child is Button and not child.is_queued_for_deletion():
 				(child as Button).grab_focus()
 				return
 	if is_instance_valid(_inventory_close_button):
