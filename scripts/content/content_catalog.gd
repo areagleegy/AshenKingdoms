@@ -186,8 +186,12 @@ func _is_http_url(value: Variant) -> bool:
 	if not value is String:
 		return false
 	var url := str(value)
-	if url.is_empty() or url.length() > 2048 or url.contains(" ") or url.contains("\\t") or url.contains("\\n"):
+	if url.is_empty() or url.length() > 2048:
 		return false
+	for index in url.length():
+		var code := url.unicode_at(index)
+		if code <= 32 or code == 127:
+			return false
 	var scheme_end := url.find("://")
 	if scheme_end <= 0:
 		return false
