@@ -58,6 +58,22 @@ func _process(_delta: float) -> void:
 		camera_pivot.global_position = player.global_position + Vector3.UP * 1.35
 
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
+		_autosave()
+
+
+func _autosave() -> void:
+	# Skip incomplete sessions and avoid overwriting the save after player death.
+	if not is_instance_valid(player) or not is_instance_valid(save_system):
+		return
+	if not is_instance_valid(progression) or not is_instance_valid(quests):
+		return
+	if bool(player.get("is_dead")):
+		return
+	_save_game()
+
+
 func _is_server_mode() -> bool:
 	return (
 		DisplayServer.get_name() == "headless"
@@ -473,9 +489,16 @@ func _on_player_died(_dead_player: Node) -> void:
 
 
 func _save_game() -> void:
-	if not is_instance_valid(player):
+	if not is_instance_valid(player) or not is_instance_valid(save_system):
 		return
-	var health := player.get_node("Health") as Health
+	if not is_instance_valid(progression) or not is_instance_valid(quests):
+		return
+	var health := player.get_node_or_null("Health") as Health
+	var inventory := player.get_node_or_null("Inventory")
+	if health == null or inventory == null:
+		return
+	if not inventory.has_method("to_save_data") or not quests.has_method("to_save_data"):
+		return
 	var player_pos := player.global_position
 	var data: Dictionary = {
 		"version": 1,
@@ -483,14 +506,15 @@ func _save_game() -> void:
 		"player_health": health.current,
 		"level": int(progression.get("level")),
 		"experience": int(progression.get("experience")),
-		"inventory": player.get_node("Inventory").call("to_save_data"),
+		"inventory": inventory.call("to_save_data"),
 		"quest": quests.call("to_save_data"),
 		"dialogue": _serialize_dialogue_state()
 	}
 	print("[SAVE] dialogue: %s" % str(data.get("dialogue", {})))
 	var success := bool(save_system.call("save_game", data))
 	print("[SAVE] success: %s" % str(success))
-	hud.call("show_saved_status", success)
+	if is_instance_valid(hud):
+		hud.call("show_saved_status", success)
 
 
 func _is_finite_number(value: Variant) -> bool:
