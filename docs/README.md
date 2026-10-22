@@ -10,7 +10,8 @@
 - [خطة نقل الكونسول](CONSOLE_PORTING_PLAN_AR.md): متطلبات الإصدارات الأصلية لـ PlayStation 5 وXbox Series X|S وبوابات الاعتماد والاختبار.
 - [حالة التنفيذ الحالية](PROJECT_STATUS_AR.md): ما هو موجود حاليًا، وما هو تجريبي أو مؤجل أو غير متحقق يدويًا.
 - [دليل كتابة وصيانة الوثائق](DOCUMENTATION_GUIDE_AR.md): قواعد التحديث والروابط والأدلة المطلوبة.
-- [تدقيق التوثيق وخطة الاستكمال](DOCUMENTATION_AUDIT_AR.md): سجل الفجوات والأولويات ومعايير الأدلة وحدود المراجعة.\n- [تدقيق Issues وPull Requests](ISSUE_AUDIT_AR.md): لقطة مؤرخة لحالات GitHub، والحالة الفعلية المعلنة، وبوابات قبول الإصدار.
+- [تدقيق التوثيق وخطة الاستكمال](DOCUMENTATION_AUDIT_AR.md): سجل الفجوات والأولويات ومعايير الأدلة وحدود المراجعة.
+- [تدقيق Issues وPull Requests](ISSUE_AUDIT_AR.md): لقطة مؤرخة لحالات GitHub، والحالة الفعلية المعلنة، وبوابات قبول الإصدار.
 - [نموذج تهديدات الشبكة](NETWORK_THREAT_MODEL_AR.md): مراجعة ساكنة لحدود الثقة والمخاطر وضوابط ما قبل النشر.
 - [البنية المختصرة وحالة التنفيذ](ARCHITECTURE.md): ملخص تقني بالإنجليزية.
 - [البنية التقنية التفصيلية](TECHNICAL_ARCHITECTURE.md): المشاهد والأنظمة والسكربتات وحدود التكامل.
@@ -19,6 +20,8 @@
 ## البناء والتطوير والتحقق
 
 - [البناء إلى Android وWeb](BUILD_ANDROID_WEB_AR.md): إصدارات الأدوات ومخرجات البناء ومعايير التثبيت والنشر.
+- [إصدار Android AAB موقّع لـ Google Play](ANDROID_RELEASE_BUILD_AR.md): تجهيز Environment وأسرار التوقيع، وضوابط إصدار حزمة موقّعة يدويًا.
+- [سير عمل الإصدار Android Release AAB](../.github/workflows/android-release.yml): بناء يدوي من `main` مع Environment `android-release`.
 - [التطوير من متصفح هاتف Android](CLOUD_PHONE_GUIDE_AR.md): استخدام Codespaces وطرفية Godot وإدارة الموارد.
 - [سير عمل التحقق](../.github/workflows/validate.yml) و[سير عمل بناء المنصات](../.github/workflows/build.yml): التعريفات التنفيذية الفعلية لفحوص CI.
 - [اختبارات اللعب والانحدار](../tests/gameplay_regression_test.gd) و[اختبار تحميل الموارد](../tests/script_load_smoke_test.gd).
