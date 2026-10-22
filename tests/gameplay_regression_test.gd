@@ -395,6 +395,15 @@ func _test_android_configuration() -> void:
 		_check(release_workflow.contains("jarsigner -verify"), "release workflow verifies the AAB signature")
 		_check(release_workflow.contains("ashen-kingdoms-android-play-release"), "release workflow uploads a distinct signed AAB artifact")
 
+	var generic_workflow_file := FileAccess.open("res://.github/workflows/build.yml", FileAccess.READ)
+	_check(generic_workflow_file != null, "generic platform workflow is readable")
+	if generic_workflow_file != null:
+		var generic_workflow := generic_workflow_file.get_as_text()
+		generic_workflow_file.close()
+		_check(not generic_workflow.contains("secrets.ANDROID_KEYSTORE_BASE64"), "generic CI does not receive the release keystore secret")
+		_check(not generic_workflow.contains("Export signed Google Play App Bundle"), "real release signing is isolated from pull-request CI")
+		_check(generic_workflow.contains("Validate Google Play App Bundle export (ephemeral signing key)"), "generic CI exercises AAB export with an ephemeral test key")
+
 	var main_source_file := FileAccess.open("res://scripts/core/input_setup.gd", FileAccess.READ)
 	_check(main_source_file != null, "shared input setup source is readable")
 	if main_source_file != null:
