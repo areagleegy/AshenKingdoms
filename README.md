@@ -87,7 +87,7 @@ python3 tools/validate_free_assets.py
 كل من Workflow التحقق وWorkflow بناء Android/Web يعمل عند فتح أو تحديث Pull Request، كما يعملان عند الدفع إلى `main`. يتوفر تشغيل يدوي عبر `workflow_dispatch`.
 
 - `Validate Godot Project`: تحليل واستيراد الموارد، تحميل السكربتات والمشاهد، اختبارات اللعب والانحدار واللاعب والشبكة والمحتوى، وفحوص أدوات Python والتوثيق.
-- `Build Android and Web`: تصدير Web وAPK تجريبي، بالإضافة إلى Windows وLinux وmacOS.
+- `Build Game Platforms`: تصدير Web وAPK تجريبي، بالإضافة إلى Windows وLinux وmacOS.
 - أسماء Artifacts: `ashen-kingdoms-web`، `ashen-kingdoms-android-debug`، `ashen-kingdoms-windows`، `ashen-kingdoms-linux`، و`ashen-kingdoms-macos`.
 - مهمة iOS منفصلة تعمل على macOS فقط عند ضبط متغير المستودع `IOS_TEAM_ID`؛ ترفع مشروع Xcode مضغوطًا باسم `ashen-kingdoms-ios-xcode-project`، ولا تنتج IPA موقّعًا.
 - الاحتفاظ بملفات البناء والتشخيص مؤقت؛ صلاحيتها الحالية 7 أيام.
