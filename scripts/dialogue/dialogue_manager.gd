@@ -199,11 +199,12 @@ func deserialize(data: Dictionary) -> void:
 	var raw_flags = data.get("flags", {})
 	if not (raw_flags is Dictionary):
 		return
-	var accepted := 0
+	var processed := 0
 	for raw_name in raw_flags:
-		if accepted >= MAX_SAVED_FLAGS:
-			push_warning("Ignored additional saved dialogue flags beyond the safety limit.")
+		if processed >= MAX_SAVED_FLAGS:
+			push_warning("Ignored additional saved dialogue flag entries beyond the safety limit.")
 			break
+		processed += 1
 		var flag_name := str(raw_name)
 		if flag_name.is_empty() or flag_name.length() > MAX_SAVED_FLAG_NAME_LENGTH:
 			continue
@@ -211,4 +212,3 @@ func deserialize(data: Dictionary) -> void:
 		if typeof(raw_value) != TYPE_BOOL:
 			continue
 		flags[StringName(flag_name)] = raw_value
-		accepted += 1
