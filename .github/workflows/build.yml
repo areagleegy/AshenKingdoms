@@ -211,7 +211,40 @@ jobs:
           executable="$app_path/Contents/MacOS/AshenKingdoms"
           test -f "$executable"
           chmod +x "$executable"
-          python3 tools/platform_runtime_smoke.py --timeout 25 --log "$RUNNER_TEMP/macos-runtime.log" -- "$executable" --headless -- --server --server-port=47655 --ashen-ci-smoke
+          file "$executable" | tee "$RUNNER_TEMP/macos-binary-info.log"
+          otool -L "$executable" > "$RUNNER_TEMP/macos-linked-libraries.log"
+          set +e
+          python3 tools/platform_runtime_smoke.py --timeout 25 --log "$RUNNER_TEMP/macos-runtime.log" -- "$executable" --headless -- --server --server-port=47655 --ashen-ci-smoke 2>&1 | tee "$RUNNER_TEMP/macos-smoke-wrapper.log"
+          smoke_status=${PIPESTATUS[0]}
+          set -e
+          if [[ "$smoke_status" -ne 0 ]]; then
+            echo "macOS exported runtime smoke failed with code $smoke_status." >&2
+            echo "=== Godot runtime output ==="
+            cat "$RUNNER_TEMP/macos-runtime.log" 2>/dev/null || true
+            echo "=== Smoke wrapper output ==="
+            cat "$RUNNER_TEMP/macos-smoke-wrapper.log" 2>/dev/null || true
+            echo "=== Dynamic library resolution ==="
+            cat "$RUNNER_TEMP/macos-linked-libraries.log" 2>/dev/null || true
+            exit "$smoke_status"
+          fi
+
+      - name: Preserve macOS runtime diagnostics
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p qa-results/macos
+          for log in macos-runtime.log macos-smoke-wrapper.log macos-binary-info.log macos-linked-libraries.log; do
+            if [[ -f "$RUNNER_TEMP/$log" ]]; then cp "$RUNNER_TEMP/$log" "qa-results/macos/$log"; fi
+          done
+
+      - name: Upload macOS runtime diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ashen-kingdoms-macos-runtime-diagnostics
+          path: qa-results/macos/
+          if-no-files-found: ignore
+          retention-days: 7
 
   android:
     name: Export Android APK
@@ -563,30 +596,41 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          rm -rf build/ios
           mkdir -p build/ios
-          rm -f build/ios/AshenKingdoms.zip
           set +e
-          godot --headless --path . --export-release "iOS" build/ios/AshenKingdoms.zip > "$RUNNER_TEMP/ios-export.log" 2>&1
+          godot --headless --path . --export-release "iOS" build/ios > "$RUNNER_TEMP/ios-export.log" 2>&1
           export_status=$?
           cat "$RUNNER_TEMP/ios-export.log"
           set -e
-          test -s build/ios/AshenKingdoms.zip
-          python3 tools/validate_platform_exports.py ios build/ios/AshenKingdoms.zip
           if [[ "$export_status" -ne 0 ]]; then
-            if grep -Eiq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:|Failed to export|No export template|Export failed' "$RUNNER_TEMP/ios-export.log"; then
-              echo "Godot iOS export reported an explicit export/runtime error." >&2
-              exit "$export_status"
-            fi
-            echo "::warning::Godot returned $export_status after producing a structurally valid Xcode project ZIP; Xcode build validation remains required."
+            echo "Godot iOS project export failed (exit $export_status)." >&2
+            exit "$export_status"
           fi
+          project_path="$(find build/ios -maxdepth 1 -type d -name '*.xcodeproj' -print -quit)"
+          test -n "$project_path"
+          python3 - <<'PY'
+          from pathlib import Path
+          root = Path("build/ios")
+          required = [
+              root / "AshenKingdoms.xcodeproj" / "project.pbxproj",
+              root / "AshenKingdoms.xcframework" / "Info.plist",
+              root / "MoltenVK.xcframework" / "Info.plist",
+          ]
+          missing = [str(path) for path in required if not path.is_file()]
+          if missing:
+              raise SystemExit("Missing required iOS project files: " + ", ".join(missing))
+          print("[PASS] iOS Xcode project layout and engine frameworks verified")
+          PY
+          ditto -c -k --sequesterRsrc --keepParent build/ios build/ios-xcode-project.zip
+          test -s build/ios-xcode-project.zip
+          python3 tools/validate_platform_exports.py ios build/ios-xcode-project.zip
 
-      - name: Build exported iOS project for Simulator
+      - name: Build exported iOS project for device SDK (unsigned compile)
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p build/ios/unpacked
-          unzip -q build/ios/AshenKingdoms.zip -d build/ios/unpacked
-          project_path="$(find build/ios/unpacked -type d -name '*.xcodeproj' -print -quit)"
+          project_path="$(find build/ios -maxdepth 1 -type d -name '*.xcodeproj' -print -quit)"
           test -n "$project_path"
           xcodebuild -list -json -project "$project_path" > "$RUNNER_TEMP/ios-xcode-list.json"
           scheme="$(python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); schemes=data["project"].get("schemes",[]); print(schemes[0] if schemes else "")' "$RUNNER_TEMP/ios-xcode-list.json")"
@@ -595,8 +639,7 @@ jobs:
             echo "No Xcode scheme was exported for iOS." >&2
             exit 1
           fi
-          xcodebuild -project "$project_path" -scheme "$scheme" -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO -derivedDataPath "$RUNNER_TEMP/ashen-ios-derived" build | tee "$RUNNER_TEMP/ios-xcode-build.log"
-
+          xcodebuild -project "$project_path" -scheme "$scheme" -sdk iphoneos -configuration Debug CODE_SIGNING_ALLOWED=NO -derivedDataPath "$RUNNER_TEMP/ashen-ios-derived" build | tee "$RUNNER_TEMP/ios-xcode-build.log"
       - name: Upload iOS export diagnostic logs
         if: always()
         uses: actions/upload-artifact@v7
@@ -613,6 +656,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: ashen-kingdoms-ios-xcode-project
-          path: build/ios/AshenKingdoms.zip
+          path: build/ios-xcode-project.zip
           if-no-files-found: error
           retention-days: 7
