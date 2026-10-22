@@ -18,6 +18,7 @@ var _local_avatar: Node3D
 var _pause_panel: PanelContainer
 var _resume_button: Button
 var _pause_menu_open: bool = false
+var _mouse_mode_before_pause: int = Input.MOUSE_MODE_CAPTURED
 
 
 func _ready() -> void:
@@ -204,6 +205,7 @@ func _set_pause_menu_open(value: bool) -> void:
 	if _pause_menu_open == value:
 		return
 	_pause_menu_open = value
+	_set_mouse_mode_for_pause_menu(value)
 	if is_instance_valid(_pause_panel):
 		_pause_panel.visible = value
 	if is_instance_valid(_local_avatar) and _local_avatar.has_method("set_local_input_enabled"):
@@ -212,6 +214,16 @@ func _set_pause_menu_open(value: bool) -> void:
 		call_deferred("_focus_resume_button")
 	else:
 		_clear_pause_menu_focus()
+
+
+func _set_mouse_mode_for_pause_menu(is_open: bool) -> void:
+	if OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios"):
+		return
+	if is_open:
+		_mouse_mode_before_pause = Input.mouse_mode
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	else:
+		Input.mouse_mode = _mouse_mode_before_pause
 
 
 func _focus_resume_button() -> void:
@@ -451,6 +463,8 @@ func _refresh_combat_hud() -> void:
 func _return_to_menu() -> void:
 	if _pause_menu_open:
 		_set_pause_menu_open(false)
+	if not (OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios")):
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	NetworkManager.leave_session()
 	var result := get_tree().change_scene_to_file(MENU_SCENE)
 	if result != OK:
