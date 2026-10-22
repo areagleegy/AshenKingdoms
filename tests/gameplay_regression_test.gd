@@ -14,6 +14,7 @@ const DialogueNodeScript: Script = preload("res://scripts/dialogue/dialogue_node
 const DialogueChoiceScript: Script = preload("res://scripts/dialogue/dialogue_choice.gd")
 const MainScript: Script = preload("res://scripts/core/main.gd")
 
+const SAVE_PATH: String = "user://savegame.json"
 const SAVE_RELATED_FILES: Array[String] = [
 	"user://savegame.json",
 	"user://savegame.bak.json",
