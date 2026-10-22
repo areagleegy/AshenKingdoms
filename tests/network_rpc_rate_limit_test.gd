@@ -10,6 +10,10 @@ func _initialize() -> void:
 
 
 func _run() -> void:
+	for action in [&"move_left", &"move_right", &"move_forward", &"move_back", &"jump", &"sprint", &"attack"]:
+		if not InputMap.has_action(action):
+			InputMap.add_action(action)
+
 	var avatar := AVATAR_SCENE.instantiate()
 	root.add_child(avatar)
 	await process_frame
