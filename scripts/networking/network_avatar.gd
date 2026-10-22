@@ -114,6 +114,7 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 
 	# Reject malformed numeric input before it reaches movement/physics code.
 	if not is_finite(direction.x) or not is_finite(direction.y) or not is_finite(direction.z):
+		_log_test_input_rejection("non_finite", sender_id)
 		return
 
 	var now := Time.get_ticks_msec()
@@ -121,8 +122,10 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 		_input_rate_window_start_msec = now
 		_input_rate_window_count = 0
 	if _input_rate_window_count >= INPUT_RATE_LIMIT:
+		_log_test_input_rejection("rate_window", sender_id)
 		return
 	if _last_input_packet_msec > 0 and now - _last_input_packet_msec < INPUT_MIN_INTERVAL_MSEC:
+		_log_test_input_rejection("min_interval", sender_id)
 		return
 	_input_rate_window_count += 1
 	_last_input_packet_msec = now
@@ -136,6 +139,12 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 		_set_test_combat_scenario()
 	_set_requested_input(safe_direction, jump_down, sprint_down, attack_down)
 	_last_input_msec = now
+
+
+func _log_test_input_rejection(reason: String, sender_id: int) -> void:
+	# Diagnostic output is deliberately opt-in and never enabled during normal play.
+	if OS.get_environment("ASHEN_TEST_COMBAT") == "1":
+		print("[combat-input] rejected=%s peer=%d" % [reason, sender_id])
 
 
 func _set_test_combat_scenario() -> void:
