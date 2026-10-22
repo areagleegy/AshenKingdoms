@@ -179,6 +179,28 @@ func _test_save_and_load(had_original_save: bool, original_save: String) -> void
 	var missing_fields = save_system.call("load_game")
 	_check(missing_fields is Dictionary and missing_fields.is_empty(), "save with missing required fields is rejected")
 
+	var invalid_range := _valid_save_data(3, 45.0)
+	invalid_range["player_position"]["x"] = 1000001.0
+	var invalid_range_file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	if invalid_range_file == null:
+		_check(false, "test can create an out-of-range save fixture")
+	else:
+		invalid_range_file.store_string(JSON.stringify(invalid_range))
+		invalid_range_file.close()
+	var rejected_range = save_system.call("load_game")
+	_check(rejected_range is Dictionary and rejected_range.is_empty(), "out-of-range world coordinates are rejected")
+
+	var unsupported_version := _valid_save_data(3, 45.0)
+	unsupported_version["version"] = 999
+	var unsupported_file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	if unsupported_file == null:
+		_check(false, "test can create an unsupported-version save fixture")
+	else:
+		unsupported_file.store_string(JSON.stringify(unsupported_version))
+		unsupported_file.close()
+	var rejected_version = save_system.call("load_game")
+	_check(rejected_version is Dictionary and rejected_version.is_empty(), "unsupported save schema versions are rejected")
+
 	var versionless := _valid_save_data(3, 45.0)
 	versionless.erase("version")
 	var legacy_file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
