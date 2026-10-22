@@ -1,24 +1,24 @@
 # المخططات التفصيلية لـ AshenKingdoms QA APK
 
 > **نوع الوثيقة:** خريطة هندسية للمكوّنات وتدفقات البيانات والاختبارات والأمان.  
-> **فرع المرجع:** \`feature/android-qa-reporter\`  
-> **Commit التنفيذ الذي أثبت نجاح CI:** \`f13c1eebef821286efc1509e5b5f55f694c3e1d9\`  
+> **فرع المرجع:** `feature/android-qa-reporter`  
+> **Commit التنفيذ الذي أثبت نجاح CI:** `f13c1eebef821286efc1509e5b5f55f694c3e1d9`  
 > **تمييز إلزامي:** «الحالي» يعني ما تنفذه الملفات الموجودة في الفرع المشار إليه؛ و«مقترح» يعني توسعة لم تُنفذ بعد. لا تُعامل مخططات AI أو الرفع أو الوكلاء الكاملة على أنها وظائف موجودة في APK الحالي.
 
 ## 1. مفتاح حالة المخططات
 
 | الرمز | المعنى |
 |---|---|
-| \`[CURRENT]\` | موجود في التنفيذ الحالي واجتاز فحص CI على commit المرجع |
-| \`[PARTIAL]\` | موجود جزئيًا؛ لا يغطي الوظيفة الكاملة التي يوحي بها الاسم |
-| \`[PROPOSED]\` | هدف معماري لم يُنفذ بعد |
-| \`[OUT OF SCOPE]\` | ليس جزءًا من هذا الإصدار |
+| `[CURRENT]` | موجود في التنفيذ الحالي واجتاز فحص CI على commit المرجع |
+| `[PARTIAL]` | موجود جزئيًا؛ لا يغطي الوظيفة الكاملة التي يوحي بها الاسم |
+| `[PROPOSED]` | هدف معماري لم يُنفذ بعد |
+| `[OUT OF SCOPE]` | ليس جزءًا من هذا الإصدار |
 
 ### الحالة الفعلية مقابل الهدف
 
 | المكوّن | الحالة | السلوك الحالي أو الحد |
 |---|---|---|
-| preset منفصل \`Android QA\` وميزة \`qa_tools\` | CURRENT | حزمة Android منفصلة باسم \`org.ashenkingdoms.game.qa\` |
+| preset منفصل `Android QA` وميزة `qa_tools` | CURRENT | حزمة Android منفصلة باسم `org.ashenkingdoms.game.qa` |
 | QAReporter | CURRENT | أحداث مقيّدة، عينات أداء، نقاط تحقق محلية، وتصدير JSON |
 | QATestRunner | PARTIAL | يتحقق من تحميل مشاهد محددة وقراءة/كتابة ملف مؤقت؛ لا يلعب سيناريوهات كاملة |
 | زر تشغيل الفحص ونسخ التقرير | CURRENT | الفحص والتصدير يتمان عند ضغط المختبِر؛ النسخ عبر Clipboard |
@@ -34,9 +34,9 @@
 
 ## 2. المخطط السياقي للنظام
 
-يوضح المخطط ما هو موجود اليوم وما يمكن إضافته لاحقًا. المسار المتصل المحلي هو الموجود حاليًا؛ المسارات ذات العلامة \`PROPOSED\` ليست تنفيذًا حاليًا.
+يوضح المخطط ما هو موجود اليوم وما يمكن إضافته لاحقًا. المسار المتصل المحلي هو الموجود حاليًا؛ المسارات ذات العلامة `PROPOSED` ليست تنفيذًا حاليًا.
 
-\`\`\`mermaid
+```mermaid
 flowchart TB
   subgraph APK["Android QA APK — CURRENT"]
     GAME["Godot Game Runtime"]
@@ -77,13 +77,13 @@ flowchart TB
   LOCAL -.->|"manual export only today"| CONSENT
   QAAPK -.->|"download artifact"| APK
   REVIEW -.->|"never auto-merge"| CI
-\`\`\`
+```
 
 **قراءة المخطط:** وجود ملف تقرير محلي لا يعني وجود Upload API. في النسخة الحالية لا يغادر JSON الجهاز تلقائيًا. كما أن نجاح CI يثبت اجتياز الاختبارات الآلية المحددة فقط، وليس اختبارًا على هاتف حقيقي.
 
 ## 3. حدود البناء والتغليف
 
-\`\`\`mermaid
+```mermaid
 flowchart LR
   SRC["Project source + shared gameplay scripts"] --> QA_PRESET["Android QA preset"]
   SRC --> REL_PRESET["Android production preset"]
@@ -101,13 +101,13 @@ flowchart LR
   QA_APK -.-> NO_SECRETS["No AI key / no GitHub token / no auto-upload"]
   REL_APK -.-> GUARD["Release artifact inspection required"]
   WEB -.-> NO_QA_RUNTIME["No QA runtime payload intended"]
-\`\`\`
+```
 
 ### حدود هذا الفصل
 
-- يعتمد ظهور أدوات QA على feature tag المخصص \`qa_tools\` وليس على إخفاء زر فقط.
+- يعتمد ظهور أدوات QA على feature tag المخصص `qa_tools` وليس على إخفاء زر فقط.
 - يوجه preset الخاص بـ QA إلى package ID منفصل حتى لا يحل محل النسخة العادية.
-- يستبعد التصديران الاعتياديان ملفات \`scripts/qa/*\` وفق إعدادات التصدير في الفرع.
+- يستبعد التصديران الاعتياديان ملفات `scripts/qa/*` وفق إعدادات التصدير في الفرع.
 - لا تكفي إعدادات preset وحدها كدليل نهائي على خلو Release: يلزم فحص الحزمة المبنية نفسها، وفحص manifest والمراجع والموارد والأسرار بعد التصدير.
 - لا يوضع سر AI أو رمز GitHub في source أو APK أو ملف تقرير.
 
@@ -115,7 +115,7 @@ flowchart LR
 
 ### الملفات الأساسية الموجودة الآن
 
-\`\`\`text
+```text
 project.godot
 export_presets.cfg
 scripts/
@@ -134,11 +134,11 @@ tests/
 └── validate.yml                       # تحقق Godot واختبار QAReporter
 docs/
 └── QA_ANDROID_REPORTER_AR.md
-\`\`\`
+```
 
 ### التوسعات المقترحة — لا تُعد ملفات موجودة الآن
 
-\`\`\`text
+```text
 scripts/qa/
 ├── qa_config.gd
 ├── qa_orchestrator.gd
@@ -169,13 +169,13 @@ scripts/qa/
 └── ui/
     ├── qa_overlay.gd
     └── qa_menu.gd
-\`\`\`
+```
 
 أضف هذه الطبقات تدريجيًا بعد تثبيت التقرير المحلي واختباره على هاتف حقيقي؛ لا تنشئ كل الملفات كواجهات فارغة دفعة واحدة.
 
 ## 5. دورة بدء التطبيق وتشغيل فحص QA — CURRENT
 
-\`\`\`mermaid
+```mermaid
 sequenceDiagram
   autonumber
   actor Tester as المختبِر
@@ -205,18 +205,18 @@ sequenceDiagram
   else regular build
     Menu->>Menu: عدم تهيئة QA وعدم إظهار الزر
   end
-\`\`\`
+```
 
 ### الفحوص التي ينفذها QATestRunner الآن
 
 | معرف الاختبار | ما يتحقق منه | ما لا يثبته |
 |---|---|---|
-| \`main_scene_load\` | وجود وتحميل PackedScene للمشهد الرئيسي | أن كل آليات اللعب تعمل |
-| \`multiplayer_arena_load\` | تحميل مشهد الساحة | أن الاتصال الخارجي أو اللعب بين هاتفين صالح |
-| \`touch_controls_load\` | تحميل مورد واجهة اللمس | صحة لمس كل جهاز أو اتجاه شاشة |
-| \`network_avatar_load\` | تحميل مورد شخصية الشبكة | صحة كل حالات المزامنة |
-| \`network_enemy_load\` | تحميل مورد عدو الشبكة | صحة الذكاء الاصطناعي للعدو أو القتال الكامل |
-| \`storage_roundtrip\` | إنشاء مجلد QA وكتابة/قراءة/حذف ملف اختبار | سلامة نظام الحفظ الفعلي في كل حالات الانقطاع |
+| `main_scene_load` | وجود وتحميل PackedScene للمشهد الرئيسي | أن كل آليات اللعب تعمل |
+| `multiplayer_arena_load` | تحميل مشهد الساحة | أن الاتصال الخارجي أو اللعب بين هاتفين صالح |
+| `touch_controls_load` | تحميل مورد واجهة اللمس | صحة لمس كل جهاز أو اتجاه شاشة |
+| `network_avatar_load` | تحميل مورد شخصية الشبكة | صحة كل حالات المزامنة |
+| `network_enemy_load` | تحميل مورد عدو الشبكة | صحة الذكاء الاصطناعي للعدو أو القتال الكامل |
+| `storage_roundtrip` | إنشاء مجلد QA وكتابة/قراءة/حذف ملف اختبار | سلامة نظام الحفظ الفعلي في كل حالات الانقطاع |
 
 **حد أساسي:** هذه فحوص موارد وتخزين، لا وكيل يتنقل في العالم أو يقاتل بشكل ذاتي.
 
@@ -224,7 +224,7 @@ sequenceDiagram
 
 الحالة الحالية هي دورة جمع حدث وقياس وحفظ محلي. حالات الاسترداد والتنفيذ متعدد السيناريوهات هدف مقترح للموسعات القادمة.
 
-\`\`\`mermaid
+```mermaid
 stateDiagram-v2
   [*] --> Bootstrap
   Bootstrap --> Disabled: no qa_tools
@@ -253,7 +253,7 @@ stateDiagram-v2
     Assert --> CaptureFailure: fail/timeout
     CaptureFailure --> WriteFailureReport
   }
-\`\`\`
+```
 
 ### حدود زمنية وتخزين موثقة في التنفيذ الحالي
 
@@ -272,7 +272,7 @@ stateDiagram-v2
 
 ## 7. المعمارية المستهدفة للـ Orchestrator والوكلاء — PROPOSED
 
-\`\`\`mermaid
+```mermaid
 flowchart TB
   BOOT["QA Bootstrap"] --> CFG["Validated QA Config"]
   CFG --> SESSION["Session Manager + build/commit"]
@@ -303,13 +303,13 @@ flowchart TB
 
   SUP["Supervisor — proposed arbitration"] -.-> ORCH
   SUP -.-> EVIDENCE
-\`\`\`
+```
 
 ### عقد الوكيل المقترح
 
 كل وكيل جديد يجب أن يعرّف على الأقل:
 
-\`\`\`text
+```text
 agent_id
 supported_scenarios
 preconditions
@@ -323,13 +323,13 @@ recovery_policy
 evidence_policy
 cleanup
 result_status
-\`\`\`
+```
 
 ويجب أن يكون لكل وكيل نطاق أفعال محدد. لا تسمح لوكيل الشبكة بتغيير ملفات حفظ حقيقية، ولا لوكيل الأداء بتشغيل اختبارات تغير الجرد أثناء قياس خط أساس الأداء.
 
 ## 8. مخطط الوكلاء وتغطية السيناريوهات — TARGET
 
-\`\`\`mermaid
+```mermaid
 flowchart LR
   subgraph GAMEPLAY["Gameplay"]
     N["Navigator"]
@@ -356,7 +356,7 @@ flowchart LR
   F --> E
   P --> E
   E --> R["Validated report"]
-\`\`\`
+```
 
 | الوكيل المقترح | سيناريوهات نموذجية | شرط فشل قابل للقياس |
 |---|---|---|
@@ -375,7 +375,7 @@ flowchart LR
 
 تحتوي بنية التقرير الحالية على:
 
-\`\`\`text
+```text
 schema_version
 report_type
 generated_at
@@ -410,13 +410,13 @@ safety:
   save_contents_recorded
   network_addresses_recorded
   event_limit
-\`\`\`
+```
 
 ### الإضافات المقترحة فقط
 
-حقول \`device_hash\` و\`android_api\` و\`renderer\` و\`scenario_id\` و\`seed\` و\`replay_id\` و\`artifacts[]\` لا ينبغي الإيحاء بأنها موجودة في التقرير الحالي؛ تضاف بعد تصميم خصوصية واختبارات مخطط مستقلة.
+حقول `device_hash` و`android_api` و`renderer` و`scenario_id` و`seed` و`replay_id` و`artifacts[]` لا ينبغي الإيحاء بأنها موجودة في التقرير الحالي؛ تضاف بعد تصميم خصوصية واختبارات مخطط مستقلة.
 
-\`\`\`mermaid
+```mermaid
 classDiagram
   class Report {
     +int schema_version
@@ -475,19 +475,19 @@ classDiagram
   Report --> TestResult
   Report --> Event
   Report --> SafetyFlags
-\`\`\`
+```
 
 ### ضوابط المخطط
 
-- \`schema_version\` إلزامي لكل نسخة مستقبلية من التقرير.
-- \`status\` في نتائج الاختبارات يقتصر على \`pass\` و\`fail\` و\`skip\`.
-- \`event\` اسم منظم قصير؛ لا تستخدمه لتخزين stack trace أو نص الحوار.
+- `schema_version` إلزامي لكل نسخة مستقبلية من التقرير.
+- `status` في نتائج الاختبارات يقتصر على `pass` و`fail` و`skip`.
+- `event` اسم منظم قصير؛ لا تستخدمه لتخزين stack trace أو نص الحوار.
 - تفاصيل الحدث الحالية ترفض النصوص الحرة، وتقبل قيمًا رقمية/منطقية من مفاتيح مطابقة للنمط المسموح.
 - يجب أن يكون كل تطور غير متوافق في بنية التقرير مصحوبًا بتحديث اختبارات schema وأداة التحقق.
 
 ## 10. تخزين محلي ونقاط تحقق — CURRENT
 
-\`\`\`mermaid
+```mermaid
 flowchart TD
   EVT["record_event()"] --> BUF["In-memory bounded events: max 300"]
   PERF["Performance sample ~5s"] --> EVT
@@ -505,7 +505,7 @@ flowchart TD
   EXPORT --> FILE["qa_report_<unix>.json"]
   EXPORT --> DISPLAY["Show report JSON"]
   DISPLAY --> COPY["Explicit clipboard copy"]
-\`\`\`
+```
 
 ### متطلبات التخزين المستهدفة
 
@@ -523,7 +523,7 @@ flowchart TD
 
 ## 11. إرسال خارجي وتحليل AI — PROPOSED ONLY
 
-\`\`\`mermaid
+```mermaid
 sequenceDiagram
   autonumber
   actor Tester as المختبِر
@@ -551,17 +551,17 @@ sequenceDiagram
   Human->>GitHub: review / request changes
   Note over APK,AI: لا يُرسل شيء من APK الحالي؛ هذا التدفق مستقبل مقترح.
   Note over GitHub,Human: لا دمج تلقائي حتى مع نجاح AI أو CI.
-\`\`\`
+```
 
 ### عقد الواجهة المقترح
 
-\`\`\`http
+```http
 POST /v1/qa/reports
 Content-Type: application/json
 X-QA-Build-ID: <build-id>
 X-QA-Request-ID: <uuid>
 Authorization: <short-lived QA credential>
-\`\`\`
+```
 
 - يجب أن تنفذ الخدمة المصادقة وتحقق الحجم والمخطط ومعدل الطلب قبل تخزين التقرير.
 - يتم التنقيح عند العميل وعند Gateway؛ التنقيح المزدوج ليس بديلًا عن حظر حقول حساسة أصلًا.
@@ -572,7 +572,7 @@ Authorization: <short-lived QA credential>
 
 ## 12. مناطق الثقة والأمان
 
-\`\`\`mermaid
+```mermaid
 flowchart TB
   subgraph UNTRUSTED["منطقة غير موثوقة: جهاز المختبِر / APK"]
     GAME["Game runtime"]
@@ -603,21 +603,21 @@ flowchart TB
   UI -.->|"only after consent"| TLS
   GAME -.->|"no embedded provider key"| SECRET
   HUMAN -.->|"approval required"| GIT
-\`\`\`
+```
 
 ### قواعد أمنية غير قابلة للتفاوض
 
 1. **لا مفاتيح AI أو GitHub داخل APK.** أي قيمة مدرجة في حزمة عميل تعتبر قابلة للاستخراج.
 2. التقارير لا تحتوي على save-file body، نصوص الحوارات، إدخال المستخدم الخام، عناوين الشبكة، أو أسرار.
-3. لا يقبل Gateway تقريرًا لمجرد احتوائه على \`commit\`؛ يتحقق من الحجم والمخطط والمصادقة والحصة.
-4. لا يحصل وكيل التحليل على صلاحية تعديل \`main\` أو دمج PR.
+3. لا يقبل Gateway تقريرًا لمجرد احتوائه على `commit`؛ يتحقق من الحجم والمخطط والمصادقة والحصة.
+4. لا يحصل وكيل التحليل على صلاحية تعديل `main` أو دمج PR.
 5. أي patch مقترح يمر باختبارات تلقائية ومراجعة بشرية.
 6. لا تنشأ جلسة تصوير أو تسجيل مستمر خفي؛ الأثر الإضافي محدود ومقصود ومُعطّل افتراضيًا.
 7. تُسجل حالة «لم تُلتقط أدلة كافية» بدل الاستنتاج بأن اللعبة سليمة.
 
 ## 13. مخطط CI وRelease Guard
 
-\`\`\`mermaid
+```mermaid
 flowchart TD
   CHANGE["Pull Request / commit"] --> PY["Python diagnostic tests + corpus benchmark"]
   PY --> GODOT["Godot import + script/scene validation"]
@@ -640,7 +640,7 @@ flowchart TD
   RELEASE_GUARD -->|pass| RELEASE["Release candidate"]
   RELEASE_GUARD -->|fail| BLOCK["Block release + investigate"]
   VALIDATE --> RELEASE_GUARD
-\`\`\`
+```
 
 ### Release Guard المقترح
 
@@ -685,7 +685,7 @@ flowchart TD
 
 ### شرط إعادة الإنتاج
 
-لكل سيناريو آلي مستقبلي يجب تسجيل \`scenario_id\` و\`seed\` و\`attempt\` ونسخة البناء والـ commit، ثم تقييد الأفعال والمهلات وعدد المحاولات. لا تعتبر تكرار الاختبار «إعادة إنتاج» إذا تغير البناء أو الجهاز أو الإعدادات دون توثيق ذلك.
+لكل سيناريو آلي مستقبلي يجب تسجيل `scenario_id` و`seed` و`attempt` ونسخة البناء والـ commit، ثم تقييد الأفعال والمهلات وعدد المحاولات. لا تعتبر تكرار الاختبار «إعادة إنتاج» إذا تغير البناء أو الجهاز أو الإعدادات دون توثيق ذلك.
 
 ## 15. مقاييس الأداء وخطة القياس
 
@@ -698,7 +698,7 @@ flowchart TD
 
 ### مقاييس مستهدفة لم تُطبق بعد
 
-\`\`\`text
+```text
 frame_time_ms
 p50_frame_ms
 p95_frame_ms
@@ -712,13 +712,13 @@ action_count
 error_count
 thermal_state          # إذا توفر مصدر موثوق على الجهاز
 android_memory_bytes   # يتطلب مصدر Android موثقًا
-\`\`\`
+```
 
 لا تحدد عتبة أداء عامة قبل جمع خط أساس على أجهزة مستهدفة متفق عليها. قارن فقط نتائج لها نفس build، والجهاز/فئته، وإصدار Android، والـ renderer، والمشهد والسيناريو. شغّل profiler الثقيل في جلسات تشخيص منفصلة إذا أثّر في القياس.
 
 ## 16. خطة التنفيذ ذات بوابات قبول
 
-\`\`\`mermaid
+```mermaid
 flowchart TD
   P1["Phase 1: Current local reporter"] --> G1{"QA smoke + JSON/privacy pass?"}
   G1 -->|no| FIX1["fix and rerun CI"]
@@ -739,7 +739,7 @@ flowchart TD
   P5 --> G5{"CI + human review?"}
   G5 -->|no| BLOCK["do not merge"]
   G5 -->|yes| MERGE["human-authorized merge"]
-\`\`\`
+```
 
 ### تعريف اكتمال كل مرحلة
 
@@ -754,7 +754,7 @@ flowchart TD
 ## 17. أمور يجب ألا تستنتجها من المخططات
 
 - نجاح CI لا يعني تجربة على هاتف حقيقي.
-- \`storage_roundtrip\` ليس اختبار crash-consistency ولا يثبت مقاومة فقد الطاقة.
+- `storage_roundtrip` ليس اختبار crash-consistency ولا يثبت مقاومة فقد الطاقة.
 - تحميل مشهد لا يثبت أن القتال أو اللمس أو AI للعدو يعمل.
 - ENet loopback لا يثبت سلامة اتصال الإنترنت أو خادم عام.
 - قياسات Godot لا تمثل كامل استهلاك Android/thermal behavior.
@@ -765,14 +765,14 @@ flowchart TD
 
 ## 18. مراجع التنفيذ داخل المستودع
 
-- \`scripts/qa/qa_reporter.gd\` — الحدث، الأداء، checkpoints، JSON.
-- \`scripts/qa/qa_test_runner.gd\` — فحوص موارد وتخزين أساسية.
-- \`scripts/ui/main_menu.gd\` — تهيئة QA وزر الفحص وعرض/نسخ التقرير.
-- \`scripts/core/save_system.gd\` — أحداث محلية لعمليات الحفظ.
-- \`scripts/core/network_manager.gd\` — أحداث محدودة لحالة جلسة ENet.
-- \`tests/qa_reporter_smoke_test.gd\` — اختبارات التنقية والحدود والتصدير.
-- \`.github/workflows/validate.yml\` — اختبارات Godot والتحقق الآلي.
-- \`.github/workflows/build.yml\` — تصدير Android QA وAndroid debug وWeb.
-- \`docs/QA_ANDROID_REPORTER_AR.md\` — خطوات استخدام QA على الجهاز.
+- `scripts/qa/qa_reporter.gd` — الحدث، الأداء، checkpoints، JSON.
+- `scripts/qa/qa_test_runner.gd` — فحوص موارد وتخزين أساسية.
+- `scripts/ui/main_menu.gd` — تهيئة QA وزر الفحص وعرض/نسخ التقرير.
+- `scripts/core/save_system.gd` — أحداث محلية لعمليات الحفظ.
+- `scripts/core/network_manager.gd` — أحداث محدودة لحالة جلسة ENet.
+- `tests/qa_reporter_smoke_test.gd` — اختبارات التنقية والحدود والتصدير.
+- `.github/workflows/validate.yml` — اختبارات Godot والتحقق الآلي.
+- `.github/workflows/build.yml` — تصدير Android QA وAndroid debug وWeb.
+- `docs/QA_ANDROID_REPORTER_AR.md` — خطوات استخدام QA على الجهاز.
 
 راجع الملفات ونتائج CI على نفس commit قبل استخدام هذا المخطط كوثيقة اعتماد.
