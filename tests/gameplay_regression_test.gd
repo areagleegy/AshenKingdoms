@@ -43,6 +43,7 @@ func _run() -> void:
 	_test_android_configuration()
 	_test_runtime_input_registration()
 	_test_gamepad_input_bindings()
+	_test_analog_movement_magnitude()
 	_test_controller_navigation_configuration()
 
 	print("[regression] checks: %d, failures: %d" % [_checks, _failures])
@@ -306,6 +307,36 @@ func _test_gamepad_input_bindings() -> void:
 	_check(_has_joypad_button(&"ui_down", JOY_BUTTON_DPAD_DOWN), "D-pad down navigates focused UI")
 	_check(_has_joypad_button(&"ui_left", JOY_BUTTON_DPAD_LEFT), "D-pad left navigates focused UI")
 	_check(_has_joypad_button(&"ui_right", JOY_BUTTON_DPAD_RIGHT), "D-pad right navigates focused UI")
+
+
+func _test_analog_movement_magnitude() -> void:
+	var player := CharacterBody3D.new()
+	player.set_script(PlayerScript)
+
+	var partial_direction: Vector3 = player.call("_movement_direction", Vector2(0.35, 0.0))
+	_check(
+		is_equal_approx(partial_direction.length(), 0.35),
+		"single-player movement preserves partial analog stick magnitude"
+	)
+
+	var full_direction: Vector3 = player.call("_movement_direction", Vector2(0.0, -1.0))
+	_check(
+		is_equal_approx(full_direction.length(), 1.0),
+		"full analog stick movement reaches full speed"
+	)
+
+	var diagonal_direction: Vector3 = player.call("_movement_direction", Vector2(1.0, -1.0))
+	_check(
+		is_equal_approx(diagonal_direction.length(), 1.0),
+		"diagonal input is clamped to prevent faster movement"
+	)
+
+	var neutral_direction: Vector3 = player.call("_movement_direction", Vector2.ZERO)
+	_check(
+		is_zero_approx(neutral_direction.length()),
+		"neutral analog stick input produces no movement"
+	)
+	player.free()
 
 
 func _test_controller_navigation_configuration() -> void:
