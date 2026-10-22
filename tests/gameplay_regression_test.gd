@@ -250,8 +250,9 @@ func _test_android_configuration() -> void:
 		var main_source := main_source_file.get_as_text()
 		main_source_file.close()
 		_check(main_source.contains("static func register_input_actions()"), "shared input setup defines the runtime input registration routine")
-		for action in [&"move_forward", &"move_back", &"move_left", &"move_right", &"look_left", &"look_right", &"look_up", &"look_down", &"jump", &"sprint", &"inventory", &"pause", &"save", &"load", &"interact", &"attack"]:
-			_check(main_source.contains(String(action)), "main input registration references action: %s" % String(action))
+		for action in [&"move_forward", &"move_back", &"move_left", &"move_right", &"look_left", &"look_right", &"look_up", &"look_down", &"jump", &"sprint", &"inventory", &"pause", &"save", &"load", &"interact", &"attack", &"ui_accept", &"ui_cancel", &"ui_up", &"ui_down", &"ui_left", &"ui_right"]:
+			_check(main_source.contains(String(action)), "shared input setup references action: %s" % String(action))
+		_check(main_source.contains("JOY_AXIS_TRIGGER_RIGHT"), "right trigger is mapped as an alternate attack input")
 
 
 func _test_runtime_input_registration() -> void:
@@ -288,6 +289,7 @@ func _test_gamepad_input_bindings() -> void:
 	_check(_has_joypad_button(&"jump", JOY_BUTTON_A), "A/Cross button maps to jump")
 	_check(_has_joypad_button(&"interact", JOY_BUTTON_B), "B/Circle button maps to interaction")
 	_check(_has_joypad_button(&"attack", JOY_BUTTON_X), "X/Square button maps to attack")
+	_check(_has_joypad_axis(&"attack", JOY_AXIS_TRIGGER_RIGHT, 1.0), "RT/R2 trigger maps to attack")
 	_check(_has_joypad_button(&"inventory", JOY_BUTTON_Y), "Y/Triangle button maps to inventory")
 	_check(_has_joypad_button(&"sprint", JOY_BUTTON_LEFT_STICK), "left stick press maps to sprint")
 	_check(_has_joypad_button(&"pause", JOY_BUTTON_START), "Start button maps to pause menu")
