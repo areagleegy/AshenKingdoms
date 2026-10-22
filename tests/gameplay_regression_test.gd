@@ -457,6 +457,10 @@ func _test_controller_navigation_configuration() -> void:
 		var network_source := network_file.get_as_text()
 		network_file.close()
 		_check(network_source.contains('Input.get_vector("look_left"'), "network camera reads right-stick input actions")
+		_check(
+			network_source.contains('@rpc("any_peer", "call_remote", "unreliable_ordered")'),
+			"network movement RPC drops out-of-order stale input packets"
+		)
 		_check(network_source.contains("drag.screen_relative"), "network touch look uses resolution-independent screen deltas")
 		var input_handler_start := network_source.find("func _unhandled_input(event: InputEvent) -> void:")
 		var input_handler_end := network_source.find("func _apply_camera_rotation", input_handler_start)
