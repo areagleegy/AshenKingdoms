@@ -103,7 +103,7 @@ func _focus_first_choice() -> void:
 	if not panel.visible:
 		return
 	for child in choices_box.get_children():
-		if child is Button and child.is_visible_in_tree():
+		if child is Button and not child.is_queued_for_deletion() and child.is_visible_in_tree():
 			(child as Button).grab_focus()
 			return
 	_focus_continue_button()
