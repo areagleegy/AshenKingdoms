@@ -34,6 +34,7 @@ func _run() -> void:
 	avatar.set("_rpc_input_last_refill_msec", Time.get_ticks_msec() - 1000)
 	var accepted_after_refill := bool(avatar.call("_consume_rpc_input_token"))
 	var tokens_after_refill: float = float(avatar.get("_rpc_input_tokens"))
+	print("[DEBUG] refill accepted=%s tokens=%s last=%s now=%s" % [accepted_after_refill, tokens_after_refill, avatar.get("_rpc_input_last_refill_msec"), Time.get_ticks_msec()])
 	_check(accepted_after_refill, "token bucket accepts input after refill")
 	_check(tokens_after_refill >= 28.0 and tokens_after_refill <= 30.0, "one second refills approximately 30 tokens")
 
