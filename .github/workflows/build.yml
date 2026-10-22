@@ -151,7 +151,7 @@ jobs:
       - name: Stamp source commit and export Android QA APK
         shell: bash
         env:
-          QA_BUILD_COMMIT: ${{ github.sha }}
+          QA_BUILD_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
           GODOT_SILENCE_ROOT_WARNING: "1"
         run: |
           set -euo pipefail
