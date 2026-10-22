@@ -389,7 +389,7 @@ func _test_controller_navigation_configuration() -> void:
 		_check(arena_source.contains("_set_mouse_mode_for_pause_menu"), "network pause menu manages mouse visibility")
 		_check(arena_source.contains("_mouse_mode_before_pause = Input.mouse_mode"), "network pause menu stores prior mouse mode")
 		_check(arena_source.contains("Input.mouse_mode = Input.MOUSE_MODE_VISIBLE"), "network pause menu shows cursor for pointer interaction")
-		_check(arena_source.includes("Input.mouse_mode = Input.MOUSE_MODE_VISIBLE"), "return to menu restores desktop mouse visibility")
+		_check(arena_source.contains("Input.mouse_mode = Input.MOUSE_MODE_VISIBLE"), "return to menu restores desktop mouse visibility")
 
 	var network_file := FileAccess.open("res://scripts/networking/network_avatar.gd", FileAccess.READ)
 	_check(network_file != null, "network avatar source is readable for controller look checks")
