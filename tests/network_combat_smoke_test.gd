@@ -77,6 +77,8 @@ func _run() -> void:
 	_check(bool(enemy.get("is_dead")), "lethal server damage marks the enemy dead")
 	_check(float(enemy.get("current_health")) == 0.0, "enemy health is clamped at zero")
 	_check(int(death_event["count"]) == 1 and int(death_event["attacker"]) == 1, "enemy death emits one attacker event")
+	enemy.call("apply_damage_from_server", 999.0, 1)
+	_check(int(death_event["count"]) == 1, "repeated lethal damage cannot emit a duplicate death event")
 
 	print("[network-smoke] failures: %d" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
