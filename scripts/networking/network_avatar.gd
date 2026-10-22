@@ -105,6 +105,8 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 	if sender_id != owner_peer_id or sender_id <= 1 or is_dead:
 		return
 	if not direction.is_finite():
+		if OS.get_environment("ASHEN_TEST_REJECT_NONFINITE_RPC") == "1":
+			print("[network-security-test] rejected non-finite input from peer %d" % sender_id)
 		return
 
 	var safe_direction := Vector3(direction.x, 0.0, direction.z)
