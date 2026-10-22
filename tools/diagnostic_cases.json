@@ -65,7 +65,7 @@
     {
       "id": "expected-oversized-save-rejection",
       "expected_category": null,
-      "log": "regression.log: ERROR: Refusing to save data larger than the local save-size limit.\\nregression.log: [PASS] save system rejects payloads larger than the configured size limit"
+      "log": "regression.log: ERROR: Refusing to save data larger than the local save-size limit.\nregression.log: [PASS] save system rejects payloads larger than the configured size limit"
     },
     {
       "id": "pass-missing-optional-player-model",
