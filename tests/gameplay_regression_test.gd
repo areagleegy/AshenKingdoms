@@ -41,6 +41,7 @@ func _run() -> void:
 
 	_test_player_and_health()
 	_test_inventory_and_potions()
+	_test_inventory_restore_edge_cases()
 	_test_world_item_drop()
 	_test_save_and_load()
 	_test_dialogue_and_quests()
@@ -131,6 +132,77 @@ func _test_inventory_and_potions() -> void:
 	_check(int(restored.call("count_item", &"health_potion")) == 1, "inventory item ID and count survive serialization round-trip")
 	restored.queue_free()
 	player.queue_free()
+
+
+func _test_inventory_restore_edge_cases() -> void:
+	var potion := load(POTION_PATH) as ItemResource
+	if potion == null:
+		_check(false, "inventory edge-case test item loads")
+		return
+
+	var split_inventory := InventoryScript.new() as Inventory
+	split_inventory.slot_count = 2
+	root.add_child(split_inventory)
+	var overstack_amount := potion.max_stack + 3
+	split_inventory.call(
+		"restore_save_data",
+		[{"id": String(potion.id), "amount": overstack_amount}, null]
+	)
+	_check(
+		int(split_inventory.call("count_item", potion.id)) == overstack_amount,
+		"overstacked save quantity is distributed across available slots without loss"
+	)
+	_check(
+		int((split_inventory.get("slots") as Array)[1].get("amount", 0)) == 3,
+		"overflow quantity occupies a second slot"
+	)
+	split_inventory.queue_free()
+
+	var unknown_inventory := InventoryScript.new() as Inventory
+	root.add_child(unknown_inventory)
+	unknown_inventory.call("restore_save_data", [{"id": "future_item_from_mod", "amount": 7}])
+	var unknown_serialized: Array = unknown_inventory.call("to_save_data")
+	_check(
+		unknown_serialized[0] is Dictionary
+		and String(unknown_serialized[0].get("id", "")) == "future_item_from_mod"
+		and int(unknown_serialized[0].get("amount", 0)) == 7,
+		"unknown item IDs and quantities survive a restore/save round-trip"
+	)
+	unknown_inventory.queue_free()
+
+	var limited_inventory := InventoryScript.new() as Inventory
+	limited_inventory.slot_count = 1
+	root.add_child(limited_inventory)
+	limited_inventory.call(
+		"restore_save_data",
+		[{"id": String(potion.id), "amount": potion.max_stack + 4}]
+	)
+	_check(
+		int(limited_inventory.call("count_item", potion.id)) == potion.max_stack,
+		"limited inventory fills its visible stack to the valid maximum"
+	)
+	var limited_serialized: Array = limited_inventory.call("to_save_data")
+	_check(
+		limited_serialized.size() > limited_inventory.slot_count
+		and limited_serialized[-1] is Dictionary
+		and limited_serialized[-1].has("__inventory_pending_items"),
+		"overflow beyond capacity is retained in serialized pending inventory data"
+	)
+	var limited_round_trip := InventoryScript.new() as Inventory
+	limited_round_trip.slot_count = 1
+	root.add_child(limited_round_trip)
+	limited_round_trip.call("restore_save_data", limited_serialized)
+	var round_trip_data: Array = limited_round_trip.call("to_save_data")
+	var pending: Array = []
+	for entry in round_trip_data:
+		if entry is Dictionary and entry.has("__inventory_pending_items"):
+			pending = entry.get("__inventory_pending_items", [])
+	_check(
+		pending.size() == 1 and int(pending[0].get("amount", 0)) == 4,
+		"overflow pending quantity survives another save/load cycle"
+	)
+	limited_inventory.queue_free()
+	limited_round_trip.queue_free()
 
 
 func _test_world_item_drop() -> void:
