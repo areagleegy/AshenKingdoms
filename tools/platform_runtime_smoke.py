@@ -15,9 +15,9 @@ class SmokeTestError(RuntimeError):
 
 
 _RUNTIME_ERROR = re.compile(
-    r"(?im)^\\s*(?:SCRIPT ERROR:|ERROR:|\\[FAIL\\])"
+    r"(?im)^\s*(?:SCRIPT ERROR:|ERROR:|\[FAIL\])"
 )
-_ENGINE_BANNER = re.compile(r"Godot Engine v\\d+\\.\\d+")
+_ENGINE_BANNER = re.compile(r"Godot Engine v\d+\.\d+")
 
 
 def check_runtime_output(output: str, exit_code: int) -> None:
@@ -28,7 +28,7 @@ def check_runtime_output(output: str, exit_code: int) -> None:
         raise SmokeTestError("no Godot Engine version banner was observed")
     match = _RUNTIME_ERROR.search(output)
     if match:
-        line_number = output[:match.start()].count("\\n") + 1
+        line_number = output[:match.start()].count("\n") + 1
         line = output.splitlines()[line_number - 1].strip()
         raise SmokeTestError(f"runtime error at output line {line_number}: {line}")
 
@@ -61,7 +61,7 @@ def run_smoke(
             log_path.parent.mkdir(parents=True, exist_ok=True)
             log_path.write_text(output, encoding="utf-8")
         if output:
-            print(output, end="" if output.endswith("\\n") else "\\n")
+            print(output, end="" if output.endswith("\n") else "\n")
         check_runtime_output(output, completed.returncode)
         return output
     except subprocess.TimeoutExpired as exc:
@@ -72,7 +72,7 @@ def run_smoke(
             log_path.parent.mkdir(parents=True, exist_ok=True)
             log_path.write_text(captured, encoding="utf-8")
         if captured:
-            print(captured, end="" if captured.endswith("\\n") else "\\n")
+            print(captured, end="" if captured.endswith("\\n") else "\n")
         raise SmokeTestError(
             f"process exceeded its {timeout_seconds:g}-second timeout"
         ) from exc
