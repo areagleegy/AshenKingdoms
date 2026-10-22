@@ -228,66 +228,6 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Export signed Google Play App Bundle
-        if: ${{ vars.ANDROID_RELEASE_SIGNING_ENABLED == 'true' }}
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEYSTORE_ALIAS: ${{ secrets.ANDROID_KEYSTORE_ALIAS }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -n "${ANDROID_KEYSTORE_BASE64:-}" || { echo "Missing secret ANDROID_KEYSTORE_BASE64" >&2; exit 1; }
-          test -n "${ANDROID_KEYSTORE_PASSWORD:-}" || { echo "Missing secret ANDROID_KEYSTORE_PASSWORD" >&2; exit 1; }
-          test -n "${ANDROID_KEYSTORE_ALIAS:-}" || { echo "Missing secret ANDROID_KEYSTORE_ALIAS" >&2; exit 1; }
-          keystore_path="$RUNNER_TEMP/ashenkingdoms-release.keystore"
-          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$keystore_path"
-          test -s "$keystore_path"
-          python3 - <<'PY'
-          import os
-          from pathlib import Path
-
-          preset_path = Path("export_presets.cfg")
-          source = preset_path.read_text(encoding="utf-8")
-          marker = "[preset.6.options]"
-          start = source.find(marker)
-          if start < 0:
-              raise SystemExit("Android Play preset options were not found.")
-          prefix, options = source[:start], source[start:]
-
-          def quote_godot_string(value: str) -> str:
-              if "\n" in value or "\r" in value:
-                  raise SystemExit("Android signing values must not contain newlines.")
-              return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
-
-          values = {
-              'keystore/release=""': "keystore/release=" + quote_godot_string(os.environ["RUNNER_TEMP"] + "/ashenkingdoms-release.keystore"),
-              'keystore/release_user=""': "keystore/release_user=" + quote_godot_string(os.environ["ANDROID_KEYSTORE_ALIAS"]),
-              'keystore/release_password=""': "keystore/release_password=" + quote_godot_string(os.environ["ANDROID_KEYSTORE_PASSWORD"]),
-          }
-          for old, new in values.items():
-              if options.count(old) != 1:
-                  raise SystemExit("Expected one blank signing setting in the Android Play preset: " + old)
-              options = options.replace(old, new, 1)
-          preset_path.write_text(prefix + options, encoding="utf-8")
-          PY
-          mkdir -p build/android
-          godot --headless --path . --export-release "Android Play" build/android/AshenKingdoms.aab
-          test -s build/android/AshenKingdoms.aab
-          jarsigner -verify -verbose -certs build/android/AshenKingdoms.aab > "$RUNNER_TEMP/aab-signature-check.log" 2>&1
-          grep -Eiq 'jar verified\.' "$RUNNER_TEMP/aab-signature-check.log" || { cat "$RUNNER_TEMP/aab-signature-check.log"; echo "AAB signature verification did not confirm a signed bundle." >&2; exit 1; }
-          du -h build/android/AshenKingdoms.aab
-          sha256sum build/android/AshenKingdoms.aab
-
-      - name: Upload Google Play App Bundle
-        if: ${{ vars.ANDROID_RELEASE_SIGNING_ENABLED == 'true' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: ashen-kingdoms-android-play-release
-          path: build/android/AshenKingdoms.aab
-          if-no-files-found: error
-          retention-days: 7
-
   ios:
     name: Export iOS Xcode project
     if: ${{ vars.IOS_TEAM_ID != '' }}
