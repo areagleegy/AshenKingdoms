@@ -59,11 +59,10 @@ func _process(_delta: float) -> void:
 
 
 func _notification(what: int) -> void:
-	if (
-		what == NOTIFICATION_WM_CLOSE_REQUEST
-		or what == NOTIFICATION_WM_GO_BACK_REQUEST
-		or what == NOTIFICATION_APPLICATION_PAUSED
-	):
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		_autosave()
+		get_tree().quit()
+	elif what == NOTIFICATION_WM_GO_BACK_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
 		_autosave()
 
 
