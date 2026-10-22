@@ -197,17 +197,16 @@ func _run() -> void:
 				var installed_manifest: Variant = installed_manifest_parser.data if installed_manifest_parse_error == OK else null
 				var persisted_license := ""
 				if installed_manifest is Dictionary:
-					var installed_files: Variant = installed_manifest.get("files", [])
-					if installed_files is Array and installed_files.size() == 1 and installed_files[0] is Dictionary:
-						persisted_license = str(installed_files[0].get("license", ""))
+					var installed_files: Variant = installed_manifest.get("files", {})
+					if installed_files is Dictionary:
+						var installed_world_file: Variant = installed_files.get("world.glb", {})
+						if installed_world_file is Dictionary:
+							persisted_license = str(installed_world_file.get("license", ""))
 				if installed_manifest_parse_error != OK or persisted_license != "CC0-1.0":
 					print("[content-smoke] manifest_parse_error=%d" % installed_manifest_parse_error)
 					print("[content-smoke] installed_manifest_path=%s" % installed_manifest_path)
 					print("[content-smoke] installed_manifest_text=%s" % installed_manifest_text)
-					print("[content-smoke] parsed_files=%s persisted_license=%s" % [
-						str(installed_manifest.get("files", []) if installed_manifest is Dictionary else null),
-						persisted_license
-					])
+					print("[content-smoke] persisted_license=%s" % persisted_license)
 				_check(
 					installed_manifest_parse_error == OK and persisted_license == "CC0-1.0",
 					"installed manifest preserves the verified asset license provenance"
