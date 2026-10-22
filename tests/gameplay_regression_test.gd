@@ -397,6 +397,12 @@ func _test_controller_navigation_configuration() -> void:
 		var network_source := network_file.get_as_text()
 		network_file.close()
 		_check(network_source.contains('Input.get_vector("look_left"'), "network camera reads right-stick input actions")
+		var input_handler_start := network_source.find("func _unhandled_input(event: InputEvent) -> void:")
+		var input_handler_end := network_source.find("func _apply_camera_rotation", input_handler_start)
+		_check(input_handler_start >= 0 and input_handler_end > input_handler_start, "network avatar camera input handler is present")
+		if input_handler_start >= 0 and input_handler_end > input_handler_start:
+			var input_handler_source := network_source.substr(input_handler_start, input_handler_end - input_handler_start)
+			_check(input_handler_source.contains("not _local_input_enabled"), "network camera input is disabled while pause menu is open")
 
 
 func _has_joypad_button(action: StringName, expected_button: int) -> bool:
