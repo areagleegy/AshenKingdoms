@@ -209,6 +209,32 @@ func _run() -> void:
 				await process_frame
 			_check(int(local_avatar.get("quest_progress")) == 1, "one enemy death grants exactly one replicated quest progress")
 
+			# Send malformed numeric movement vectors through the real ENet RPC.
+			# Server-side opt-in diagnostics are asserted by test-network-loopback.sh.
+			var guarded_avatar := local_avatar as Node3D
+			guarded_avatar.rpc_id(1, "_rpc_submit_input", Vector3(NAN, 0.0, 0.0), false, false, false)
+			guarded_avatar.rpc_id(1, "_rpc_submit_input", Vector3(0.0, NAN, 0.0), false, false, false)
+			guarded_avatar.rpc_id(1, "_rpc_submit_input", Vector3(0.0, 0.0, INF), false, false, false)
+			await create_timer(0.15).timeout
+			_check(
+				is_finite(guarded_avatar.global_position.x)
+				and is_finite(guarded_avatar.global_position.y)
+				and is_finite(guarded_avatar.global_position.z),
+				"non-finite movement RPCs do not corrupt replicated avatar position"
+			)
+
+			# Immediate packets exercise the minimum inter-packet interval guard.
+			for packet_index in range(8):
+				guarded_avatar.rpc_id(1, "_rpc_submit_input", Vector3.ZERO, false, false, false)
+			await create_timer(0.15).timeout
+
+			# A sustained burst competes with the normal 20 Hz client stream and
+			# must reach the per-avatar rolling-window limit on the authoritative host.
+			for packet_index in range(50):
+				guarded_avatar.rpc_id(1, "_rpc_submit_input", Vector3.ZERO, false, false, false)
+				await create_timer(0.025).timeout
+			await create_timer(0.15).timeout
+
 	if _failures > 0 and current_scene != null:
 		var entities := current_scene.get_node_or_null("Entities") as Node3D
 		if entities != null:
