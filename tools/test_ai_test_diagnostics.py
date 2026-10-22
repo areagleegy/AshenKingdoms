@@ -106,6 +106,19 @@ class DiagnosticsClassifierTests(unittest.TestCase):
         self.assertIsNone(advice)
         self.assertEqual(status, "disabled")
 
+    def test_remote_ai_rejects_plain_http_without_requesting_endpoint(self):
+        report = {"diagnostics": []}
+        with patch.dict(os.environ, {
+            "ASHEN_AI_DIAGNOSE": "true",
+            "ASHEN_AI_ENDPOINT": "http://example.invalid/v1",
+            "ASHEN_AI_API_KEY": "test-only-secret-token",
+        }):
+            with patch("ai_test_diagnostics.urllib.request.urlopen") as urlopen:
+                advice, status = request_ai_advice(report, "ERROR: synthetic failure")
+        self.assertIsNone(advice)
+        self.assertEqual(status, "insecure_or_invalid_endpoint_rejected")
+        urlopen.assert_not_called()
+
 
 class DiagnosticBenchmarkTests(unittest.TestCase):
     def test_benchmark_reports_hits_misses_and_false_positives(self):
