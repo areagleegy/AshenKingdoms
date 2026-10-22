@@ -2,6 +2,7 @@ extends CanvasLayer
 
 signal save_requested
 signal load_requested
+signal drop_requested(slot_index: int)
 
 var _player: CharacterBody3D
 var _progression: Node
@@ -323,10 +324,20 @@ func _refresh_inventory() -> void:
 		if item == null:
 			continue
 		has_items = true
+		var row := HBoxContainer.new()
 		var item_button := Button.new()
-		item_button.text = "%s × %d" % [String(item.get("display_name")), int(slot.get("amount", 1))]
+		item_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		item_button.text = "%s × %d — استخدام" % [String(item.get("display_name")), int(slot.get("amount", 1))]
 		item_button.pressed.connect(_on_inventory_item_pressed.bind(index))
-		_inventory_list.add_child(item_button)
+		row.add_child(item_button)
+
+		var drop_button := Button.new()
+		drop_button.text = "إسقاط 1"
+		drop_button.pressed.connect(func() -> void:
+			drop_requested.emit(index)
+		)
+		row.add_child(drop_button)
+		_inventory_list.add_child(row)
 
 	if not has_items:
 		var empty_label := Label.new()
