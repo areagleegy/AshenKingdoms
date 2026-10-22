@@ -42,6 +42,10 @@ static func register_input_actions() -> void:
 	_add_joy_button_action(&"ui_down", JOY_BUTTON_DPAD_DOWN)
 	_add_joy_button_action(&"ui_left", JOY_BUTTON_DPAD_LEFT)
 	_add_joy_button_action(&"ui_right", JOY_BUTTON_DPAD_RIGHT)
+	_add_joy_axis_action(&"ui_left", JOY_AXIS_LEFT_X, -1.0)
+	_add_joy_axis_action(&"ui_right", JOY_AXIS_LEFT_X, 1.0)
+	_add_joy_axis_action(&"ui_up", JOY_AXIS_LEFT_Y, -1.0)
+	_add_joy_axis_action(&"ui_down", JOY_AXIS_LEFT_Y, 1.0)
 
 	if not InputMap.has_action("attack"):
 		InputMap.add_action("attack")
