@@ -10,6 +10,7 @@ const REGISTRY_PATH := "user://content/registry.json"
 const REGISTRY_TEMP_PATH := "user://content/registry.tmp"
 const DOWNLOAD_ROOT := "user://content/downloads"
 const MAX_CATALOG_BYTES := 4 * 1024 * 1024
+const PROGRESS_INTERVAL_MSEC := 500
 
 var _catalog: Dictionary = {}
 var _installed: Dictionary = {}
@@ -18,6 +19,7 @@ var _active_references: Dictionary = {}
 var _catalog_request: HTTPRequest
 var _catalog_state := "not_configured"
 var _last_error := ""
+var _next_progress_msec := 0
 
 
 func _ready() -> void:
@@ -32,8 +34,17 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	for pack_id in _downloads:
-		var state: Dictionary = _downloads[pack_id]
+	if _downloads.is_empty():
+		return
+	var now := Time.get_ticks_msec()
+	if now < _next_progress_msec:
+		return
+	_next_progress_msec = now + PROGRESS_INTERVAL_MSEC
+	# Iterate a snapshot because listeners may cancel downloads during signal emission.
+	for pack_id in _downloads.keys():
+		if not _downloads.has(pack_id):
+			continue
+		var state: Dictionary = _downloads.get(pack_id, {})
 		var request: HTTPRequest = state.get("request")
 		if request != null and is_instance_valid(request):
 			download_progress.emit(str(pack_id), int(request.downloaded_bytes), int(state.get("record", {}).get("download_size", 0)))
@@ -336,10 +347,11 @@ func _remove_file(path: String) -> void:
 func _fail_catalog(message: String) -> void:
 	_catalog_state = "error"
 	_last_error = message
+	var previous_ids: Array = _catalog.keys()
 	_catalog.clear()
 	push_warning(message)
 	catalog_updated.emit({})
-	for pack_id in _catalog:
+	for pack_id in previous_ids:
 		_emit_pack_state(str(pack_id), "unavailable", {"error": message})
 
 
