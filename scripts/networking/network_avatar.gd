@@ -1,6 +1,7 @@
 extends CharacterBody3D
 
 const INPUT_SEND_INTERVAL: float = 0.05
+const MIN_INPUT_RPC_INTERVAL_MSEC: int = 25
 const INPUT_TIMEOUT_MSEC: int = 350
 const MAX_LEVEL: int = 50
 const QUEST_TARGET: int = 3
@@ -102,14 +103,29 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 	if not multiplayer.is_server():
 		return
 	var sender_id := multiplayer.get_remote_sender_id()
-	if sender_id != owner_peer_id or sender_id <= 1 or is_dead:
+	if sender_id <= 1 or not multiplayer.get_peers().has(sender_id):
 		return
 
-	var safe_direction := Vector3(direction.x, 0.0, direction.z)
-	if safe_direction.length_squared() > 1.0:
-		safe_direction = safe_direction.normalized()
-	_set_requested_input(safe_direction, jump_down, sprint_down, attack_down)
+	var network_manager := get_node_or_null("/root/NetworkManager")
+	if network_manager == null or not bool(network_manager.call(
+		"accept_rpc_rate_limit", sender_id, &"avatar_input", MIN_INPUT_RPC_INTERVAL_MSEC
+	)):
+		return
+	if sender_id != owner_peer_id or is_dead:
+		return
+	if not _is_valid_input_direction(direction):
+		return
+
+	_set_requested_input(direction, jump_down, sprint_down, attack_down)
 	_last_input_msec = Time.get_ticks_msec()
+
+
+static func _is_valid_input_direction(direction: Vector3) -> bool:
+	if not is_finite(direction.x) or not is_finite(direction.y) or not is_finite(direction.z):
+		return false
+	if absf(direction.y) > 0.001:
+		return false
+	return direction.length_squared() <= 1.001
 
 
 func _set_requested_input(direction: Vector3, jump_down: bool, sprint_down: bool, attack_down: bool) -> void:
