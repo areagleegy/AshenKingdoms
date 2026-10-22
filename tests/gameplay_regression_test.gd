@@ -228,6 +228,23 @@ func _test_save_and_load(had_original_save: bool, original_save: String) -> void
 		_check(not FileAccess.file_exists(SAVE_TEMP_PATH), "temporary snapshot is removed after successful recovery")
 		_check(bool(save_system.call("has_save")), "temporary snapshot recovery leaves a usable save")
 
+		_check(bool(save_system.call("save_game", {"level": 8})), "save system keeps a backup before the next replacement")
+		var oversized_primary := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+		if oversized_primary == null:
+			_check(false, "test can create an oversized primary save fixture")
+		else:
+			oversized_primary.store_string(JSON.stringify({"payload": "x".repeat(1024 * 1024)}))
+			oversized_primary.flush()
+			var oversized_write_error: Error = oversized_primary.get_error()
+			oversized_primary.close()
+			_check(oversized_write_error == OK, "oversized primary fixture is written")
+			var recovered_from_oversize = save_system.call("load_game")
+			_check(
+				recovered_from_oversize is Dictionary
+				and int(recovered_from_oversize.get("level", 0)) == 6,
+				"oversized on-disk save is rejected and recovers the known-good backup"
+			)
+
 	_restore_original_save(
 		had_original_save, original_save,
 		had_original_backup, original_backup,
