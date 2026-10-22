@@ -597,9 +597,9 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf build/ios
-          mkdir -p build/ios
+          mkdir -p build/ios/unpacked
           set +e
-          godot --headless --path . --export-release "iOS" build/ios > "$RUNNER_TEMP/ios-export.log" 2>&1
+          godot --headless --path . --export-release "iOS" build/ios/AshenKingdoms.zip > "$RUNNER_TEMP/ios-export.log" 2>&1
           export_status=$?
           cat "$RUNNER_TEMP/ios-export.log"
           set -e
@@ -607,24 +607,31 @@ jobs:
             echo "Godot iOS project export failed (exit $export_status)." >&2
             exit "$export_status"
           fi
-          project_path="$(find build/ios -maxdepth 1 -type d -name '*.xcodeproj' -print -quit)"
-          test -n "$project_path"
+          test -s build/ios/AshenKingdoms.zip
+          python3 tools/validate_platform_exports.py ios build/ios/AshenKingdoms.zip
+          unzip -q build/ios/AshenKingdoms.zip -d build/ios/unpacked
+          project_path="$(find build/ios/unpacked -type d -name '*.xcodeproj' -print -quit)"
+          if [[ -z "$project_path" ]]; then
+            find build/ios/unpacked -maxdepth 4 -print
+            echo "iOS ZIP did not contain an Xcode project directory." >&2
+            exit 1
+          fi
           python3 - <<'PY'
           from pathlib import Path
-          root = Path("build/ios")
-          required = [
-              root / "AshenKingdoms.xcodeproj" / "project.pbxproj",
-              root / "AshenKingdoms.xcframework" / "Info.plist",
-              root / "MoltenVK.xcframework" / "Info.plist",
+          root = Path("build/ios/unpacked")
+          required_patterns = [
+              "**/AshenKingdoms.xcodeproj/project.pbxproj",
+              "**/AshenKingdoms.xcframework/Info.plist",
+              "**/MoltenVK.xcframework/Info.plist",
           ]
-          missing = [str(path) for path in required if not path.is_file()]
+          missing = [
+              pattern for pattern in required_patterns
+              if not any(root.glob(pattern))
+          ]
           if missing:
               raise SystemExit("Missing required iOS project files: " + ", ".join(missing))
-          print("[PASS] iOS Xcode project layout and engine frameworks verified")
+          print("[PASS] iOS Xcode project ZIP layout and engine frameworks verified")
           PY
-          ditto -c -k --sequesterRsrc --keepParent build/ios build/ios-xcode-project.zip
-          test -s build/ios-xcode-project.zip
-          python3 tools/validate_platform_exports.py ios build/ios-xcode-project.zip
 
       - name: Build exported iOS project for device SDK (unsigned compile)
         shell: bash
@@ -656,6 +663,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: ashen-kingdoms-ios-xcode-project
-          path: build/ios-xcode-project.zip
+          path: build/ios/AshenKingdoms.zip
           if-no-files-found: error
           retention-days: 7
