@@ -30,14 +30,17 @@ func _ready() -> void:
 
 func start_host(port: int = DEFAULT_PORT, max_clients: int = DEFAULT_MAX_CLIENTS) -> int:
 	if port < 1 or port > 65535:
+		_record_qa_event("network_host_rejected", {"error_code": ERR_INVALID_PARAMETER})
 		return ERR_INVALID_PARAMETER
 	if max_clients < 1 or max_clients > 64:
+		_record_qa_event("network_host_rejected", {"error_code": ERR_INVALID_PARAMETER})
 		return ERR_INVALID_PARAMETER
 
 	leave_session(false)
 	var peer := ENetMultiplayerPeer.new()
 	var result := peer.create_server(port, max_clients)
 	if result != OK:
+		_record_qa_event("network_host_failed", {"error_code": result})
 		var message := "تعذر فتح منفذ الاستضافة %d: %s" % [port, error_string(result)]
 		status_changed.emit(message)
 		return result
@@ -47,6 +50,7 @@ func start_host(port: int = DEFAULT_PORT, max_clients: int = DEFAULT_MAX_CLIENTS
 	session_port = port
 	_client_connected = false
 	_ready_peers.clear()
+	_record_qa_event("network_host_started", {"max_clients": max_clients})
 	status_changed.emit("تستضيف جلسة تجريبية على المنفذ %d." % port)
 	return OK
 
@@ -54,12 +58,14 @@ func start_host(port: int = DEFAULT_PORT, max_clients: int = DEFAULT_MAX_CLIENTS
 func start_client(address: String, port: int = DEFAULT_PORT) -> int:
 	var clean_address := address.strip_edges()
 	if clean_address.is_empty() or port < 1 or port > 65535:
+		_record_qa_event("network_client_rejected", {"error_code": ERR_INVALID_PARAMETER})
 		return ERR_INVALID_PARAMETER
 
 	leave_session(false)
 	var peer := ENetMultiplayerPeer.new()
 	var result := peer.create_client(clean_address, port)
 	if result != OK:
+		_record_qa_event("network_client_start_failed", {"error_code": result})
 		var message := "تعذر بدء الاتصال: %s" % error_string(result)
 		status_changed.emit(message)
 		return result
@@ -70,6 +76,7 @@ func start_client(address: String, port: int = DEFAULT_PORT) -> int:
 	_client_connected = false
 	_ready_peers.clear()
 	_connection_generation += 1
+	_record_qa_event("network_client_attempt_started")
 	status_changed.emit("جارٍ الاتصال بـ %s:%d ..." % [clean_address, port])
 	var timer := get_tree().create_timer(CONNECTION_TIMEOUT_SECONDS)
 	timer.timeout.connect(_on_connection_timeout.bind(_connection_generation))
@@ -81,6 +88,8 @@ func leave_session(notify: bool = true) -> void:
 	_client_connected = false
 	_ready_peers.clear()
 	var old_mode := session_mode
+	if old_mode != "offline":
+		_record_qa_event("network_session_ended")
 	session_mode = "offline"
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
 	if notify and old_mode != "offline":
@@ -131,6 +140,7 @@ func _on_connected_to_server() -> void:
 	if session_mode != "client":
 		return
 	_client_connected = true
+	_record_qa_event("network_client_connected")
 	_connection_generation += 1
 	status_changed.emit("تم الاتصال بالخادم.")
 	session_connected.emit()
@@ -141,6 +151,7 @@ func _on_connection_failed() -> void:
 		return
 	_connection_generation += 1
 	leave_session(false)
+	_record_qa_event("network_client_connection_failed")
 	var reason := "فشل الاتصال بالخادم. تحقق من عنوان IP والمنفذ وإعدادات الشبكة."
 	status_changed.emit(reason)
 	connection_failed.emit(reason)
@@ -151,18 +162,21 @@ func _on_server_disconnected() -> void:
 		return
 	_connection_generation += 1
 	leave_session(false)
+	_record_qa_event("network_server_disconnected")
 	var reason := "انقطع اتصال الخادم."
 	status_changed.emit(reason)
 	session_ended.emit(reason)
 
 
 func _on_peer_connected(peer_id: int) -> void:
+	_record_qa_event("network_peer_joined", {"peer_id": peer_id})
 	if session_mode == "host":
 		status_changed.emit("اتصل لاعب جديد: %d." % peer_id)
 	peer_joined.emit(peer_id)
 
 
 func _on_peer_disconnected(peer_id: int) -> void:
+	_record_qa_event("network_peer_left", {"peer_id": peer_id})
 	_ready_peers.erase(peer_id)
 	status_changed.emit("غادر اللاعب %d الجلسة." % peer_id)
 	peer_left.emit(peer_id)
@@ -174,6 +188,16 @@ func _on_connection_timeout(generation: int) -> void:
 	if session_mode != "client" or _client_connected:
 		return
 	leave_session(false)
+	_record_qa_event("network_client_timeout")
 	var reason := "انتهت مهلة الاتصال بعد 12 ثانية."
 	status_changed.emit(reason)
 	connection_failed.emit(reason)
+
+
+func _record_qa_event(event_name: String, details: Dictionary = {}) -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+	var reporter := tree.root.get_node_or_null("QAReporter")
+	if reporter != null and reporter.has_method("record_event"):
+		reporter.call("record_event", event_name, details)
