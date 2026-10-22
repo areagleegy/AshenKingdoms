@@ -58,11 +58,28 @@ func save_game(data: Dictionary) -> bool:
 	)
 	if promote_error != OK:
 		var staged_path := SAVE_PATH + ".old"
+		var restore_error: Error = OK
 		if FileAccess.file_exists(staged_path):
-			DirAccess.rename_absolute(
+			restore_error = DirAccess.rename_absolute(
 				ProjectSettings.globalize_path(staged_path),
 				ProjectSettings.globalize_path(SAVE_PATH)
 			)
+			if restore_error != OK:
+				push_error(
+					"CRITICAL: save promotion failed (%s) and restoring the previous save failed (%s). "
+					% [error_string(promote_error), error_string(restore_error)]
+					+ "The staged save was left at: %s" % staged_path
+				)
+			elif not FileAccess.file_exists(SAVE_PATH):
+				restore_error = ERR_FILE_NOT_FOUND
+				push_error("CRITICAL: restore reported success but the primary save is missing.")
+		elif had_primary:
+			restore_error = ERR_FILE_NOT_FOUND
+			push_error(
+				"CRITICAL: save promotion failed and the staged previous save is missing: %s"
+				% staged_path
+			)
+
 		_remove_if_exists(TEMP_PATH)
 		push_error("Could not activate the new save: %s" % error_string(promote_error))
 		return false
