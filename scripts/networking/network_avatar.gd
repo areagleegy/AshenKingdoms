@@ -331,7 +331,7 @@ func _read_world_direction() -> Vector3:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not _owns_local_input():
+	if not _owns_local_input() or not _local_input_enabled:
 		return
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		_apply_camera_rotation((event as InputEventMouseMotion).relative.x * 0.003, (event as InputEventMouseMotion).relative.y * 0.003)
