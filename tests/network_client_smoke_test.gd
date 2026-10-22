@@ -83,8 +83,8 @@ func _run() -> void:
 
 	var arena_entities := current_scene.get_node_or_null("Entities") as Node3D
 	if OS.get_environment("ASHEN_TEST_COMBAT") == "1" and saw_local_avatar and enemy_count == 4 and arena_entities != null:
-		var local_avatar := arena_entities.get_node_or_null("Peer_%d" % local_peer_id)
-		var target := entities.get_node_or_null("Enemy_01")
+		var local_avatar := arena_arena_entities.get_node_or_null("Peer_%d" % local_peer_id)
+		var target := arena_entities.get_node_or_null("Enemy_01")
 		if not is_instance_valid(local_avatar) or not is_instance_valid(target):
 			_fail("combat integration setup entities are missing")
 		else:
@@ -117,14 +117,14 @@ func _run() -> void:
 				_check(not is_instance_valid(target) or float(target.get("current_health")) < health_before, "server-authoritative combat hit %d is replicated" % (hit_index + 1))
 				if is_instance_valid(target) and float(target.get("current_health")) <= 0.0:
 					await process_frame
-					target = entities.get_node_or_null("Enemy_01")
+					target = arena_entities.get_node_or_null("Enemy_01")
 					break
 
 			if not is_instance_valid(target):
 				var respawn_deadline := Time.get_ticks_msec() + 7000
 				while Time.get_ticks_msec() < respawn_deadline:
 					await process_frame
-					target = entities.get_node_or_null("Enemy_01")
+					target = arena_entities.get_node_or_null("Enemy_01")
 					if is_instance_valid(target):
 						break
 				_check(is_instance_valid(target), "server respawns the defeated enemy")
