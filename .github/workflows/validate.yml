@@ -82,6 +82,7 @@ jobs:
           test -f tests/network_combat_smoke_test.tscn
           test -f tools/test-network-loopback.sh
           test -f tools/generate_player_glb.py
+          test -f tools/test_generate_player_glb.py
           test -f tests/player_character_smoke_test.gd
           test -f docs/PLUGIN_INTEGRATION_AR.md
           test -f docs/FREE_ASSET_PIPELINE_AR.md
@@ -169,10 +170,10 @@ jobs:
           set -o pipefail
           godot --headless --path . --script res://tests/content_catalog_smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/content-tests.log"
 
-      - name: Run content package builder tests
+      - name: Run content, signing, and GLB safety tests
         run: |
           set -o pipefail
-          python -m unittest tools.test_package_content tools.test_sign_content_catalog -v 2>&1 | tee "$RUNNER_TEMP/python-tests.log"
+          python -m unittest tools.test_package_content tools.test_sign_content_catalog tools.test_generate_player_glb -v 2>&1 | tee "$RUNNER_TEMP/python-tests.log"
 
       - name: Diagnose test logs
         if: always()
