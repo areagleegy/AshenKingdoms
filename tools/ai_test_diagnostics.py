@@ -9,6 +9,7 @@ import re
 import sys
 import urllib.error
 import urllib.request
+from urllib.parse import urlsplit
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -138,6 +139,14 @@ def request_ai_advice(report: dict[str, Any], combined_log: str) -> tuple[str | 
         return None, "disabled"
     if not endpoint:
         return None, "enabled_but_endpoint_missing"
+    parsed_endpoint = urlsplit(endpoint)
+    if (
+        parsed_endpoint.scheme.lower() != "https"
+        or not parsed_endpoint.netloc
+        or parsed_endpoint.username is not None
+        or parsed_endpoint.password is not None
+    ):
+        return None, "insecure_or_invalid_endpoint_rejected"
     if not endpoint.endswith("/chat/completions"):
         endpoint = endpoint.rstrip("/")
         endpoint += "/chat/completions" if endpoint.endswith("/v1") else "/v1/chat/completions"
