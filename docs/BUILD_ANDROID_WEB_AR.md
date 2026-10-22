@@ -1,6 +1,6 @@
-# دليل البناء الآلي إلى Android وWeb
+# دليل بناء Android وWeb وإصدارات المنصات
 
-> نطاق الإصدار المستهدف والقيود الفعلية موثقان في [نطاق الإصدار](RELEASE_SCOPE_AR.md) و[حالة التنفيذ](PROJECT_STATUS_AR.md). نجاح التصدير ينتج Artifact قابلًا للتنزيل، لكنه لا يعني أن النسخة موقعة للإنتاج أو اجتازت اختبار جهاز/متصفح. تصدير Web الحالي يدعم اللعب الفردي فقط؛ اللعب الجماعي في المتصفح غير مدعوم بعد.
+> نطاق الإصدار المستهدف والقيود الفعلية موثقان في [نطاق الإصدار](RELEASE_SCOPE_AR.md) و[حالة التنفيذ](PROJECT_STATUS_AR.md). للبناء الموقّع لـ Google Play راجع [دليل إصدار Android AAB](ANDROID_RELEASE_BUILD_AR.md). نجاح التصدير ينتج Artifact قابلًا للتنزيل، لكنه لا يعني أن النسخة موقعة للإنتاج أو اجتازت اختبار جهاز/متصفح. تصدير Web الحالي يدعم اللعب الفردي فقط؛ اللعب الجماعي في المتصفح غير مدعوم بعد.
 
 ## إصدارات الأدوات
 
@@ -45,7 +45,7 @@
 
 1. تأكد من أن فرع `main` يحتوي على إعدادات الإصدار المطلوبة.
 2. أنشئ أو استخدم مفتاح الإصدار الصحيح، واحفظ ملفه خارج المستودع.
-3. في GitHub، افتح `Settings → Environments` وأنشئ البيئة `android-release`. أضف أسرار `ANDROID_KEYSTORE_BASE64` و`ANDROID_KEYSTORE_PASSWORD` و`ANDROID_KEYSTORE_ALIAS` إليها، واضبط قواعد مراجعة/اعتماد للبيئة إن كانت مناسبة.
+3. في GitHub، افتح `Settings → Environments` وأنشئ البيئة `android-release`. اقصر فروع النشر المسموحة على `main`، وفعّل Required reviewers، ثم أضف أسرار `ANDROID_KEYSTORE_BASE64` و`ANDROID_KEYSTORE_PASSWORD` و`ANDROID_KEYSTORE_ALIAS` إلى هذه البيئة.
 4. من `Actions` اختر `Android Release AAB`، وشغّله من `main` فقط مع `version_code` متزايد و`version_name`.
 5. راجع سجل توقيع AAB ونزّل artifact `ashen-kingdoms-android-play-release`. الحزمة موقّعة، لكن يلزم اختبارها وتحديثها في مسار المتجر الفعلي قبل إعلان النشر.
 
