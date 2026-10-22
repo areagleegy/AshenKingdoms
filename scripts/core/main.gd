@@ -10,6 +10,7 @@ const INVENTORY_SCRIPT: Script = preload("res://scripts/components/inventory.gd"
 const PROGRESSION_SCRIPT: Script = preload("res://scripts/core/progression_manager.gd")
 const QUEST_SCRIPT: Script = preload("res://scripts/core/quest_manager.gd")
 const SAVE_SCRIPT: Script = preload("res://scripts/core/save_system.gd")
+const WORLD_ITEM_DROP_SCRIPT: Script = preload("res://scripts/items/world_item_drop.gd")
 const HUD_SCRIPT: Script = preload("res://scripts/ui/hud.gd")
 const NPC_SCENE: PackedScene = preload("res://scenes/npc/NPC.tscn")
 const INTERACTION_SCRIPT: Script = preload("res://scripts/player/interaction_detector.gd")
@@ -439,6 +440,7 @@ func _create_hud() -> void:
 	hud.name = "HUD"
 	add_child(hud)
 	hud.call("bind_game", player, progression, quests, player.get_node("Inventory"))
+	hud.connect("drop_requested", _drop_inventory_item)
 	hud.connect("save_requested", _save_game)
 	hud.connect("load_requested", _load_game)
 
@@ -470,6 +472,42 @@ func _on_player_died(_dead_player: Node) -> void:
 	player.call("reset_after_death", Vector3(0.0, 0.92, 0.0))
 	if is_instance_valid(hud):
 		hud.call("show_message", "عدت إلى ساحة القتال.")
+
+
+func _drop_inventory_item(slot_index: int) -> void:
+	if not is_instance_valid(player) or not is_instance_valid(world):
+		return
+	var inventory := player.get_node_or_null("Inventory") as Inventory
+	if inventory == null:
+		return
+	var slots: Array = inventory.get("slots")
+	if slot_index < 0 or slot_index >= slots.size():
+		return
+	var slot: Dictionary = slots[slot_index]
+	if slot.is_empty():
+		return
+	var item := slot.get("item") as ItemResource
+	if item == null or not inventory.has_item(item.id, 1):
+		return
+
+	var drop := WORLD_ITEM_DROP_SCRIPT.new() as WorldItemDrop
+	if drop == null or not drop.configure(item.id, 1):
+		if is_instance_valid(drop):
+			drop.free()
+		hud.call("show_message", "تعذر إسقاط هذا العنصر.")
+		return
+
+	world.add_child(drop)
+	var forward := -player.global_transform.basis.z
+	forward.y = 0.0
+	forward = forward.normalized()
+	drop.global_position = player.global_position + forward * 1.35 + Vector3.UP * 0.35
+
+	if not inventory.remove_item(item.id, 1):
+		drop.queue_free()
+		hud.call("show_message", "تعذر تحديث الحقيبة؛ لم يُسقط العنصر.")
+		return
+	hud.call("show_message", "تم إسقاط عنصر واحد: %s" % item.display_name)
 
 
 func _save_game() -> void:
