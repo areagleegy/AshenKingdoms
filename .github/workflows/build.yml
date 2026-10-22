@@ -131,12 +131,7 @@ jobs:
         run: |
           set -euo pipefail
           chmod +x build/linux/AshenKingdoms.x86_64
-          runtime_log="$RUNNER_TEMP/exported-linux-runtime.log"
-          timeout 30s build/linux/AshenKingdoms.x86_64 --headless -- --server --server-port=47653 --ashen-ci-smoke 2>&1 | tee "$runtime_log"
-          if grep -Eq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:|\\[FAIL\\]' "$runtime_log"; then
-            echo "Exported Linux binary logged a runtime error." >&2
-            exit 1
-          fi
+          python3 tools/platform_runtime_smoke.py --timeout 25 --log "$RUNNER_TEMP/exported-linux-runtime.log" -- build/linux/AshenKingdoms.x86_64 --headless -- --server --server-port=47653 --ashen-ci-smoke
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v7
@@ -161,6 +156,62 @@ jobs:
           path: build/macos/AshenKingdoms.zip
           if-no-files-found: error
           retention-days: 7
+
+  smoke_windows:
+    name: Run Windows exported build
+    runs-on: windows-latest
+    needs: desktop
+    timeout-minutes: 10
+    steps:
+      - name: Checkout QA harness
+        uses: actions/checkout@v7
+
+      - name: Download Windows executable
+        uses: actions/download-artifact@v7
+        with:
+          name: ashen-kingdoms-windows
+          path: build/windows
+
+      - name: Smoke-run native Windows executable
+        shell: bash
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -euo pipefail
+          test -s build/windows/AshenKingdoms.exe
+          python tools/validate_platform_exports.py windows build/windows/AshenKingdoms.exe
+          python tools/platform_runtime_smoke.py --timeout 25 --log "$RUNNER_TEMP/windows-runtime.log" -- build/windows/AshenKingdoms.exe --headless -- --server --server-port=47654 --ashen-ci-smoke
+
+  smoke_macos:
+    name: Run macOS exported build
+    runs-on: macos-latest
+    needs: desktop
+    timeout-minutes: 10
+    steps:
+      - name: Checkout QA harness
+        uses: actions/checkout@v7
+
+      - name: Download macOS application archive
+        uses: actions/download-artifact@v7
+        with:
+          name: ashen-kingdoms-macos
+          path: build/macos
+
+      - name: Smoke-run native macOS app
+        shell: bash
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -euo pipefail
+          python3 tools/validate_platform_exports.py macos build/macos/AshenKingdoms.zip
+          mkdir -p build/macos/unpacked
+          unzip -q build/macos/AshenKingdoms.zip -d build/macos/unpacked
+          app_path="$(find build/macos/unpacked -type d -name 'AshenKingdoms.app' -print -quit)"
+          test -n "$app_path"
+          executable="$app_path/Contents/MacOS/AshenKingdoms"
+          test -f "$executable"
+          chmod +x "$executable"
+          python3 tools/platform_runtime_smoke.py --timeout 25 --log "$RUNNER_TEMP/macos-runtime.log" -- "$executable" --headless -- --server --server-port=47655 --ashen-ci-smoke
 
   android:
     name: Export Android APK
