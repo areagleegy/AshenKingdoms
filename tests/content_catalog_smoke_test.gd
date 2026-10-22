@@ -23,7 +23,7 @@ func _run() -> void:
 		return
 
 	var valid_catalog := {
-		"schema_version": 1,
+		"schema_version": 2,
 		"packs": [{
 			"id": "ashen_outskirts",
 			"version": "1.0.0",
@@ -46,6 +46,10 @@ func _run() -> void:
 			"dependencies": []
 		}]
 	}
+	var legacy_schema_catalog: Dictionary = valid_catalog.duplicate(true)
+	legacy_schema_catalog["schema_version"] = 1
+	_check(not bool(_catalog.call("validate_catalog", legacy_schema_catalog).get("ok", true)), "legacy catalog schema without provenance contract is rejected")
+
 	var valid_result: Dictionary = _catalog.call("validate_catalog", valid_catalog)
 	_check(bool(valid_result.get("ok", false)), "valid catalog with provenance and license permissions is accepted")
 
