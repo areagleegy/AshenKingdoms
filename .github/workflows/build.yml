@@ -124,6 +124,20 @@ jobs:
           python3 tools/validate_platform_exports.py linux build/linux/AshenKingdoms.x86_64
           python3 tools/validate_platform_exports.py macos build/macos/AshenKingdoms.zip
 
+      - name: Smoke-run exported Linux dedicated-server binary
+        shell: bash
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -euo pipefail
+          chmod +x build/linux/AshenKingdoms.x86_64
+          runtime_log="$RUNNER_TEMP/exported-linux-runtime.log"
+          timeout 30s build/linux/AshenKingdoms.x86_64 --headless --quit-after 120 2>&1 | tee "$runtime_log"
+          if grep -Eq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:|\\[FAIL\\]' "$runtime_log"; then
+            echo "Exported Linux binary logged a runtime error." >&2
+            exit 1
+          fi
+
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v7
         with:
