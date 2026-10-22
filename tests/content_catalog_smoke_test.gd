@@ -34,13 +34,32 @@ func _run() -> void:
 			"files": [{
 				"path": "world.glb",
 				"size": 64,
-				"sha256": "b".repeat(64)
+				"sha256": "b".repeat(64),
+				"author": "Test author",
+				"source_url": "https://assets.example.invalid/world.glb",
+				"license": "CC0-1.0",
+				"license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+				"attribution": "Test fixture",
+				"commercial_use": true,
+				"redistribution_allowed": true
 			}],
 			"dependencies": []
 		}]
 	}
 	var valid_result: Dictionary = _catalog.call("validate_catalog", valid_catalog)
-	_check(bool(valid_result.get("ok", false)), "valid catalog is accepted")
+	_check(bool(valid_result.get("ok", false)), "valid catalog with provenance and license permissions is accepted")
+
+	var missing_author_catalog: Dictionary = valid_catalog.duplicate(true)
+	missing_author_catalog["packs"][0]["files"][0].erase("author")
+	_check(not bool(_catalog.call("validate_catalog", missing_author_catalog).get("ok", true)), "catalog file without author provenance is rejected")
+
+	var unlicensed_catalog: Dictionary = valid_catalog.duplicate(true)
+	unlicensed_catalog["packs"][0]["files"][0]["commercial_use"] = false
+	_check(not bool(_catalog.call("validate_catalog", unlicensed_catalog).get("ok", true)), "catalog file without commercial-use permission is rejected")
+
+	var bad_license_url_catalog: Dictionary = valid_catalog.duplicate(true)
+	bad_license_url_catalog["packs"][0]["files"][0]["license_url"] = "https://user:pass@license.example.invalid/text"
+	_check(not bool(_catalog.call("validate_catalog", bad_license_url_catalog).get("ok", true)), "license URLs with embedded credentials are rejected")
 	_check(not bool(_catalog.call("parse_signed_envelope", "{}", "").get("ok", true)), "remote catalog fails closed when no public key is configured")
 	var private_key: CryptoKey = Crypto.new().generate_rsa(2048)
 	var payload_text := JSON.stringify(valid_catalog)
@@ -126,7 +145,14 @@ func _run() -> void:
 				"files": [{
 					"path": "world.glb",
 					"size": asset_bytes.size(),
-					"sha256": _sha256_bytes(asset_bytes).hex_encode()
+					"sha256": _sha256_bytes(asset_bytes).hex_encode(),
+					"author": "Test author",
+					"source_url": "https://assets.example.invalid/world.glb",
+					"license": "CC0-1.0",
+					"license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+					"attribution": "Test fixture",
+					"commercial_use": true,
+					"redistribution_allowed": true
 				}]
 			}
 			var verified: Dictionary = installer.call("verify_archive", archive_path, test_pack)
