@@ -143,17 +143,9 @@ func _validate_pack(pack: Dictionary) -> Dictionary:
 		if not _is_sha256(str(file_record.get("sha256", ""))):
 			return _error("Pack %s contains an invalid file digest." % pack_id)
 
-		for field in ["author", "license", "attribution"]:
-			var text_value: Variant = file_record.get(field, null)
-			if not text_value is String or str(text_value).strip_edges().is_empty():
-				return _error("Pack %s is missing required %s provenance for %s." % [pack_id, field, path])
-		for field in ["source_url", "license_url"]:
-			if not _is_http_url(file_record.get(field, null)):
-				return _error("Pack %s has an invalid %s for %s." % [pack_id, field, path])
-		for field in ["commercial_use", "redistribution_allowed"]:
-			var permission: Variant = file_record.get(field, null)
-			if typeof(permission) != TYPE_BOOL or not permission:
-				return _error("Pack %s lacks explicit %s permission for %s." % [pack_id, field, path])
+		var provenance_result := validate_asset_provenance(file_record)
+		if not bool(provenance_result.get("ok", false)):
+			return _error("Pack %s has invalid asset provenance for %s: %s" % [pack_id, path, str(provenance_result.get("error", "invalid metadata"))])
 	return {"ok": true, "error": ""}
 
 
@@ -171,6 +163,23 @@ func is_safe_relative_path(path: String) -> bool:
 		if segment.strip_edges() != segment:
 			return false
 	return true
+
+
+func validate_asset_provenance(file_record: Variant) -> Dictionary:
+	if not file_record is Dictionary:
+		return _error("Asset provenance record must be an object.")
+	for field in ["author", "license", "attribution"]:
+		var text_value: Variant = file_record.get(field, null)
+		if not text_value is String or str(text_value).strip_edges().is_empty():
+			return _error("Missing or empty %s field." % field)
+	for field in ["source_url", "license_url"]:
+		if not _is_http_url(file_record.get(field, null)):
+			return _error("Invalid %s; expected HTTP(S) URL without credentials." % field)
+	for field in ["commercial_use", "redistribution_allowed"]:
+		var permission: Variant = file_record.get(field, null)
+		if typeof(permission) != TYPE_BOOL or not permission:
+			return _error("Explicit permission %s must be true." % field)
+	return {"ok": true, "error": ""}
 
 
 func _is_http_url(value: Variant) -> bool:
