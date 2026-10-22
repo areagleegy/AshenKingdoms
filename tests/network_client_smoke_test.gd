@@ -106,7 +106,7 @@ func _run() -> void:
 			for hit_index in range(1, 5):
 				if not is_instance_valid(target):
 					break
-				await create_timer(0.55).timeout
+				await create_timer(0.75).timeout
 				var health_before := float(target.get("current_health"))
 				Input.action_press("attack")
 				var hit_deadline := Time.get_ticks_msec() + 2200
