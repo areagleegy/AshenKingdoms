@@ -139,6 +139,38 @@ func _run() -> void:
 			var tampered_pack: Dictionary = test_pack.duplicate(true)
 			tampered_pack["sha256"] = "f".repeat(64)
 			_check(not bool(installer.call("verify_archive", archive_path, tampered_pack).get("ok", true)), "package archive digest mismatch is rejected")
+
+			# Case-only path collisions work on Linux but can alias to one file on
+			# case-insensitive Windows/macOS file systems; reject them before install.
+			var collision_archive := "user://content_catalog_case_collision.zip"
+			var collision_writer := ZIPPacker.new()
+			var collision_open_error := collision_writer.open(collision_archive)
+			_check(collision_open_error == OK, "case-collision ZIP archive can be created")
+			if collision_open_error == OK:
+				collision_writer.start_file("world.glb")
+				collision_writer.write_file(asset_bytes)
+				collision_writer.close_file()
+				collision_writer.start_file("WORLD.glb")
+				collision_writer.write_file(asset_bytes)
+				collision_writer.close_file()
+				collision_writer.close()
+				var collision_file := FileAccess.open(collision_archive, FileAccess.READ)
+				var collision_size := collision_file.get_length() if collision_file != null else 0
+				if collision_file != null:
+					collision_file.close()
+				var collision_pack := test_pack.duplicate(true)
+				collision_pack["download_size"] = collision_size
+				collision_pack["sha256"] = FileAccess.get_sha256(collision_archive)
+				collision_pack["files"] = [
+					{"path": "world.glb", "size": asset_bytes.size(), "sha256": _sha256_bytes(asset_bytes).hex_encode()},
+					{"path": "WORLD.glb", "size": asset_bytes.size(), "sha256": _sha256_bytes(asset_bytes).hex_encode()}
+				]
+				_check(
+					not bool(installer.call("verify_archive", collision_archive, collision_pack).get("ok", true)),
+					"installer rejects case-insensitive path collisions before extraction"
+				)
+				DirAccess.remove_absolute(ProjectSettings.globalize_path(collision_archive))
+
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(archive_path))
 
 	var content_manager: Node = root.get_node_or_null("ContentManager")
