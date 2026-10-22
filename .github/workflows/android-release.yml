@@ -49,7 +49,7 @@ jobs:
         run: |
           set -euo pipefail
           yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.1" "cmdline-tools;latest" "cmake;3.10.2.4988404" "ndk;28.1.13356709"
+          sdkmanager --install "platform-tools" "platforms;android-35" "platforms;android-36" "build-tools;35.0.1" "cmdline-tools;latest" "cmake;3.10.2.4988404" "ndk;28.1.13356709"
 
       - name: Install Godot CLI
         run: bash tools/setup-godot-cli.sh
@@ -126,6 +126,8 @@ jobs:
           if options.count("version/code=1") != 1:
               raise SystemExit("Expected one default version/code in Android Play preset.")
           options = options.replace("version/code=1", "version/code=" + version_code, 1)
+          if options.count('gradle_build/target_sdk="36"') != 1:
+              raise SystemExit("Android Play preset must target API 36 for current Google Play submission requirements.")
           if options.count('version/name="0.1.0"') != 1:
               raise SystemExit("Expected one default version/name in Android Play preset.")
           options = options.replace('version/name="0.1.0"', "version/name=" + quote_godot_string(os.environ["ANDROID_VERSION_NAME"].strip()), 1)
