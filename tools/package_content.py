@@ -74,6 +74,7 @@ def validate_package_url(value: str) -> str:
         or parsed.username is not None
         or parsed.password is not None
         or parsed.fragment
+        or "#" in value
         or parsed.netloc.endswith(":")
     ):
         raise PackageError("Package URL must use HTTPS with a valid host and no credentials or fragment.")
