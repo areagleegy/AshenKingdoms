@@ -41,6 +41,9 @@ func _run() -> void:
 	_check(not JSON.stringify(test_results).contains("diagnostic_text"), "unapproved test-result fields are dropped")
 
 	for index in range(340):
+		# Isolate the buffer-cap test from periodic disk checkpoints; the
+		# checkpoint and export paths are exercised separately above/below.
+		reporter.set("_events_since_checkpoint", 0)
 		reporter.call("record_event", "bounded_event", {"index": index})
 	var bounded_report: Dictionary = reporter.call("build_report")
 	var events: Array = bounded_report.get("events", [])
