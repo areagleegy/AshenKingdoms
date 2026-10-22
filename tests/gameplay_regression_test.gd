@@ -42,6 +42,8 @@ func _run() -> void:
 	_test_dialogue_and_quests()
 	_test_android_configuration()
 	_test_runtime_input_registration()
+	_test_gamepad_input_bindings()
+	_test_controller_navigation_configuration()
 
 	print("[regression] checks: %d, failures: %d" % [_checks, _failures])
 	quit(1 if _failures > 0 else 0)
@@ -248,7 +250,7 @@ func _test_android_configuration() -> void:
 		var main_source := main_source_file.get_as_text()
 		main_source_file.close()
 		_check(main_source.contains("func _register_input_actions()"), "main defines the runtime input registration routine")
-		for action in [&"move_forward", &"move_back", &"move_left", &"move_right", &"jump", &"sprint", &"inventory", &"pause", &"save", &"load", &"interact", &"attack"]:
+		for action in [&"move_forward", &"move_back", &"move_left", &"move_right", &"look_left", &"look_right", &"look_up", &"look_down", &"jump", &"sprint", &"inventory", &"pause", &"save", &"load", &"interact", &"attack"]:
 			_check(main_source.contains(String(action)), "main input registration references action: %s" % String(action))
 
 
@@ -259,6 +261,7 @@ func _test_runtime_input_registration() -> void:
 
 	var actions: Array[StringName] = [
 		&"move_forward", &"move_back", &"move_left", &"move_right",
+		&"look_left", &"look_right", &"look_up", &"look_down",
 		&"jump", &"sprint", &"inventory", &"pause", &"save", &"load",
 		&"interact", &"attack"
 	]
@@ -273,6 +276,67 @@ func _test_runtime_input_registration() -> void:
 			"runtime input registration is idempotent for %s" % String(action)
 		)
 	main_node.free()
+
+
+func _test_gamepad_input_bindings() -> void:
+	_check(_has_joypad_axis(&"move_left", JOY_AXIS_LEFT_X, -1.0), "left stick X maps to move left")
+	_check(_has_joypad_axis(&"move_right", JOY_AXIS_LEFT_X, 1.0), "left stick X maps to move right")
+	_check(_has_joypad_axis(&"move_forward", JOY_AXIS_LEFT_Y, -1.0), "left stick Y maps to move forward")
+	_check(_has_joypad_axis(&"move_back", JOY_AXIS_LEFT_Y, 1.0), "left stick Y maps to move back")
+	_check(_has_joypad_axis(&"look_left", JOY_AXIS_RIGHT_X, -1.0), "right stick X maps to camera left")
+	_check(_has_joypad_axis(&"look_right", JOY_AXIS_RIGHT_X, 1.0), "right stick X maps to camera right")
+	_check(_has_joypad_axis(&"look_up", JOY_AXIS_RIGHT_Y, -1.0), "right stick Y maps to camera up")
+	_check(_has_joypad_axis(&"look_down", JOY_AXIS_RIGHT_Y, 1.0), "right stick Y maps to camera down")
+	_check(_has_joypad_button(&"jump", JOY_BUTTON_A), "A/Cross button maps to jump")
+	_check(_has_joypad_button(&"interact", JOY_BUTTON_B), "B/Circle button maps to interaction")
+	_check(_has_joypad_button(&"attack", JOY_BUTTON_X), "X/Square button maps to attack")
+	_check(_has_joypad_button(&"inventory", JOY_BUTTON_Y), "Y/Triangle button maps to inventory")
+	_check(_has_joypad_button(&"sprint", JOY_BUTTON_LEFT_STICK), "left stick press maps to sprint")
+	_check(_has_joypad_button(&"pause", JOY_BUTTON_START), "Start button maps to pause menu")
+
+
+func _test_controller_navigation_configuration() -> void:
+	var menu_file := FileAccess.open("res://scripts/ui/main_menu.gd", FileAccess.READ)
+	_check(menu_file != null, "main menu source is readable for controller navigation checks")
+	if menu_file != null:
+		var menu_source := menu_file.get_as_text()
+		menu_file.close()
+		_check(menu_source.contains("_solo_button.grab_focus()"), "main menu focuses the initial game action")
+		_check(menu_source.contains("call_deferred(\\"_focus_default_control\\")"), "main menu waits until layout before focusing")
+		_check(menu_source.contains("العصا اليسرى للحركة"), "main menu displays controller instructions")
+
+	var hud_file := FileAccess.open("res://scripts/ui/hud.gd", FileAccess.READ)
+	_check(hud_file != null, "HUD source is readable for controller navigation checks")
+	if hud_file != null:
+		var hud_source := hud_file.get_as_text()
+		hud_file.close()
+		_check(hud_source.contains("_focus_resume_button"), "pause overlay focuses resume action")
+		_check(hud_source.contains("_focus_inventory_default"), "inventory overlay focuses an actionable control")
+		_check(hud_source.contains("Start"), "HUD includes the controller pause hint")
+
+	var camera_file := FileAccess.open("res://scripts/player/player_camera.gd", FileAccess.READ)
+	_check(camera_file != null, "camera source is readable for controller look checks")
+	if camera_file != null:
+		var camera_source := camera_file.get_as_text()
+		camera_file.close()
+		_check(camera_source.contains("Input.get_vector(\\"look_left\\""), "camera reads right-stick input actions")
+
+
+func _has_joypad_button(action: StringName, expected_button: int) -> bool:
+	for event in InputMap.action_get_events(action):
+		if event is InputEventJoypadButton:
+			if (event as InputEventJoypadButton).button_index == expected_button:
+				return true
+	return false
+
+
+func _has_joypad_axis(action: StringName, expected_axis: int, expected_value: float) -> bool:
+	for event in InputMap.action_get_events(action):
+		if event is InputEventJoypadMotion:
+			var axis_event := event as InputEventJoypadMotion
+			if axis_event.axis == expected_axis and is_equal_approx(axis_event.axis_value, expected_value):
+				return true
+	return false
 
 
 func _check(condition: bool, description: String) -> void:
