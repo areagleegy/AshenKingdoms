@@ -204,9 +204,8 @@ func _read_valid_save(path: String) -> Dictionary:
 		file.close()
 		return {}
 	var raw := file.get_as_text()
-	var read_error: Error = file.get_error()
 	file.close()
-	if read_error != OK:
+	if raw.is_empty():
 		return {}
 
 	var parser := JSON.new()
