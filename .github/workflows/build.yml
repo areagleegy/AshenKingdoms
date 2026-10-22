@@ -50,6 +50,7 @@ jobs:
           mkdir -p build/web
           godot --headless --path . --export-release "Web" build/web/index.html
           test -s build/web/index.html
+          python3 tools/validate_platform_exports.py web build/web
 
       - name: Upload Web artifact
         uses: actions/upload-artifact@v7
@@ -114,6 +115,14 @@ jobs:
           mkdir -p build/macos
           godot --headless --path . --export-release "macOS" build/macos/AshenKingdoms.zip
           test -s build/macos/AshenKingdoms.zip
+
+      - name: Validate desktop artifact formats
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/validate_platform_exports.py windows build/windows/AshenKingdoms.exe
+          python3 tools/validate_platform_exports.py linux build/linux/AshenKingdoms.x86_64
+          python3 tools/validate_platform_exports.py macos build/macos/AshenKingdoms.zip
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v7
@@ -212,6 +221,11 @@ jobs:
           mkdir -p build/android
           godot --headless --path . --export-debug "Android" build/android/AshenKingdoms.apk
           test -s build/android/AshenKingdoms.apk
+          python3 tools/validate_platform_exports.py android build/android/AshenKingdoms.apk
+          unzip -tq build/android/AshenKingdoms.apk
+          "$ANDROID_HOME/build-tools/35.0.1/apksigner" verify --verbose build/android/AshenKingdoms.apk
+          "$ANDROID_HOME/build-tools/35.0.1/aapt" dump badging build/android/AshenKingdoms.apk > "$RUNNER_TEMP/apk-badging.txt"
+          grep -Fq "package: name='org.ashenkingdoms.game'" "$RUNNER_TEMP/apk-badging.txt"
 
       - name: Report APK size and checksum
         shell: bash
@@ -317,6 +331,17 @@ jobs:
           config.write_text(content, encoding="utf-8")
           PY
 
+      - name: Start local ADB daemon for Godot editor device discovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          if command -v adb >/dev/null 2>&1; then
+            adb start-server
+            adb devices
+          else
+            echo "ADB not installed; no Android device is needed for the iOS export."
+          fi
+
       - name: Import project
         env:
           GODOT_SILENCE_ROOT_WARNING: "1"
@@ -329,6 +354,7 @@ jobs:
           mkdir -p build/ios
           godot --headless --path . --export-release "iOS" build/ios/AshenKingdoms.zip
           test -s build/ios/AshenKingdoms.zip
+          python3 tools/validate_platform_exports.py ios build/ios/AshenKingdoms.zip
 
       - name: Upload iOS Xcode project artifact
         uses: actions/upload-artifact@v7
