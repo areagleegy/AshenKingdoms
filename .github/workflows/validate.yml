@@ -175,7 +175,7 @@ jobs:
       - name: Run content package builder tests
         run: |
           set -o pipefail
-          python -m unittest tools.test_package_content tools.test_sign_content_catalog -v 2>&1 | tee "$RUNNER_TEMP/python-tests.log"
+          python -m unittest tools.test_package_content tools.test_sign_content_catalog tools.test_validate_platform_exports -v 2>&1 | tee "$RUNNER_TEMP/python-tests.log"
 
       - name: Diagnose test logs
         if: always()
