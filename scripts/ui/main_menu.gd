@@ -106,7 +106,7 @@ func _build_ui() -> void:
 
 	var note := Label.new()
 	if network_supported:
-		note.text = "يد التحكم: العصا اليسرى للحركة، واليمنى للكاميرا، A للقفز، X للهجوم، B للتفاعل، Y للحقيبة، L3 للركض، Start للإيقاف. جلسة الشبكة تجريبية."
+		note.text = "يد التحكم: العصا اليسرى للحركة واليمنى للكاميرا؛ A/Cross للقفز، X/Square للهجوم، B/Circle للتفاعل، Y/Triangle للحقيبة، ضغط العصا اليسرى للركض، Start/Options للإيقاف. جلسة الشبكة تجريبية."
 	else:
 		note.text = "نسخة Web تدعم اللعب الفردي في هذه المرحلة. جلسة ENet التجريبية متاحة عبر Desktop أو Android."
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
