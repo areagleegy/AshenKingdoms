@@ -44,6 +44,10 @@ Godot لا يوفّر قوالب تصدير عامة مفتوحة لأجهزة P
 
 لا تُعتبر نسخة PS5 أو Xbox Series X|S جاهزة حتى تتوفر أدلة منفصلة لكل منصة: موافقة المطور، أداة/قالب تصدير مرخّص، نجاح البناء، تشغيل على جهاز فعلي، اجتياز قائمة توافق المنصة، واختبار قبول موثق. وجود اسم المنصة في الوثائق أو ملف preset وحده ليس دعمًا أصليًا.
 
+## متابعة التنفيذ
+
+سجل العمل: [Issue #73 — خطة إصدارات PlayStation 5 وXbox Series X|S](https://github.com/areagleegy/AshenKingdoms/issues/73).
+
 ## المراجع الأولية
 
 - [Godot — Console Support](https://godotengine.org/consoles/)
