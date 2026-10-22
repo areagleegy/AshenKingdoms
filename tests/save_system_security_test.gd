@@ -5,6 +5,7 @@ const TEST_PATHS := [
 	"user://savegame.json",
 	"user://savegame.bak.json",
 	"user://savegame.tmp",
+	"user://savegame.bak.tmp",
 	"user://savegame.json.old",
 ]
 const MAX_SAVE_SIZE := 1_048_576
