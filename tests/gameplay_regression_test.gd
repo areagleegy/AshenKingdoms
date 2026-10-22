@@ -12,6 +12,7 @@ const DialogueGraphScript: Script = preload("res://scripts/dialogue/dialogue_gra
 const DialogueNodeScript: Script = preload("res://scripts/dialogue/dialogue_node.gd")
 const DialogueChoiceScript: Script = preload("res://scripts/dialogue/dialogue_choice.gd")
 const InputSetupScript = preload("res://scripts/core/input_setup.gd")
+const MainScript = preload("res://scripts/core/main.gd")
 
 const SAVE_PATH := "user://savegame.json"
 const SAVE_BACKUP_PATH := "user://savegame.json.bak"
@@ -41,6 +42,7 @@ func _run() -> void:
 	_test_player_and_health()
 	_test_inventory_and_potions()
 	_test_save_and_load(had_original_save, original_save)
+	_test_safe_saved_values()
 	_test_dialogue_and_quests()
 	_test_android_configuration()
 	_test_runtime_input_registration()
@@ -246,6 +248,51 @@ func _restore_text_fixture(path: String, should_exist: bool, contents: String, d
 	var write_error: Error = file.get_error()
 	file.close()
 	_check(write_error == OK, "original %s content is restored" % description)
+
+
+func _test_safe_saved_values() -> void:
+	var main_node := Node3D.new()
+	main_node.set_script(MainScript)
+
+	_check(
+		is_equal_approx(float(main_node.call("_safe_saved_float", 12.5, 3.0)), 12.5),
+		"save value sanitizer preserves finite numeric values"
+	)
+	_check(
+		is_equal_approx(float(main_node.call("_safe_saved_float", NAN, 3.0)), 3.0),
+		"save value sanitizer replaces NaN with a safe fallback"
+	)
+	_check(
+		is_equal_approx(float(main_node.call("_safe_saved_float", INF, 3.0)), 3.0),
+		"save value sanitizer replaces infinity with a safe fallback"
+	)
+	_check(
+		is_equal_approx(float(main_node.call("_safe_saved_float", "bad", 3.0)), 3.0),
+		"save value sanitizer rejects nonnumeric types"
+	)
+	_check(
+		int(main_node.call("_safe_saved_int", 9999999999, 1, 1, 50)) == 50,
+		"saved progression level is clamped to its supported maximum"
+	)
+	_check(
+		int(main_node.call("_safe_saved_int", NAN, 3, 1, 50)) == 3,
+		"invalid saved progression values use a safe default"
+	)
+
+	var position: Vector3 = main_node.call(
+		"_safe_saved_position",
+		{"x": INF, "y": -500.0, "z": 500.0}
+	)
+	_check(
+		position.is_equal_approx(Vector3(0.0, 0.92, 39.0)),
+		"saved position rejects non-finite coordinates and clamps out-of-world positions"
+	)
+	var invalid_position: Vector3 = main_node.call("_safe_saved_position", "invalid")
+	_check(
+		invalid_position.is_equal_approx(Vector3(0.0, 0.92, 0.0)),
+		"saved position falls back safely when its object is malformed"
+	)
+	main_node.free()
 
 
 func _test_dialogue_and_quests() -> void:
