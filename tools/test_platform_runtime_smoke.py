@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from platform_runtime_smoke import SmokeTestError, check_runtime_output, run_smoke
+from tools.platform_runtime_smoke import SmokeTestError, check_runtime_output, run_smoke
 
 
 BANNER = "Godot Engine v4.6.stable.official.test"
