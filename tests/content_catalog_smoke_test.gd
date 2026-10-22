@@ -1,6 +1,7 @@
 extends SceneTree
 
 const CATALOG_SCRIPT_PATH := "res://scripts/content/content_catalog.gd"
+const CONTENT_MANAGER_SCRIPT_PATH := "res://scripts/content/content_manager.gd"
 var _failures := 0
 var _catalog_script: Script
 var _catalog: RefCounted
@@ -177,7 +178,85 @@ func _run() -> void:
 	_check(content_manager != null, "content manager autoload exists")
 	if content_manager != null:
 		_check(str(content_manager.call("get_catalog_state")) == "not_configured", "base game starts with content downloads disabled when no service is configured")
+
+		var unavailable_states: Array[Dictionary] = []
+		content_manager.pack_state_changed.connect(
+			func(pack_id: String, state: String, details: Dictionary) -> void:
+				unavailable_states.append({"id": pack_id, "state": state, "details": details})
+		)
+		content_manager.set("_catalog", {"stale_pack": {"id": "stale_pack"}})
+		content_manager.call("_fail_catalog", "Expected smoke-test catalog failure.")
+		_check(content_manager.call("get_catalog").is_empty(), "catalog failure clears the active catalog")
+		_check(
+			unavailable_states.size() == 1
+			and str(unavailable_states[0].get("id", "")) == "stale_pack"
+			and str(unavailable_states[0].get("state", "")) == "unavailable",
+			"catalog failure marks previously listed packs unavailable before discarding their IDs"
+		)
+
+	_test_oversized_registry_is_rejected()
 	_finish()
+
+
+func _test_oversized_registry_is_rejected() -> void:
+	const REGISTRY_PATH := "user://content/registry.json"
+	var had_original := FileAccess.file_exists(REGISTRY_PATH)
+	var original_contents := ""
+	if had_original:
+		var original_file := FileAccess.open(REGISTRY_PATH, FileAccess.READ)
+		if original_file == null:
+			_check(false, "existing content registry can be preserved before test")
+			return
+		original_contents = original_file.get_as_text()
+		original_file.close()
+
+	var content_root := ProjectSettings.globalize_path("user://content")
+	if DirAccess.make_dir_recursive_absolute(content_root) != OK:
+		_check(false, "content registry test directory can be prepared")
+		return
+	var fixture := FileAccess.open(REGISTRY_PATH, FileAccess.WRITE)
+	if fixture == null:
+		_check(false, "oversized registry fixture can be created")
+		_restore_registry_fixture(had_original, original_contents, REGISTRY_PATH)
+		return
+	fixture.store_string("x".repeat(1024 * 1024 + 1))
+	fixture.flush()
+	var write_error: Error = fixture.get_error()
+	fixture.close()
+	_check(write_error == OK, "oversized registry fixture is fully written")
+
+	var manager_script := load(CONTENT_MANAGER_SCRIPT_PATH) as Script
+	_check(manager_script != null, "content manager source loads for isolated registry test")
+	if manager_script != null:
+		var isolated_manager := manager_script.new() as Node
+		var load_error := isolated_manager.call("_load_registry")
+		var installed_value = isolated_manager.call("get_installed_packs")
+		_check(
+			installed_value is Dictionary and installed_value.is_empty(),
+			"content manager rejects a registry larger than the configured read limit"
+		)
+		isolated_manager.free()
+
+	_restore_registry_fixture(had_original, original_contents, REGISTRY_PATH)
+
+
+func _restore_registry_fixture(had_original: bool, original_contents: String, path: String) -> void:
+	if not had_original:
+		if FileAccess.file_exists(path):
+			var remove_error := DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+			_check(remove_error == OK, "temporary oversized registry fixture is removed")
+		else:
+			_check(true, "temporary oversized registry fixture is absent")
+		return
+	var output := FileAccess.open(path, FileAccess.WRITE)
+	if output == null:
+		_check(false, "original content registry can be restored")
+		return
+	output.store_string(original_contents)
+	output.flush()
+	var write_error: Error = output.get_error()
+	output.close()
+	_check(write_error == OK, "original content registry is restored")
 
 
 func _sha256_bytes(bytes: PackedByteArray) -> PackedByteArray:
