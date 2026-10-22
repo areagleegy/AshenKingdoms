@@ -56,4 +56,10 @@ if ! grep -q "\[network-security-test\] rejected non-finite input from peer" "$s
   exit 1
 fi
 
+if ! grep -q "\\[network-security-test\\] rejected out-of-range input from peer" "$server_log"; then
+  echo "Server did not log rejection of the oversized RPC input; host log follows:"
+  cat "$server_log"
+  exit 1
+fi
+
 echo "[network-loopback] host/client integration passed"
