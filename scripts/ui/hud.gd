@@ -126,7 +126,7 @@ func _build_inventory_panel() -> void:
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title_label)
 
-	_inventory_list = VBoxContainer.new()
+	_inventory_list = GridContainer.new()
 	_inventory_list.columns = 6
 	_inventory_list.add_theme_constant_override("h_separation", 8)
 	_inventory_list.add_theme_constant_override("v_separation", 8)
