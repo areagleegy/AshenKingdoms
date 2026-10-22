@@ -186,14 +186,16 @@ func _stage_backup_from_current() -> bool:
 func _restore_backup_to_primary() -> bool:
 	if not bool(_read_save_file(_backup_path()).get("ok", false)):
 		return false
+	var backup_text := FileAccess.get_file_as_string(_backup_path())
 
 	var restore_temporary := _restore_temporary_path()
-	_remove_file_if_exists(restore_temporary)
+	if not _remove_file_if_exists(restore_temporary):
+		return false
 	var copy_error: Error = DirAccess.copy_absolute(_absolute_path(_backup_path()), _absolute_path(restore_temporary))
 	if copy_error != OK:
 		_remove_file_if_exists(restore_temporary)
 		return false
-	if not bool(_read_save_file(restore_temporary).get("ok", false)):
+	if not bool(_read_save_file(restore_temporary).get("ok", false)) or FileAccess.get_file_as_string(restore_temporary) != backup_text:
 		_remove_file_if_exists(restore_temporary)
 		return false
 
@@ -201,7 +203,7 @@ func _restore_backup_to_primary() -> bool:
 	if rename_error != OK:
 		_remove_file_if_exists(restore_temporary)
 		return false
-	return bool(_read_save_file(save_path).get("ok", false))
+	return bool(_read_save_file(save_path).get("ok", false)) and FileAccess.get_file_as_string(save_path) == backup_text
 
 
 func _rename_path(from_path: String, to_path: String) -> Error:
