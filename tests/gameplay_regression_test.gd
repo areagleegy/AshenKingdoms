@@ -180,7 +180,9 @@ func _test_save_and_load(had_original_save: bool, original_save: String) -> void
 	_check(missing_fields is Dictionary and missing_fields.is_empty(), "save with missing required fields is rejected")
 
 	var invalid_range := _valid_save_data(3, 45.0)
-	invalid_range["player_position"]["x"] = 1000001.0
+	var invalid_position: Dictionary = invalid_range["player_position"]
+	invalid_position["x"] = 1000001.0
+	invalid_range["player_position"] = invalid_position
 	var invalid_range_file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if invalid_range_file == null:
 		_check(false, "test can create an out-of-range save fixture")
