@@ -134,6 +134,10 @@ class PackageContentTests(unittest.TestCase):
             package_content.validate_package_url("https://cdn.example.invalid:443/packs/world.zip?version=1"),
             "https://cdn.example.invalid:443/packs/world.zip?version=1",
         )
+        self.assertEqual(
+            package_content.validate_package_url("https://cdn.example.invalid/packs/@world.zip"),
+            "https://cdn.example.invalid/packs/@world.zip",
+        )
 
     def test_rejects_https_url_without_host(self):
         for value in ("https://", "https:///packs/world.zip", "https://?download=1"):
