@@ -597,6 +597,18 @@ jobs:
           fi
           xcodebuild -project "$project_path" -scheme "$scheme" -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO -derivedDataPath "$RUNNER_TEMP/ashen-ios-derived" build | tee "$RUNNER_TEMP/ios-xcode-build.log"
 
+      - name: Upload iOS export diagnostic logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ashen-kingdoms-ios-export-diagnostics
+          path: |
+            ${{ runner.temp }}/ios-export.log
+            ${{ runner.temp }}/ios-xcode-build.log
+            ${{ runner.temp }}/ios-xcode-list.json
+          if-no-files-found: warn
+          retention-days: 7
+
       - name: Upload iOS Xcode project artifact
         uses: actions/upload-artifact@v7
         with:
