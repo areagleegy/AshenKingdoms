@@ -17,7 +17,9 @@ var _message_label: Label
 var _root: Control
 var _inventory_panel: PanelContainer
 var _inventory_list: VBoxContainer
+var _inventory_close_button: Button
 var _pause_panel: PanelContainer
+var _resume_button: Button
 
 
 func _ready() -> void:
@@ -92,14 +94,14 @@ func _build_ui() -> void:
 	quest_panel.add_child(_quest_label)
 
 	var inventory_button := Button.new()
-	inventory_button.text = "الحقيبة (I)"
+	inventory_button.text = "الحقيبة (I / Y)"
 	inventory_button.position = Vector2(16, 136)
 	inventory_button.custom_minimum_size = Vector2(132, 42)
 	inventory_button.pressed.connect(toggle_inventory)
 	_root.add_child(inventory_button)
 
 	var pause_button := Button.new()
-	pause_button.text = "إيقاف (Esc)"
+	pause_button.text = "إيقاف (Esc / Start)"
 	pause_button.position = Vector2(156, 136)
 	pause_button.custom_minimum_size = Vector2(132, 42)
 	pause_button.pressed.connect(toggle_pause)
@@ -129,12 +131,12 @@ func _build_inventory_panel() -> void:
 	_inventory_list = VBoxContainer.new()
 	box.add_child(_inventory_list)
 
-	var close_button := Button.new()
-	close_button.text = "إغلاق"
-	close_button.pressed.connect(func() -> void:
+	_inventory_close_button = Button.new()
+	_inventory_close_button.text = "إغلاق"
+	_inventory_close_button.pressed.connect(func() -> void:
 		_set_inventory_visible(false)
 	)
-	box.add_child(close_button)
+	box.add_child(_inventory_close_button)
 
 
 func _build_pause_panel() -> void:
@@ -148,12 +150,12 @@ func _build_pause_panel() -> void:
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title_label)
 
-	var resume_button := Button.new()
-	resume_button.text = "استئناف"
-	resume_button.pressed.connect(func() -> void:
+	_resume_button = Button.new()
+	_resume_button.text = "استئناف"
+	_resume_button.pressed.connect(func() -> void:
 		_set_paused(false)
 	)
-	box.add_child(resume_button)
+	box.add_child(_resume_button)
 
 	var save_button := Button.new()
 	save_button.text = "حفظ اللعبة"
@@ -276,19 +278,52 @@ func _set_paused(value: bool) -> void:
 	_pause_panel.visible = value
 	if value:
 		_inventory_panel.visible = false
+		call_deferred("_focus_resume_button")
+	else:
+		_clear_overlay_focus()
 	get_tree().paused = value
 	_set_mouse_for_ui(value)
 
 
 func _set_inventory_visible(value: bool) -> void:
 	_inventory_panel.visible = value
+	if value:
+		call_deferred("_focus_inventory_default")
+	else:
+		_clear_overlay_focus()
 	get_tree().paused = value
 	_set_mouse_for_ui(value)
+
+
+func _focus_resume_button() -> void:
+	if _pause_panel.visible and is_instance_valid(_resume_button):
+		_resume_button.grab_focus()
+
+
+func _focus_inventory_default() -> void:
+	if not _inventory_panel.visible:
+		return
+	if _inventory_list != null:
+		for child in _inventory_list.get_children():
+			if child is Button:
+				(child as Button).grab_focus()
+				return
+	if is_instance_valid(_inventory_close_button):
+		_inventory_close_button.grab_focus()
+
+
+func _clear_overlay_focus() -> void:
+	var focused := get_viewport().gui_get_focus_owner()
+	if focused == null:
+		return
+	if _pause_panel.is_ancestor_of(focused) or _inventory_panel.is_ancestor_of(focused):
+		focused.release_focus()
 
 
 func close_overlays() -> void:
 	_pause_panel.visible = false
 	_inventory_panel.visible = false
+	_clear_overlay_focus()
 	get_tree().paused = false
 	_set_mouse_for_ui(false)
 
