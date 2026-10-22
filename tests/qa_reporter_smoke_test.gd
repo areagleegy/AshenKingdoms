@@ -14,6 +14,11 @@ func _initialize() -> void:
 
 
 func _run() -> void:
+	if not ReporterScript.can_instantiate():
+		push_error("QA reporter script failed to compile and cannot be instantiated.")
+		quit(1)
+		return
+
 	var reporter := ReporterScript.new() as Node
 	root.add_child(reporter)
 	reporter.set("_enabled", true)
