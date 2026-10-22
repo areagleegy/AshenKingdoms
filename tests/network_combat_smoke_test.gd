@@ -24,6 +24,19 @@ func _run() -> void:
 	print("[network-smoke] avatar ready")
 	_check(float(avatar.get("current_health")) == 100.0, "network avatar starts with expected health")
 	_check(bool(multiplayer.is_server()), "offline smoke harness is allowed to exercise server logic")
+	_check(not bool(avatar.call("_is_valid_input_direction", Vector3(NAN, 0.0, 0.0))), "network input rejects NaN direction components")
+	_check(not bool(avatar.call("_is_valid_input_direction", Vector3(INF, 0.0, 0.0))), "network input rejects infinite direction components")
+	_check(not bool(avatar.call("_is_valid_input_direction", Vector3(2.0, 0.0, 0.0))), "network input rejects magnitudes above the allowed range")
+	_check(not bool(avatar.call("_is_valid_input_direction", Vector3(0.0, 1.0, 0.0))), "network input rejects vertical movement components")
+	_check(bool(avatar.call("_is_valid_input_direction", Vector3(0.6, 0.0, 0.8))), "network input accepts finite normalized world directions")
+
+	var network_manager := get_node_or_null("/root/NetworkManager")
+	_check(network_manager != null, "network manager is available for RPC rate-limit checks")
+	if network_manager != null:
+		_check(bool(network_manager.call("_accept_rpc_rate_limit_at", 987654, &"test_input", 50, 1000)), "first request in a peer rate-limit window is accepted")
+		_check(not bool(network_manager.call("_accept_rpc_rate_limit_at", 987654, &"test_input", 50, 1020)), "requests inside a peer rate-limit window are rejected")
+		_check(bool(network_manager.call("_accept_rpc_rate_limit_at", 987654, &"test_input", 50, 1050)), "request is accepted at the rate-limit boundary")
+		_check(bool(network_manager.call("_accept_rpc_rate_limit_at", 987655, &"test_input", 50, 1020)), "rate limits are isolated per peer")
 
 	avatar.call("server_grant_experience", 100)
 	print("[network-smoke] XP tested")
