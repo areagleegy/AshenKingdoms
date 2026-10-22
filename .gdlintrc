@@ -1,0 +1,9 @@
+# GDScript style and maintainability rules for Godot 4.x.
+# gdlint uses this YAML file; pyproject.toml is not read by gdtoolkit.
+max-line-length: 100
+function-arguments-number: 5
+disable: []
+excluded_directories: !!set
+  .git: null
+  .godot: null
+  .venv: null
