@@ -133,7 +133,23 @@ func _test_invalid_schema_rejected(save_system: Node) -> void:
 
 	invalid = _valid_payload()
 	invalid["quest"] = {"active": false, "progress": 0}
+
 	_check(bool(save_system.call("save_game", invalid)), "legacy quest payload with active/progress remains valid")
+
+	invalid = _valid_payload()
+	invalid["dialogue"] = {"flags": {"intro_seen": true, "broken": "yes"}}
+	_check(not bool(save_system.call("save_game", invalid)), "dialogue flags with non-boolean values are rejected")
+
+	invalid = _valid_payload()
+	var too_many_flags: Dictionary = {}
+	for i in range(257):
+		too_many_flags["flag_%d" % i] = true
+	invalid["dialogue"] = {"flags": too_many_flags}
+	_check(not bool(save_system.call("save_game", invalid)), "dialogue flag count above the limit is rejected")
+
+	invalid = _valid_payload()
+	invalid["dialogue"] = {"flags": {"": true}}
+	_check(not bool(save_system.call("save_game", invalid)), "empty dialogue flag names are rejected")
 
 
 func _test_fractional_version_rejected(save_system: Node) -> void:
