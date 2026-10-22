@@ -61,6 +61,10 @@ func _run() -> void:
 	var save_system: Node = SaveSystemScript.new()
 	save_system.set("save_path", _test_save_path)
 	root.add_child(save_system)
+	var configured_save_path := _test_save_path
+	save_system.set("save_path", _test_save_path + "_missing_dir/save.json")
+	_check(not bool(save_system.call("save_game", {"smoke_test_marker": "open-must-fail"})), "save open failure is reported as a failed save")
+	save_system.set("save_path", configured_save_path)
 	var sample_data: Dictionary = {
 		"version": 1,
 		"smoke_test_marker": "ashen-kingdoms",
@@ -108,8 +112,6 @@ func _run() -> void:
 	save_system.set("rename_hook_for_testing", Callable())
 	var preserved_data = save_system.call("load_game")
 	_check(preserved_data is Dictionary and preserved_data.get("smoke_test_marker", "") == "backup-state", "replacement failure leaves the prior valid save intact")
-
-	_cleanup_test_save_files(_test_save_path)
 
 	_cleanup_test_save_files(_test_save_path)
 	print("[smoke] failures: %d" % _failures)
