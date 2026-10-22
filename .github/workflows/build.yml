@@ -59,7 +59,9 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  # APK export is opt-in while development continues; set repository variable ASHEN_BUILD_ANDROID_APK=true to enable.
   android:
+    if: ${{ vars.ASHEN_BUILD_ANDROID_APK == 'true' }}
     name: Export Android APK
     runs-on: ubuntu-latest
     timeout-minutes: 35
