@@ -30,7 +30,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		var drag := event as InputEventScreenDrag
 		var viewport_width := get_viewport().get_visible_rect().size.x
 		if viewport_width > 0.0 and drag.position.x >= viewport_width * 0.42:
-			apply_look_delta(drag.relative * touch_sensitivity)
+			apply_look_delta(drag.screen_relative * touch_sensitivity)
 			get_viewport().set_input_as_handled()
 
 
