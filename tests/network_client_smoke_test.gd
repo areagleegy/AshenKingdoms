@@ -93,9 +93,15 @@ func _run() -> void:
 			local_avatar.rpc_id(1, "_rpc_submit_input", Vector3(INF, 0.0, 0.0), false, false, false)
 			await create_timer(0.10).timeout
 			_check(bool(manager.call("is_connected_to_server")), "client remains connected after malformed input RPC")
-			for _request_index in range(55):
+			var previous_max_fps: int = Engine.max_fps
+			Engine.max_fps = 240
+			var rate_probe_start_msec := Time.get_ticks_msec()
+			for _request_index in range(65):
 				local_avatar.rpc_id(1, "_rpc_submit_input", Vector3.ZERO, false, false, false)
-				await create_timer(0.021).timeout
+				await create_timer(0.019).timeout
+			var rate_probe_elapsed_msec := Time.get_ticks_msec() - rate_probe_start_msec
+			Engine.max_fps = previous_max_fps
+			print("[network-input-test] burst elapsed_msec=%d" % rate_probe_elapsed_msec)
 			print("[network-input-test] malformed and burst RPC probes sent")
 			await create_timer(1.10).timeout
 
