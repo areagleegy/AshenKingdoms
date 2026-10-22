@@ -13,6 +13,7 @@ const SAVE_SCRIPT: Script = preload("res://scripts/core/save_system.gd")
 const HUD_SCRIPT: Script = preload("res://scripts/ui/hud.gd")
 const NPC_SCENE: PackedScene = preload("res://scenes/npc/NPC.tscn")
 const INTERACTION_SCRIPT: Script = preload("res://scripts/player/interaction_detector.gd")
+const LOOT_PICKUP_SCRIPT: Script = preload("res://scripts/world/world_loot_pickup.gd")
 
 var world: Node3D
 var player: CharacterBody3D
@@ -42,6 +43,7 @@ func _ready() -> void:
 		if not dialogue_manager.is_connected("quest_start_requested", quest_start_callback):
 			dialogue_manager.connect("quest_start_requested", quest_start_callback)
 	_create_enemies()
+	_create_demo_loot()
 	_create_npcs()
 	_create_hud()
 
@@ -411,6 +413,25 @@ func _create_enemies() -> void:
 		enemy.add_child(health_node)
 		enemy.connect("died", _on_enemy_died)
 		enemies_container.add_child(enemy)
+
+
+func _create_demo_loot() -> void:
+	# Small development pickup near spawn to exercise the complete interaction path.
+	var potion := load("res://resources/items/health_potion.tres") as ItemResource
+	if potion == null:
+		push_warning("Demo loot skipped: health potion resource could not be loaded.")
+		return
+
+	var pickup := LOOT_PICKUP_SCRIPT.new() as Node3D
+	if pickup == null:
+		push_warning("Demo loot skipped: pickup script could not be instantiated.")
+		return
+	pickup.name = "DemoHealthPotionPickup"
+	pickup.set("item", potion)
+	pickup.set("amount", 5)
+	pickup.set("display_label", "جرعة شفاء")
+	pickup.position = Vector3(2.0, 0.0, -2.0)
+	world.add_child(pickup)
 
 
 func _create_npcs() -> void:

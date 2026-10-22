@@ -1,10 +1,10 @@
 class_name InteractionDetector
 extends Area3D
 
-signal target_changed(npc: NPC)
+signal target_changed(target: Node3D)
 
-var current_target: NPC
-var _in_range: Array[NPC] = []
+var current_target: Node3D
+var _in_range: Array[Node3D] = []
 var _interact_button: Button
 
 
@@ -23,18 +23,20 @@ func _ready() -> void:
 
 
 func _on_area_entered(area: Area3D) -> void:
-	var npc := area.get_parent() as NPC
-	if npc == null or _in_range.has(npc):
+	var target := area.get_parent() as Node3D
+	if target == null or not target.has_method("interact") or not target.has_method("set_prompt_visible"):
 		return
-	_in_range.append(npc)
+	if _in_range.has(target):
+		return
+	_in_range.append(target)
 	_update_target()
 
 
 func _on_area_exited(area: Area3D) -> void:
-	var npc := area.get_parent() as NPC
-	if npc == null:
+	var target := area.get_parent() as Node3D
+	if target == null:
 		return
-	_in_range.erase(npc)
+	_in_range.erase(target)
 	_update_target()
 
 
@@ -50,25 +52,25 @@ func _physics_process(_delta: float) -> void:
 
 
 func _update_target() -> void:
-	var nearest: NPC
+	var nearest: Node3D
 	var best_distance := INF
-	for npc in _in_range:
-		if not is_instance_valid(npc):
+	for target in _in_range:
+		if not is_instance_valid(target):
 			continue
-		var distance := global_position.distance_squared_to(npc.global_position)
+		var distance := global_position.distance_squared_to(target.global_position)
 		if distance < best_distance:
 			best_distance = distance
-			nearest = npc
+			nearest = target
 
 	if nearest == current_target:
 		_sync_target_ui()
 		return
 
 	if is_instance_valid(current_target):
-		current_target.set_prompt_visible(false)
+		current_target.call("set_prompt_visible", false)
 	current_target = nearest
 	if is_instance_valid(current_target):
-		current_target.set_prompt_visible(not _dialogue_active())
+		current_target.call("set_prompt_visible", not _dialogue_active())
 	target_changed.emit(current_target)
 	_sync_target_ui()
 
@@ -78,7 +80,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if _dialogue_active() or not is_instance_valid(current_target):
 		return
-	current_target.interact()
+	current_target.call("interact")
 	get_viewport().set_input_as_handled()
 
 
@@ -125,14 +127,14 @@ func _sync_target_ui() -> void:
 
 
 func _on_dialogue_started() -> void:
-	if is_instance_valid(current_target):
-		current_target.set_prompt_visible(false)
+	if is_instance_valid(current_target) and current_target.has_method("set_prompt_visible"):
+		current_target.call("set_prompt_visible", false)
 	_sync_target_ui()
 
 
 func _on_dialogue_ended() -> void:
-	if is_instance_valid(current_target):
-		current_target.set_prompt_visible(true)
+	if is_instance_valid(current_target) and current_target.has_method("set_prompt_visible"):
+		current_target.call("set_prompt_visible", true)
 	_sync_target_ui()
 
 

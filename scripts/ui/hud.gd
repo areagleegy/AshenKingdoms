@@ -16,7 +16,7 @@ var _quest_label: Label
 var _message_label: Label
 var _root: Control
 var _inventory_panel: PanelContainer
-var _inventory_list: VBoxContainer
+var _inventory_list: GridContainer
 var _pause_panel: PanelContainer
 
 
@@ -126,7 +126,10 @@ func _build_inventory_panel() -> void:
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title_label)
 
-	_inventory_list = VBoxContainer.new()
+	_inventory_list = GridContainer.new()
+	_inventory_list.columns = 6
+	_inventory_list.add_theme_constant_override("h_separation", 8)
+	_inventory_list.add_theme_constant_override("v_separation", 8)
 	box.add_child(_inventory_list)
 
 	var close_button := Button.new()
@@ -314,21 +317,38 @@ func _refresh_inventory() -> void:
 		return
 
 	var slots: Array = _inventory.get("slots")
-	var has_items := false
 	for index in range(slots.size()):
 		var slot: Dictionary = slots[index]
-		if slot.is_empty():
-			continue
-		var item = slot.get("item")
-		if item == null:
-			continue
-		has_items = true
 		var item_button := Button.new()
-		item_button.text = "%s × %d" % [String(item.get("display_name")), int(slot.get("amount", 1))]
-		item_button.pressed.connect(_on_inventory_item_pressed.bind(index))
+		item_button.custom_minimum_size = Vector2(54.0, 54.0)
+		item_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		item_button.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		item_button.tooltip_text = "خانة فارغة"
+
+		if not slot.is_empty():
+			var item: ItemResource = slot.get("item") as ItemResource
+			if item != null:
+				var amount := maxi(1, int(slot.get("amount", 1)))
+				item_button.text = str(amount) if amount > 1 else ""
+				item_button.tooltip_text = "%s\n%s\nالكمية: %d / %d" % [
+					item.display_name,
+					item.description,
+					amount,
+					item.max_stack
+				]
+				if item.icon != null:
+					item_button.icon = item.icon
+					item_button.expand_icon = true
+				else:
+					item_button.text = "%s\n%s" % [item.display_name, str(amount) if amount > 1 else ""]
+				item_button.pressed.connect(_on_inventory_item_pressed.bind(index))
+		else:
+			item_button.text = "—"
+			item_button.disabled = true
+
 		_inventory_list.add_child(item_button)
 
-	if not has_items:
+	if slots.is_empty():
 		var empty_label := Label.new()
 		empty_label.text = "الحقيبة فارغة"
 		_inventory_list.add_child(empty_label)
