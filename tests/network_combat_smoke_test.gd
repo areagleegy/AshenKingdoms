@@ -21,6 +21,7 @@ func _run() -> void:
 		return
 	avatar.call("configure_owner", 1)
 	add_child(avatar)
+	avatar.set_physics_process(false)
 	print("[network-smoke] avatar ready")
 	_check(float(avatar.get("current_health")) == 100.0, "network avatar starts with expected health")
 	_check(bool(multiplayer.is_server()), "offline smoke harness is allowed to exercise server logic")
@@ -60,11 +61,43 @@ func _run() -> void:
 	avatar.call("_server_try_attack")
 	_check(is_equal_approx(float(enemy.get("current_health")), 65.0), "server attack cooldown rejects an immediate repeat")
 
+	await get_tree().create_timer(0.7).timeout
+	enemy.global_position = avatar.global_position + Vector3(0.0, 0.0, -4.0)
+	avatar.call("_server_try_attack")
+	_check(is_equal_approx(float(enemy.get("current_health")), 65.0), "server attack rejects an enemy outside attack range")
+
+	await get_tree().create_timer(0.7).timeout
+	enemy.global_position = avatar.global_position + Vector3(0.0, 0.0, 2.0)
+	avatar.call("_server_try_attack")
+	_check(is_equal_approx(float(enemy.get("current_health")), 65.0), "server attack rejects an enemy behind the avatar")
+
+	enemy.global_position = avatar.global_position + Vector3(0.0, 0.0, -2.0)
+	await get_tree().create_timer(0.7).timeout
 	enemy.call("apply_damage_from_server", 999.0, 1)
 	print("[network-smoke] lethal hit applied")
 	_check(bool(enemy.get("is_dead")), "lethal server damage marks the enemy dead")
 	_check(float(enemy.get("current_health")) == 0.0, "enemy health is clamped at zero")
 	_check(int(death_event["count"]) == 1 and int(death_event["attacker"]) == 1, "enemy death emits one attacker event")
+	enemy.call("apply_damage_from_server", 999.0, 1)
+	_check(int(death_event["count"]) == 1, "repeated lethal damage cannot emit a duplicate death event")
+
+	var player_max_health := float(avatar.get("max_health"))
+	avatar.call("apply_damage_from_server", player_max_health + 1.0, 2)
+	var death_generation := int(avatar.get("_death_generation"))
+	_check(
+		bool(avatar.get("is_dead")) and is_equal_approx(float(avatar.get("current_health")), 0.0),
+		"lethal server damage marks the player dead at zero health"
+	)
+	avatar.call("_server_respawn", death_generation - 1)
+	_check(
+		bool(avatar.get("is_dead")) and is_equal_approx(float(avatar.get("current_health")), 0.0),
+		"stale respawn generation cannot revive a dead player"
+	)
+	await get_tree().create_timer(2.1).timeout
+	_check(
+		not bool(avatar.get("is_dead")) and is_equal_approx(float(avatar.get("current_health")), player_max_health),
+		"player respawns at full health after the current death timer"
+	)
 
 	print("[network-smoke] failures: %d" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
