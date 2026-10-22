@@ -53,7 +53,8 @@ if [[ "$client_status" -ne 0 ]]; then
   exit "$client_status"
 fi
 
-for rejection in non_finite min_interval rate_window; do
+# The rolling-window threshold has a deterministic timestamp-driven unit test.
+for rejection in non_finite min_interval; do
   if ! grep -Fq "[combat-input] rejected=${rejection} peer=" "$server_log"; then
     echo "Missing expected server-side input rejection diagnostic: ${rejection}"
     echo "--- host log ---"
