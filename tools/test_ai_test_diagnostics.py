@@ -33,6 +33,13 @@ class DiagnosticsClassifierTests(unittest.TestCase):
         log = "test_parse_error_is_ranked_first (test_ai_test_diagnostics.DiagnosticsClassifierTests) ... ok"
         self.assertEqual(classify_text(log), [])
 
+    def test_passing_placeholder_asset_assertions_are_not_reported_as_errors(self):
+        log = (
+            "[PASS] missing player.glb selects the documented placeholder path\\n"
+            "[PASS] player tolerates missing AnimationPlayer\\n"
+        )
+        self.assertEqual(classify_text(log), [])
+
     def test_adb_daemon_refusal_is_not_game_network_error(self):
         log = "cannot connect to daemon at tcp:5037: Connection refused"
         self.assertEqual(classify_text(log), [])
