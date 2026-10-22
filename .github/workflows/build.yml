@@ -352,7 +352,7 @@ jobs:
           lines = content.splitlines()
           preset_starts = [
               index for index, line in enumerate(lines)
-              if re.fullmatch(r"\\[preset\\.\\d+\\]", line)
+              if re.fullmatch(r"\[preset\.\d+\]", line)
           ]
           android_found = False
           for section_index, section_start in enumerate(preset_starts):
@@ -382,7 +382,7 @@ jobs:
           if not android_found:
               raise SystemExit("Android export preset was not found.")
 
-          config.write_text("\\n".join(lines) + "\\n", encoding="utf-8")
+          config.write_text("\n".join(lines) + "\n", encoding="utf-8")
           PY
 
       - name: Import project
