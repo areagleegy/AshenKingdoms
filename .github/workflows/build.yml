@@ -10,7 +10,9 @@ permissions:
   contents: read
 
 jobs:
+  # This project is currently being developed for Android only; Web export is opt-in.
   web:
+    if: ${{ vars.ASHEN_BUILD_WEB == 'true' }}
     name: Export Web
     runs-on: ubuntu-latest
     timeout-minutes: 20
