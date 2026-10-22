@@ -72,7 +72,7 @@ def run_smoke(
             log_path.parent.mkdir(parents=True, exist_ok=True)
             log_path.write_text(captured, encoding="utf-8")
         if captured:
-            print(captured, end="" if captured.endswith("\\n") else "\n")
+            print(captured, end="" if captured.endswith("\n") else "\n")
         raise SmokeTestError(
             f"process exceeded its {timeout_seconds:g}-second timeout"
         ) from exc
