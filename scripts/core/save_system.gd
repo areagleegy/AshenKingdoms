@@ -7,6 +7,7 @@ const LOAD_STATUS_OK: String = "ok"
 const LOAD_STATUS_INVALID_JSON: String = "invalid_json"
 const LOAD_STATUS_INVALID_SCHEMA: String = "invalid_schema"
 const LOAD_STATUS_READ_ERROR: String = "read_error"
+const LOAD_STATUS_INVALID_SIZE: String = "invalid_size"
 const LOAD_STATUS_RECOVERED_BACKUP: String = "recovered_backup"
 
 # Tests may override this path to avoid touching the player's real save.
@@ -22,6 +23,9 @@ var rename_hook_for_testing: Callable = Callable()
 
 func save_game(data: Dictionary) -> bool:
 	var serialized := JSON.stringify(data, "\t")
+	if serialized.to_utf8_buffer().size() > MAX_SAVE_BYTES:
+		push_error("Save data exceeds the maximum allowed size.")
+		return false
 	var serialized_parser := JSON.new()
 	if serialized_parser.parse(serialized) != OK or not (serialized_parser.data is Dictionary):
 		push_error("Refusing to save data that cannot be represented as a JSON object.")
@@ -138,6 +142,9 @@ func _read_save_file(path: String) -> Dictionary:
 	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
 		return {"ok": false, "status": LOAD_STATUS_READ_ERROR, "data": {}}
+	if file.get_length() <= 0 or file.get_length() > MAX_SAVE_BYTES:
+		file.close()
+		return {"ok": false, "status": LOAD_STATUS_INVALID_SIZE, "data": {}}
 
 	var text := file.get_as_text()
 	file.close()
