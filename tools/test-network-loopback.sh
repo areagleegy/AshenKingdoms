@@ -53,6 +53,18 @@ if [[ "$client_status" -ne 0 ]]; then
   exit "$client_status"
 fi
 
+for rejection in non_finite min_interval rate_window; do
+  if ! grep -Fq "[combat-input] rejected=${rejection} peer=" "$server_log"; then
+    echo "Missing expected server-side input rejection diagnostic: ${rejection}"
+    echo "--- host log ---"
+    cat "$server_log"
+    echo "--- client log ---"
+    cat "$client_log"
+    exit 1
+  fi
+  echo "[PASS] server rejected input for guard: ${rejection}"
+done
+
 server_health="$(sed -n 's/.*\[combat-server\] enemy_health slot=1 health=\([0-9][0-9]*\.[0-9][0-9]\).*/\1/p' "$server_log" | head -n 1)"
 client_health="$(sed -n 's/.*\[combat-client\] enemy_health slot=1 health=\([0-9][0-9]*\.[0-9][0-9]\).*/\1/p' "$client_log" | head -n 1)"
 if [[ -z "$server_health" || -z "$client_health" ]]; then
