@@ -93,7 +93,7 @@ python3 tools/validate_free_assets.py
 يعمل Workflow التحقق وWorkflow بناء المنصات عند فتح أو تحديث Pull Request، كما يعملان عند الدفع إلى `main`. يتوفر تشغيل يدوي عبر `workflow_dispatch`.
 
 - `Validate Godot Project`: تحليل واستيراد الموارد، تحميل السكربتات والمشاهد، اختبارات اللعب والانحدار واللاعب والشبكة والمحتوى، وفحوص أدوات Python والتوثيق.
-- `Build Game Platforms`: تصدير Web وAPK تجريبي، بالإضافة إلى Windows وLinux وmacOS؛ كما يتحقق من مسار تصدير AAB باستخدام مفتاح مؤقت لا يُنشر.
+- `Build Game Platforms`: تصدير Web وAPK تجريبي وWindows وLinux وmacOS، ثم تشغيل نسخ Linux/Windows/macOS فعليًا على runners أصلية وفحص سجلاتها؛ كما يتحقق من مسار تصدير AAB باستخدام مفتاح مؤقت لا يُنشر.
 - `Android Release AAB`: Workflow منفصل يدوي من `main` يستخدم الأسرار داخل Environment `android-release` لإنتاج AAB موقّع؛ لا يعمل ضمن Pull Requests ولا يرفع التطبيق إلى Google Play تلقائيًا.
 - Artifacts الاعتيادية: `ashen-kingdoms-web`، `ashen-kingdoms-android-debug`، `ashen-kingdoms-windows`، `ashen-kingdoms-linux`، و`ashen-kingdoms-macos`.
 - **`Android Release AAB`:** Workflow منفصل يبدأ يدويًا من فرع `main`، ويطلب رقم إصدار متزايدًا واسم إصدار، ويستهدف Android API 36. يتطلب تعيين أسرار `ANDROID_KEYSTORE_BASE64` (ملف keystore مشفّرًا بـ Base64)، و`ANDROID_KEYSTORE_PASSWORD`، و`ANDROID_KEYSTORE_ALIAS` في بيئة GitHub `android-release`. ينتج artifact باسم `ashen-kingdoms-android-play-release` ويتحقق من توقيعه. يستخدم Godot كلمة المرور نفسها للمخزن والمفتاح. لا يعمل هذا المسار على Pull Requests ولا تُحفظ بيانات التوقيع في المستودع. **لا تشغّله حتى تتأكد من أن ملف keystore هو مفتاح إصدارك الفعلي، وأن البيئة تحتوي الأسرار الصحيحة.**
