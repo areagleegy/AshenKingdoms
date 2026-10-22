@@ -320,7 +320,7 @@ func _sanitize_session_snapshot(raw: Dictionary) -> Dictionary:
 		"current_scene": str(raw.get("current_scene", "")).substr(0, 64),
 		"performance": performance,
 		"events": safe_events,
-		"recovered_from_checkpoint": bool(raw.get("recovered_from_checkpoint", false)) or bool(raw.get("recovered_from_checkpoint", true)),
+		"recovered_from_checkpoint": bool(raw.get("recovered_from_checkpoint", true)),
 	}
 
 
