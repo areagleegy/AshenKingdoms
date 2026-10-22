@@ -14,7 +14,6 @@ var _solo_button: Button
 
 func _ready() -> void:
 	INPUT_SETUP_SCRIPT.register_input_actions()
-	_set_mouse_visible_for_menu()
 	NetworkManager.status_changed.connect(_on_network_status_changed)
 	NetworkManager.session_connected.connect(_on_session_connected)
 	NetworkManager.connection_failed.connect(_on_connection_failed)
@@ -28,6 +27,7 @@ func _ready() -> void:
 			get_tree().quit(1)
 		return
 
+	_set_mouse_visible_for_menu()
 	_build_ui()
 	call_deferred("_focus_default_control")
 
