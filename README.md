@@ -15,7 +15,7 @@
 
 ## المنصات والحالة
 
-- **Android:** يبني GitHub Actions ملف APK اختباريًا لمعمارية ARM64 في كل تشغيل. يوجد أيضًا مسار اختياري لبناء App Bundle موقّع (`.aab`) لـ Google Play، لكنه لا يعمل إلا عند ضبط متغير المستودع `ANDROID_RELEASE_SIGNING_ENABLED=true` وإضافة أسرار التوقيع الموثقة أدناه. لا يكفي نجاح CI لاعتماد إصدار إنتاجي؛ اختبر التثبيت والتحديث على هاتف فعلي.
+- **Android:** يبني GitHub Actions ملف APK اختباريًا لمعمارية ARM64 في كل تشغيل. يوجد Workflow منفصل باسم `Android Release AAB` لبناء App Bundle موقّع (`.aab`) يستهدف API 36، لكنه يعمل يدويًا من `main` فقط ويتطلب أسرار توقيع صالحة في GitHub Environment باسم `android-release`. لا يكفي نجاح CI لاعتماد إصدار إنتاجي؛ اختبر التثبيت والتحديث على هاتف فعلي.
 - **Windows:** مخرج CI هو `AshenKingdoms.exe` مع حزم موارد اللعبة مضمّنة.
 - **Linux:** مخرج CI هو `AshenKingdoms.x86_64` لمعمارية x86_64 مع حزم الموارد مضمّنة.
 - **macOS:** مخرج CI هو `AshenKingdoms.zip` يحتوي حزمة تطبيق macOS. المخرج غير موثّق وغير موثّق الهوية للتوزيع؛ يلزم التوقيع واتباع إجراءات Apple قبل التوزيع العام.
@@ -88,7 +88,7 @@ python3 tools/validate_free_assets.py
 - `Validate Godot Project`: تحليل واستيراد الموارد، تحميل السكربتات والمشاهد، اختبارات اللعب والانحدار واللاعب والشبكة والمحتوى، وفحوص أدوات Python والتوثيق.
 - `Build Game Platforms`: تصدير Web وAPK تجريبي، بالإضافة إلى Windows وLinux وmacOS.
 - Artifacts الاعتيادية: `ashen-kingdoms-web`، `ashen-kingdoms-android-debug`، `ashen-kingdoms-windows`، `ashen-kingdoms-linux`، و`ashen-kingdoms-macos`.
-- **حزمة Google Play الاختيارية:** يتحقق CI من مسار تصدير AAB بمفتاح مؤقت يُنشأ داخل runner ويُحذف بعد الاختبار. لإنتاج حزمة موقّعة قابلة للاستخدام في مسار المتجر، عيّن المتغير `ANDROID_RELEASE_SIGNING_ENABLED` إلى `true` في `Settings → Secrets and variables → Actions → Variables` وأضف الأسرار `ANDROID_KEYSTORE_BASE64` (ملف keystore مشفّرًا بـ Base64)، و`ANDROID_KEYSTORE_PASSWORD`، و`ANDROID_KEYSTORE_ALIAS` في Secrets. يستخدم Godot كلمة المرور نفسها للمخزن والمفتاح. عند التفعيل، يرفع CI الحزمة باسم `ashen-kingdoms-android-play-release` ويتحقق من التوقيع؛ لا يُطبع المفتاح أو كلمة المرور في السجل ولا تُحفظ في ملفات المستودع. **لا تضبط المتغير إلى `true` قبل إضافة الأسرار الثلاثة والتحقق من أن المفتاح هو مفتاح الإصدار الصحيح.**
+- **`Android Release AAB`:** Workflow منفصل يبدأ يدويًا من فرع `main`، ويطلب رقم إصدار متزايدًا واسم إصدار، ويستهدف Android API 36. يتطلب تعيين أسرار `ANDROID_KEYSTORE_BASE64` (ملف keystore مشفّرًا بـ Base64)، و`ANDROID_KEYSTORE_PASSWORD`، و`ANDROID_KEYSTORE_ALIAS` في بيئة GitHub `android-release`. ينتج artifact باسم `ashen-kingdoms-android-play-release` ويتحقق من توقيعه. يستخدم Godot كلمة المرور نفسها للمخزن والمفتاح. لا يعمل هذا المسار على Pull Requests ولا تُحفظ بيانات التوقيع في المستودع. **لا تشغّله حتى تتأكد من أن ملف keystore هو مفتاح إصدارك الفعلي، وأن البيئة تحتوي الأسرار الصحيحة.**
 - مهمة iOS منفصلة تعمل على macOS فقط عند ضبط متغير المستودع `IOS_TEAM_ID`؛ ترفع مشروع Xcode مضغوطًا باسم `ashen-kingdoms-ios-xcode-project`، ولا تنتج IPA موقّعًا.
 - الاحتفاظ بملفات البناء والتشخيص مؤقت؛ صلاحيتها الحالية 7 أيام.
 
