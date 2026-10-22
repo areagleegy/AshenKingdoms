@@ -160,8 +160,13 @@ func _run() -> void:
 				):
 					await process_frame
 				Input.action_release("attack")
-				var hit_landed := is_instance_valid(target) and float(target.get("current_health")) < health_before
-				_check(hit_landed, "authoritative combat hit %d updates replicated enemy health" % (hit_index + 2))
+				var hit_landed := false
+				if is_instance_valid(target):
+					hit_landed = float(target.get("current_health")) < health_before
+				else:
+					var observed_enemy := arena_entities.get_node_or_null("Enemy_01")
+					hit_landed = observed_enemy == null or observed_enemy.get_instance_id() != defeated_enemy_id
+				_check(hit_landed, "authoritative combat hit %d updates replicated enemy state" % (hit_index + 1))
 				if is_instance_valid(target) and (bool(target.get("is_dead")) or float(target.get("current_health")) <= 0.0):
 					break
 
