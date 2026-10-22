@@ -132,7 +132,7 @@ func _fail_primary_rename_for_test(from_path: String, to_path: String) -> Error:
 
 func _cleanup_test_save_files(base_path: String) -> void:
 	for suffix in ["", ".tmp", ".bak", ".bak.tmp", ".restore.tmp"]:
-		var test_path := base_path + suffix
+		var test_path: String = base_path + str(suffix)
 		if FileAccess.file_exists(test_path):
 			var remove_error: Error = DirAccess.remove_absolute(ProjectSettings.globalize_path(test_path))
 			if remove_error != OK:
