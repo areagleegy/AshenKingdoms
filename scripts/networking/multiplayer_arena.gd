@@ -4,8 +4,10 @@ const MENU_SCENE: String = "res://scenes/ui/MainMenu.tscn"
 const NETWORK_AVATAR_SCENE: PackedScene = preload("res://scenes/network/NetworkAvatar.tscn")
 const NETWORK_ENEMY_SCENE: PackedScene = preload("res://scenes/network/NetworkEnemy.tscn")
 const TOUCH_CONTROLS_SCENE: PackedScene = preload("res://scenes/ui/VirtualJoystick.tscn")
+const ASHEN_RUINS_SCENE: PackedScene = preload("res://scenes/world/AshenRuinsEnvironment.tscn")
 const INITIAL_ENEMY_COUNT: int = 4
 const ENEMY_RESPAWN_SECONDS: float = 5.0
+const INPUT_SETUP_SCRIPT = preload("res://scripts/core/input_setup.gd")
 
 @onready var _entities: Node3D = $Entities
 @onready var _spawner: MultiplayerSpawner = $EntitySpawner
@@ -14,6 +16,10 @@ var _status_label: Label
 var _player_count_label: Label
 var _combat_label: Label
 var _local_avatar: Node3D
+var _pause_panel: PanelContainer
+var _resume_button: Button
+var _pause_menu_open: bool = false
+var _mouse_mode_before_pause: int = Input.MOUSE_MODE_CAPTURED
 
 
 func _ready() -> void:
@@ -21,7 +27,7 @@ func _ready() -> void:
 		call_deferred("_return_to_menu")
 		return
 
-	_register_input_actions()
+	INPUT_SETUP_SCRIPT.register_input_actions()
 	_build_world()
 	_build_hud()
 
@@ -44,6 +50,10 @@ func _ready() -> void:
 	_refresh_session_status()
 
 
+	if "--ashen-ci-smoke" in OS.get_cmdline_user_args():
+		call_deferred("_run_ci_smoke_and_exit")
+
+
 func _process(_delta: float) -> void:
 	_refresh_combat_hud()
 
@@ -54,54 +64,53 @@ func _notification(what: int) -> void:
 		get_tree().quit()
 
 
-func _register_input_actions() -> void:
-	_add_key_action(&"move_forward", [KEY_W, KEY_UP])
-	_add_key_action(&"move_back", [KEY_S, KEY_DOWN])
-	_add_key_action(&"move_left", [KEY_A, KEY_LEFT])
-	_add_key_action(&"move_right", [KEY_D, KEY_RIGHT])
-	_add_key_action(&"jump", [KEY_SPACE])
-	_add_key_action(&"sprint", [KEY_SHIFT])
-	_add_key_action(&"pause", [KEY_ESCAPE])
-	if not InputMap.has_action("attack"):
-		InputMap.add_action("attack")
-	var mouse_attack_exists := false
-	for existing_event in InputMap.action_get_events("attack"):
-		if existing_event is InputEventMouseButton and (existing_event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
-			mouse_attack_exists = true
-			break
-	if not mouse_attack_exists:
-		var attack_event := InputEventMouseButton.new()
-		attack_event.button_index = MOUSE_BUTTON_LEFT
-		InputMap.action_add_event("attack", attack_event)
+func _run_ci_smoke_and_exit() -> void:
+	# Exercise the exported game loop, then remove physics bodies in an orderly
+	# fashion before process shutdown. This mode is used only by CI.
+	await get_tree().create_timer(1.5).timeout
+	if not is_inside_tree():
+		return
 
+	for shape_node in find_children("*", "CollisionShape3D", true, false):
+		(shape_node as CollisionShape3D).set_deferred("disabled", true)
+	for body_node in find_children("*", "CollisionObject3D", true, false):
+		var collision_body := body_node as CollisionObject3D
+		collision_body.set_deferred("collision_layer", 0)
+		collision_body.set_deferred("collision_mask", 0)
 
-func _add_key_action(action: StringName, key_codes: Array) -> void:
-	if not InputMap.has_action(action):
-		InputMap.add_action(action)
-	for key_code in key_codes:
-		var already_added := false
-		for existing_event in InputMap.action_get_events(action):
-			if existing_event is InputEventKey and (existing_event as InputEventKey).physical_keycode == int(key_code):
-				already_added = true
-				break
-		if already_added:
-			continue
-		var key_event := InputEventKey.new()
-		key_event.physical_keycode = int(key_code)
-		InputMap.action_add_event(action, key_event)
+	# Give PhysicsServer a tick to drop current contact pairs before removal.
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+
+	for entity in _entities.get_children():
+		if is_instance_valid(entity):
+			entity.queue_free()
+			await get_tree().physics_frame
+
+	NetworkManager.leave_session(false)
+	await get_tree().physics_frame
+	get_tree().quit()
 
 
 func _build_world() -> void:
 	var environment_node := WorldEnvironment.new()
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_COLOR
-	environment.background_color = Color(0.035, 0.035, 0.055, 1.0)
+	environment.background_color = Color(0.026, 0.031, 0.043, 1.0)
+	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	environment.ambient_light_color = Color(0.24, 0.25, 0.29, 1.0)
+	environment.ambient_light_energy = 0.55
+	environment.fog_enabled = true
+	environment.fog_light_color = Color(0.15, 0.16, 0.19, 1.0)
+	environment.fog_density = 0.006
 	environment_node.environment = environment
 	add_child(environment_node)
 
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-48.0, -32.0, 0.0)
-	sun.light_energy = 1.25
+	sun.light_color = Color(0.88, 0.81, 0.70, 1.0)
+	sun.light_energy = 1.2
+	sun.shadow_enabled = true
 	add_child(sun)
 
 	var ground := StaticBody3D.new()
@@ -125,29 +134,9 @@ func _build_world() -> void:
 	ground_visual.material_override = material
 	add_child(ground_visual)
 
-	_add_landmark(Vector3(0.0, 1.0, -8.0), Vector3(1.0, 2.0, 1.0))
-	_add_landmark(Vector3(8.0, 1.0, 0.0), Vector3(1.0, 2.0, 1.0))
-	_add_landmark(Vector3(-8.0, 1.0, 0.0), Vector3(1.0, 2.0, 1.0))
-
-
-func _add_landmark(world_position: Vector3, size: Vector3) -> void:
-	var body := StaticBody3D.new()
-	body.position = world_position
-	var shape_node := CollisionShape3D.new()
-	var shape := BoxShape3D.new()
-	shape.size = size
-	shape_node.shape = shape
-	body.add_child(shape_node)
-	add_child(body)
-
-	var mesh_node := MeshInstance3D.new()
-	var box_mesh := BoxMesh.new()
-	box_mesh.size = size
-	mesh_node.mesh = box_mesh
-	var material := StandardMaterial3D.new()
-	material.albedo_color = Color(0.24, 0.19, 0.15, 1.0)
-	mesh_node.material_override = material
-	body.add_child(mesh_node)
+	var ruins_instance := ASHEN_RUINS_SCENE.instantiate()
+	ruins_instance.name = "AshenRuins"
+	add_child(ruins_instance)
 
 
 func _build_hud() -> void:
@@ -179,16 +168,108 @@ func _build_hud() -> void:
 	layout.add_child(_combat_label)
 
 	var help := Label.new()
-	help.text = "الحركة: WASD أو الأسهم · القفز: Space · الركض: Shift\nالهجوم: زر الفأرة الأيسر أو زر «هجوم». حرّك الكاميرا بالماوس أو بالسحب يمين الشاشة."
+	help.text = "الحركة: العصا اليسرى أو WASD · الكاميرا: العصا اليمنى أو سحب الجانب الأيمن · A/Cross قفز · X/Square أو RT/R2 هجوم · L3 ركض · Start/Options القائمة."
 	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	layout.add_child(help)
+
+	var pause_button := Button.new()
+	pause_button.text = "القائمة (Esc / Start)"
+	pause_button.focus_mode = Control.FOCUS_NONE
+	pause_button.pressed.connect(_toggle_pause_menu)
+	layout.add_child(pause_button)
+
+	_build_touch_controls(layer)
+	_build_pause_menu(layer)
+
+
+func _build_pause_menu(layer: CanvasLayer) -> void:
+	_pause_panel = PanelContainer.new()
+	_pause_panel.name = "NetworkPauseMenu"
+	_pause_panel.anchor_left = 0.5
+	_pause_panel.anchor_right = 0.5
+	_pause_panel.anchor_top = 0.5
+	_pause_panel.anchor_bottom = 0.5
+	_pause_panel.offset_left = -190.0
+	_pause_panel.offset_right = 190.0
+	_pause_panel.offset_top = -150.0
+	_pause_panel.offset_bottom = 150.0
+	_pause_panel.visible = false
+	layer.add_child(_pause_panel)
+
+	var layout := VBoxContainer.new()
+	layout.add_theme_constant_override("separation", 12)
+	_pause_panel.add_child(layout)
+
+	var title := Label.new()
+	title.text = "القائمة أثناء اللعب"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	layout.add_child(title)
+
+	_resume_button = Button.new()
+	_resume_button.text = "متابعة اللعب"
+	_resume_button.pressed.connect(func() -> void:
+		_set_pause_menu_open(false)
+	)
+	layout.add_child(_resume_button)
 
 	var leave_button := Button.new()
 	leave_button.text = "مغادرة الجلسة"
 	leave_button.pressed.connect(_return_to_menu)
 	layout.add_child(leave_button)
 
-	_build_touch_controls(layer)
+
+func _toggle_pause_menu() -> void:
+	_set_pause_menu_open(not _pause_menu_open)
+
+
+func _set_pause_menu_open(value: bool) -> void:
+	if _pause_menu_open == value:
+		return
+	_pause_menu_open = value
+	_set_mouse_mode_for_pause_menu(value)
+	if is_instance_valid(_pause_panel):
+		_pause_panel.visible = value
+	if is_instance_valid(_local_avatar) and _local_avatar.has_method("set_local_input_enabled"):
+		_local_avatar.call("set_local_input_enabled", not value)
+	if value:
+		call_deferred("_focus_resume_button")
+	else:
+		_clear_pause_menu_focus()
+
+
+func _set_mouse_mode_for_pause_menu(is_open: bool) -> void:
+	if OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios"):
+		return
+	if is_open:
+		_mouse_mode_before_pause = Input.mouse_mode
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	else:
+		Input.mouse_mode = _mouse_mode_before_pause
+
+
+func _focus_resume_button() -> void:
+	if _pause_menu_open and is_instance_valid(_resume_button):
+		_resume_button.grab_focus()
+
+
+func _clear_pause_menu_focus() -> void:
+	var focused := get_viewport().gui_get_focus_owner()
+	if focused != null and is_instance_valid(_pause_panel) and _pause_panel.is_ancestor_of(focused):
+		focused.release_focus()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("pause") and not _is_echo(event):
+		_toggle_pause_menu()
+		get_viewport().set_input_as_handled()
+		return
+	if _pause_menu_open and event.is_action_pressed("ui_cancel") and not _is_echo(event):
+		_set_pause_menu_open(false)
+		get_viewport().set_input_as_handled()
+
+
+func _is_echo(event: InputEvent) -> bool:
+	return event is InputEventKey and (event as InputEventKey).echo
 
 
 func _build_touch_controls(layer: CanvasLayer) -> void:
@@ -267,6 +348,7 @@ func _spawn_network_entity(data: Variant) -> Node:
 		avatar.call("configure_owner", peer_id)
 		if peer_id == multiplayer.get_unique_id():
 			_local_avatar = avatar
+			avatar.call("set_local_input_enabled", not _pause_menu_open)
 		return avatar
 
 	if kind == "enemy":
@@ -379,6 +461,7 @@ func _refresh_combat_hud() -> void:
 		for node in _entities.get_children():
 			if node.has_method("configure_owner") and int(node.get("owner_peer_id")) == wanted_id:
 				_local_avatar = node
+				_local_avatar.call("set_local_input_enabled", not _pause_menu_open)
 				break
 	if not is_instance_valid(_local_avatar):
 		_combat_label.text = "جارٍ إنشاء شخصية اللاعب..."
@@ -399,6 +482,10 @@ func _refresh_combat_hud() -> void:
 
 
 func _return_to_menu() -> void:
+	if _pause_menu_open:
+		_set_pause_menu_open(false)
+	if not (OS.has_feature("mobile") or OS.has_feature("android") or OS.has_feature("ios")):
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	NetworkManager.leave_session()
 	var result := get_tree().change_scene_to_file(MENU_SCENE)
 	if result != OK:

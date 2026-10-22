@@ -153,10 +153,28 @@ func restore_save_data(data: Array) -> void:
 		if path.is_empty() or not ResourceLoader.exists(path):
 			continue
 		var item := load(path) as ItemResource
-		var amount := maxi(1, int(entry.get("amount", 1)))
-		if item != null:
-			slots[index] = {"item": item, "amount": mini(amount, item.max_stack)}
+		if item == null:
+			continue
+		var amount := _safe_saved_stack_amount(entry.get("amount", 1), item.max_stack)
+		slots[index] = {"item": item, "amount": amount}
 	inventory_changed.emit()
+
+
+func _safe_saved_stack_amount(value: Variant, max_stack: int) -> int:
+	var upper_bound := maxi(max_stack, 1)
+	var amount := 1
+	match typeof(value):
+		TYPE_INT:
+			amount = int(value)
+		TYPE_FLOAT:
+			var numeric := float(value)
+			if is_finite(numeric) and is_equal_approx(numeric, roundf(numeric)):
+				amount = roundi(numeric)
+			else:
+				return 1
+		_:
+			return 1
+	return clampi(amount, 1, upper_bound)
 
 
 func _find_empty_slot() -> int:

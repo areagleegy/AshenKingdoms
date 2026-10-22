@@ -34,6 +34,7 @@ func _on_started() -> void:
 
 
 func _on_ended() -> void:
+	_clear_dialogue_focus()
 	if _tween != null and _tween.is_running():
 		_tween.kill()
 	_tween = null
@@ -75,6 +76,7 @@ func _on_typing_finished() -> void:
 	if _current_choices.is_empty():
 		continue_hint.visible = true
 		continue_button.visible = true
+		call_deferred("_focus_continue_button")
 		return
 
 	continue_hint.visible = false
@@ -86,9 +88,31 @@ func _on_typing_finished() -> void:
 		var button := Button.new()
 		button.text = "%d. %s" % [index + 1, choice.text]
 		button.alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		button.focus_mode = Control.FOCUS_NONE
+		button.focus_mode = Control.FOCUS_ALL
 		button.pressed.connect(_on_choice.bind(index))
 		choices_box.add_child(button)
+	call_deferred("_focus_first_choice")
+
+
+func _focus_continue_button() -> void:
+	if panel.visible and continue_button.visible:
+		continue_button.grab_focus()
+
+
+func _focus_first_choice() -> void:
+	if not panel.visible:
+		return
+	for child in choices_box.get_children():
+		if child is Button and not child.is_queued_for_deletion() and child.is_visible_in_tree():
+			(child as Button).grab_focus()
+			return
+	_focus_continue_button()
+
+
+func _clear_dialogue_focus() -> void:
+	var focused := get_viewport().gui_get_focus_owner()
+	if focused != null and panel.is_ancestor_of(focused):
+		focused.release_focus()
 
 
 func _on_choice(index: int) -> void:

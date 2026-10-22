@@ -10,6 +10,9 @@ const REGISTRY_PATH := "user://content/registry.json"
 const REGISTRY_TEMP_PATH := "user://content/registry.tmp"
 const DOWNLOAD_ROOT := "user://content/downloads"
 const MAX_CATALOG_BYTES := 4 * 1024 * 1024
+const MAX_REGISTRY_BYTES := 1024 * 1024
+const MAX_INSTALLED_MANIFEST_BYTES := 4 * 1024 * 1024
+const MAX_INSTALLED_PACKS := 500
 
 var _catalog: Dictionary = {}
 var _installed: Dictionary = {}
@@ -273,11 +276,19 @@ func _load_registry() -> void:
 	var file := FileAccess.open(REGISTRY_PATH, FileAccess.READ)
 	if file == null:
 		return
+	var registry_size := file.get_length()
+	if registry_size <= 0 or registry_size > MAX_REGISTRY_BYTES:
+		file.close()
+		push_warning("Ignored content registry outside the allowed size limit.")
+		return
 	var parsed: Variant = JSON.parse_string(file.get_as_text())
 	file.close()
-	if not parsed is Dictionary or not parsed.get("packs", {}) is Dictionary:
+	if not parsed is Dictionary or int(parsed.get("version", -1)) != 1:
 		return
-	var candidate: Dictionary = parsed["packs"]
+	var candidate_value: Variant = parsed.get("packs", {})
+	if not candidate_value is Dictionary or candidate_value.size() > MAX_INSTALLED_PACKS:
+		return
+	var candidate: Dictionary = candidate_value
 	for raw_id in candidate:
 		var pack_id := str(raw_id)
 		var record: Variant = candidate[raw_id]
@@ -288,19 +299,46 @@ func _load_registry() -> void:
 		if not _is_safe_version(version) or path != "%s/%s/%s" % [InstallerScript.INSTALLED_ROOT, pack_id, version]:
 			continue
 		var manifest_path := path.path_join("installed_manifest.json")
-		if FileAccess.file_exists(manifest_path):
-			_installed[pack_id] = record
+		if not FileAccess.file_exists(manifest_path):
+			continue
+		var manifest_file := FileAccess.open(manifest_path, FileAccess.READ)
+		if manifest_file == null:
+			continue
+		var manifest_size := manifest_file.get_length()
+		if manifest_size <= 0 or manifest_size > MAX_INSTALLED_MANIFEST_BYTES:
+			manifest_file.close()
+			continue
+		var manifest_value: Variant = JSON.parse_string(manifest_file.get_as_text())
+		manifest_file.close()
+		if not manifest_value is Dictionary:
+			continue
+		if str(manifest_value.get("id", "")) != pack_id or str(manifest_value.get("version", "")) != version:
+			continue
+		var manifest_files: Variant = manifest_value.get("files", {})
+		if not manifest_files is Dictionary or manifest_files.is_empty() or manifest_files.size() > 10000:
+			continue
+		_installed[pack_id] = record
 
 
 func _save_registry() -> bool:
 	var root_absolute := ProjectSettings.globalize_path("user://content")
 	if DirAccess.make_dir_recursive_absolute(root_absolute) != OK:
 		return false
+	var serialized := JSON.stringify({"version": 1, "packs": _installed}, "\t")
+	if serialized.to_utf8_buffer().size() > MAX_REGISTRY_BYTES:
+		push_error("Content registry exceeds its configured size limit.")
+		return false
 	var file := FileAccess.open(REGISTRY_TEMP_PATH, FileAccess.WRITE)
 	if file == null:
 		return false
-	file.store_string(JSON.stringify({"version": 1, "packs": _installed}, "\t"))
+	file.store_string(serialized)
+	file.flush()
+	var write_error: Error = file.get_error()
 	file.close()
+	if write_error != OK:
+		_remove_file(REGISTRY_TEMP_PATH)
+		push_error("Content registry temporary write did not complete successfully.")
+		return false
 	var temporary_absolute := ProjectSettings.globalize_path(REGISTRY_TEMP_PATH)
 	var destination_absolute := ProjectSettings.globalize_path(REGISTRY_PATH)
 	var backup_path := ProjectSettings.globalize_path("user://content/registry.bak")
@@ -336,10 +374,11 @@ func _remove_file(path: String) -> void:
 func _fail_catalog(message: String) -> void:
 	_catalog_state = "error"
 	_last_error = message
+	var previous_pack_ids := _catalog.keys()
 	_catalog.clear()
 	push_warning(message)
 	catalog_updated.emit({})
-	for pack_id in _catalog:
+	for pack_id in previous_pack_ids:
 		_emit_pack_state(str(pack_id), "unavailable", {"error": message})
 
 

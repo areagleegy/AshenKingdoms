@@ -1,0 +1,183 @@
+name: Web Browser Runtime Smoke
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-smoke:
+    name: Export Web and execute in Chromium
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      GODOT_TEMPLATE_DIR: 4.6.stable
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      - name: Install Godot CLI
+        run: bash tools/setup-godot-cli.sh
+
+      - name: Add Godot to PATH
+        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install matching Web export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          template_root="$HOME/.local/share/godot/export_templates/4.6.stable"
+          mkdir -p "$template_root" "$RUNNER_TEMP/godot-templates"
+          curl --fail --location --silent --show-error "https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_export_templates.tpz" --output "$RUNNER_TEMP/templates.tpz"
+          unzip -oq "$RUNNER_TEMP/templates.tpz" -d "$RUNNER_TEMP/godot-templates"
+          cp -a "$RUNNER_TEMP/godot-templates/templates/." "$template_root/"
+          test -f "$template_root/web_release.zip"
+
+      - name: Import project
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: godot --headless --path . --editor --quit
+
+      - name: Export Web
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -euo pipefail
+          mkdir -p build/web
+          godot --headless --path . --export-release "Web" build/web/index.html
+          python3 tools/validate_platform_exports.py web build/web
+
+      - name: Install Playwright Chromium
+        run: |
+          set -euo pipefail
+          npm install --no-save --no-package-lock playwright@1.64.1
+          npx playwright install --with-deps chromium
+
+      - name: Run exported Web game in Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p web-test-results
+          python3 -m http.server 4173 --directory build/web > "$RUNNER_TEMP/web-server.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" >/dev/null 2>&1 || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4173/index.html >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:4173/index.html >/dev/null
+          node --input-type=module <<'NODE'
+          import { chromium } from "playwright";
+          import fs from "node:fs/promises";
+
+          const url = "http://127.0.0.1:4173/index.html";
+          const outputDir = "web-test-results";
+          const problems = [];
+          const resources = [];
+          const browser = await chromium.launch({
+            headless: true,
+            args: [
+              "--no-sandbox",
+              "--enable-webgl",
+              "--ignore-gpu-blocklist",
+              "--use-gl=angle",
+              "--use-angle=swiftshader"
+            ]
+          });
+
+          try {
+            const page = await browser.newPage({
+              viewport: { width: 1280, height: 720 },
+              deviceScaleFactor: 1
+            });
+            page.on("pageerror", error => problems.push("pageerror: " + error.message));
+            page.on("console", message => {
+              if (message.type() === "error" && !/favicon\\.ico/i.test(message.text())) {
+                problems.push("console: " + message.text());
+              }
+            });
+            page.on("requestfailed", request => {
+              if (!/favicon\\.ico/i.test(request.url())) {
+                problems.push("requestfailed: " + request.url() + " — " + request.failure()?.errorText);
+              }
+            });
+            page.on("response", response => {
+              const responseUrl = new URL(response.url());
+              if (responseUrl.origin === new URL(url).origin) {
+                resources.push({ path: responseUrl.pathname, status: response.status() });
+                if (response.status() >= 400 && !/favicon\\.ico/i.test(responseUrl.pathname)) {
+                  problems.push("HTTP " + response.status() + ": " + responseUrl.pathname);
+                }
+              }
+            });
+
+            await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
+            await page.waitForFunction(() => {
+              const canvas = document.querySelector("canvas");
+              return canvas && canvas.width > 0 && canvas.height > 0;
+            }, { timeout: 60000 });
+            await page.waitForTimeout(10000);
+
+            const canvas = await page.locator("canvas").first().evaluate(element => ({
+              width: element.width,
+              height: element.height,
+              cssWidth: Math.round(element.getBoundingClientRect().width),
+              cssHeight: Math.round(element.getBoundingClientRect().height)
+            }));
+            await page.screenshot({ path: outputDir + "/web-game.png", fullPage: true });
+
+            if (canvas.width <= 0 || canvas.height <= 0 || canvas.cssWidth <= 0 || canvas.cssHeight <= 0) {
+              problems.push("Godot canvas is empty or has no visible layout: " + JSON.stringify(canvas));
+            }
+            if (!resources.some(item => /\.wasm$/i.test(item.path) && item.status < 400)) {
+              problems.push("The WebAssembly engine resource did not return a successful HTTP response.");
+            }
+            if (!resources.some(item => /\.pck$/i.test(item.path) && item.status < 400)) {
+              problems.push("The Godot PCK resource did not return a successful HTTP response.");
+            }
+
+            const report = {
+              url,
+              canvas,
+              resources,
+              problems,
+              checkedAt: new Date().toISOString()
+            };
+            await fs.writeFile(outputDir + "/web-runtime-report.json", JSON.stringify(report, null, 2));
+            console.log(JSON.stringify(report, null, 2));
+            if (problems.length > 0) {
+              throw new Error("Web runtime smoke found " + problems.length + " issue(s).");
+            }
+          } finally {
+            await browser.close();
+          }
+          NODE
+
+      - name: Preserve browser and server diagnostics
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p web-test-results
+          if [[ -f "$RUNNER_TEMP/web-server.log" ]]; then
+            cp "$RUNNER_TEMP/web-server.log" web-test-results/web-server.log
+          fi
+
+      - name: Upload Web runtime smoke report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ashen-kingdoms-web-browser-smoke
+          path: web-test-results/
+          if-no-files-found: ignore
+          retention-days: 7

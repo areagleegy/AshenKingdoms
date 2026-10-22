@@ -5,6 +5,9 @@ signal dialogue_line_shown(node: DialogueNode, choices: Array)
 signal dialogue_ended
 signal quest_start_requested(quest_id: StringName)
 
+const MAX_SAVED_FLAGS: int = 256
+const MAX_SAVED_FLAG_NAME_LENGTH: int = 128
+
 var flags: Dictionary = {}
 var _graph: DialogueGraph
 var _current: DialogueNode
@@ -196,5 +199,16 @@ func deserialize(data: Dictionary) -> void:
 	var raw_flags = data.get("flags", {})
 	if not (raw_flags is Dictionary):
 		return
-	for flag_name in raw_flags:
-		set_flag(StringName(str(flag_name)), bool(raw_flags[flag_name]))
+	var processed := 0
+	for raw_name in raw_flags:
+		if processed >= MAX_SAVED_FLAGS:
+			push_warning("Ignored additional saved dialogue flag entries beyond the safety limit.")
+			break
+		processed += 1
+		var flag_name := str(raw_name)
+		if flag_name.is_empty() or flag_name.length() > MAX_SAVED_FLAG_NAME_LENGTH:
+			continue
+		var raw_value = raw_flags[raw_name]
+		if typeof(raw_value) != TYPE_BOOL:
+			continue
+		flags[StringName(flag_name)] = raw_value

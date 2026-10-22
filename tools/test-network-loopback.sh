@@ -5,6 +5,7 @@ export GODOT_SILENCE_ROOT_WARNING=1
 export ASHEN_TEST_PORT="$((40000 + RANDOM % 20000))"
 
 server_log="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/ashen-network-server.log"
+client_log="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/ashen-network-client.log"
 server_pid=""
 
 cleanup() {
@@ -40,8 +41,8 @@ if [[ "$server_ready" -ne 1 ]]; then
 fi
 
 set +e
-timeout 20s godot --headless --path . --script res://tests/network_client_smoke_test.gd
-client_status=$?
+timeout 20s godot --headless --path . --script res://tests/network_client_smoke_test.gd 2>&1 | tee "$client_log"
+client_status=${PIPESTATUS[0]}
 set -e
 
 if [[ "$client_status" -ne 0 ]]; then
@@ -50,4 +51,14 @@ if [[ "$client_status" -ne 0 ]]; then
   exit "$client_status"
 fi
 
-echo "[network-loopback] host/client integration passed"
+# Godot may return exit code 0 even after a script runtime error. Treat runtime
+# errors as a failed integration test instead of hiding them behind PASS checks.
+for test_log in "$client_log" "$server_log"; do
+  if grep -Eq 'SCRIPT ERROR:|(^|[[:space:]])ERROR:|\\[FAIL\\]' "$test_log"; then
+    echo "Runtime error detected in integration log: $test_log"
+    cat "$test_log"
+    exit 1
+  fi
+done
+
+echo "[network-loopback] host/client integration passed with clean runtime logs"

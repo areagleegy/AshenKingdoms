@@ -1,6 +1,8 @@
 extends Node3D
 
 const SERVER_SCRIPT: Script = preload("res://scripts/core/server.gd")
+const ASHEN_RUINS_SCENE: PackedScene = preload("res://scenes/world/AshenRuinsEnvironment.tscn")
+const INPUT_SETUP_SCRIPT = preload("res://scripts/core/input_setup.gd")
 const HEALTH_SCRIPT: Script = preload("res://scripts/components/health.gd")
 const PLAYER_SCRIPT: Script = preload("res://scripts/player/player.gd")
 const PLAYER_MODEL_PATH: String = "res://assets/characters/player/player.glb"
@@ -31,7 +33,7 @@ func _ready() -> void:
 		add_child(server_node)
 		return
 
-	_register_input_actions()
+	INPUT_SETUP_SCRIPT.register_input_actions()
 	_create_world()
 	_create_managers()
 	_create_player()
@@ -66,36 +68,6 @@ func _is_server_mode() -> bool:
 	)
 
 
-func _register_input_actions() -> void:
-	_add_key_action(&"move_forward", [KEY_W, KEY_UP])
-	_add_key_action(&"move_back", [KEY_S, KEY_DOWN])
-	_add_key_action(&"move_left", [KEY_A, KEY_LEFT])
-	_add_key_action(&"move_right", [KEY_D, KEY_RIGHT])
-	_add_key_action(&"jump", [KEY_SPACE])
-	_add_key_action(&"sprint", [KEY_SHIFT])
-	_add_key_action(&"inventory", [KEY_I, KEY_TAB])
-	_add_key_action(&"pause", [KEY_ESCAPE])
-	_add_key_action(&"save", [KEY_F5])
-	_add_key_action(&"load", [KEY_F9])
-	_add_key_action(&"interact", [KEY_E, KEY_ENTER])
-	if not InputMap.has_action("attack"):
-		InputMap.add_action("attack")
-	var attack_event := InputEventMouseButton.new()
-	attack_event.button_index = MOUSE_BUTTON_LEFT
-	if not InputMap.action_has_event("attack", attack_event):
-		InputMap.action_add_event("attack", attack_event)
-
-
-func _add_key_action(action: StringName, key_codes: Array) -> void:
-	if not InputMap.has_action(action):
-		InputMap.add_action(action)
-	for key_code in key_codes:
-		var key_event := InputEventKey.new()
-		key_event.physical_keycode = int(key_code)
-		if not InputMap.action_has_event(action, key_event):
-			InputMap.action_add_event(action, key_event)
-
-
 func _create_world() -> void:
 	world = Node3D.new()
 	world.name = "World"
@@ -104,14 +76,22 @@ func _create_world() -> void:
 	var environment_node := WorldEnvironment.new()
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_COLOR
-	environment.background_color = Color(0.035, 0.035, 0.055, 1.0)
+	environment.background_color = Color(0.026, 0.031, 0.043, 1.0)
+	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	environment.ambient_light_color = Color(0.24, 0.25, 0.29, 1.0)
+	environment.ambient_light_energy = 0.55
+	environment.fog_enabled = true
+	environment.fog_light_color = Color(0.15, 0.16, 0.19, 1.0)
+	environment.fog_density = 0.006
 	environment_node.environment = environment
 	world.add_child(environment_node)
 
 	var sun := DirectionalLight3D.new()
 	sun.name = "Sun"
 	sun.rotation_degrees = Vector3(-48.0, -32.0, 0.0)
-	sun.light_energy = 1.25
+	sun.light_color = Color(0.88, 0.81, 0.70, 1.0)
+	sun.light_energy = 1.2
+	sun.shadow_enabled = true
 	world.add_child(sun)
 
 	var ground_body := StaticBody3D.new()
@@ -135,6 +115,10 @@ func _create_world() -> void:
 	ground_material.roughness = 1.0
 	ground_mesh_node.material_override = ground_material
 	world.add_child(ground_mesh_node)
+
+	var ruins_instance := ASHEN_RUINS_SCENE.instantiate()
+	ruins_instance.name = "AshenRuins"
+	world.add_child(ruins_instance)
 
 
 func _create_managers() -> void:
@@ -504,31 +488,30 @@ func _serialize_dialogue_state() -> Dictionary:
 func _load_game() -> void:
 	var data: Dictionary = save_system.call("load_game")
 	print("[LOAD] data keys: %s" % str(data.keys()))
-	print("[LOAD] dialogue: %s" % str(data.get("dialogue", {})))
 	if data.is_empty():
 		if is_instance_valid(hud):
-			hud.call("show_message", "لا يوجد ملف حفظ بعد.")
+			hud.call("show_message", "لا يوجد ملف حفظ صالح بعد.")
 		return
 
-	if data.has("player_position") and data["player_position"] is Dictionary:
-		var position_data: Dictionary = data["player_position"]
-		player.global_position = Vector3(
-			float(position_data.get("x", 0.0)), float(position_data.get("y", 0.92)), float(position_data.get("z", 0.0))
-		)
+	player.global_position = _safe_saved_position(data.get("player_position", {}))
 
 	progression.call(
 		"restore_state",
-		int(data.get("level", 1)),
-		int(data.get("experience", 0))
+		_safe_saved_int(data.get("level", 1), 1, 1, 50),
+		_safe_saved_int(data.get("experience", 0), 0, 0, 100000)
 	)
 	var restored_level := int(progression.get("level"))
 	var level_bonus := maxi(restored_level - 1, 0)
 	var health := player.get_node("Health") as Health
 	health.max_health = 100.0 + (float(level_bonus) * 10.0)
 	player.set("attack_damage", 20.0 + (float(level_bonus) * 3.0))
-	health.set_current_health(float(data.get("player_health", health.max_health)))
-	player.get_node("Inventory").call("restore_save_data", data.get("inventory", []))
-	quests.call("load_state", data.get("quest", {}))
+	var saved_health := _safe_saved_float(data.get("player_health", health.max_health), health.max_health)
+	health.set_current_health(clampf(saved_health, 0.0, health.max_health))
+
+	var inventory_data = data.get("inventory", [])
+	player.get_node("Inventory").call("restore_save_data", inventory_data if inventory_data is Array else [])
+	var quest_data = data.get("quest", {})
+	quests.call("load_state", quest_data if quest_data is Dictionary else {})
 	var dialogue_data = data.get("dialogue", {})
 	var dialogue_manager := get_node_or_null("/root/DialogueManager")
 	if dialogue_manager != null:
@@ -536,3 +519,31 @@ func _load_game() -> void:
 	if is_instance_valid(hud):
 		hud.call("close_overlays")
 		hud.call("show_message", "تم تحميل الحفظ.")
+
+
+func _safe_saved_position(value: Variant) -> Vector3:
+	if not (value is Dictionary):
+		return Vector3(0.0, 0.92, 0.0)
+	var position_data: Dictionary = value
+	return Vector3(
+		clampf(_safe_saved_float(position_data.get("x", 0.0), 0.0), -39.0, 39.0),
+		clampf(_safe_saved_float(position_data.get("y", 0.92), 0.92), 0.92, 50.0),
+		clampf(_safe_saved_float(position_data.get("z", 0.0), 0.0), -39.0, 39.0)
+	)
+
+
+func _safe_saved_float(value: Variant, fallback: float) -> float:
+	var value_type := typeof(value)
+	if value_type != TYPE_INT and value_type != TYPE_FLOAT:
+		return fallback
+	var number := float(value)
+	return number if is_finite(number) else fallback
+
+
+func _safe_saved_int(value: Variant, fallback: int, minimum: int, maximum: int) -> int:
+	var number := _safe_saved_float(value, float(fallback))
+	if number <= float(minimum):
+		return minimum
+	if number >= float(maximum):
+		return maximum
+	return int(number)

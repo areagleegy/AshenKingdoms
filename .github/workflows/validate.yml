@@ -15,7 +15,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Run diagnostics classifier unit tests
         run: |
@@ -39,8 +39,11 @@ jobs:
         run: |
           test -f project.godot
           test -f export_presets.cfg
+          test -f .github/workflows/android-release.yml
+          test -f docs/ANDROID_RELEASE_BUILD_AR.md
           test -f scenes/boot/Main.tscn
           test -f scripts/core/main.gd
+          test -f scripts/core/input_setup.gd
           test -f scripts/core/server.gd
           test -f README.md
           test -f LICENSE
@@ -62,6 +65,9 @@ jobs:
           test -f tools/sign_content_catalog.py
           test -f tools/test_sign_content_catalog.py
           test -f tools/validate_free_assets.py
+          test -f tools/validate_platform_exports.py
+          test -f tools/platform_runtime_smoke.py
+          test -f tools/test_platform_runtime_smoke.py
           test -f assets/ashenkingdoms_icon.svg
           test -f scenes/ui/MainMenu.tscn
           test -f scenes/network/MultiplayerArena.tscn
@@ -172,7 +178,7 @@ jobs:
       - name: Run content package builder tests
         run: |
           set -o pipefail
-          python -m unittest tools.test_package_content tools.test_sign_content_catalog -v 2>&1 | tee "$RUNNER_TEMP/python-tests.log"
+          python -m unittest tools.test_package_content tools.test_sign_content_catalog tools.test_validate_platform_exports tools.test_platform_runtime_smoke -v 2>&1 | tee "$RUNNER_TEMP/python-tests.log"
 
       - name: Diagnose test logs
         if: always()
@@ -185,7 +191,7 @@ jobs:
 
       - name: Upload diagnostic report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ashen-test-diagnostics
           path: |

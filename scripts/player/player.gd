@@ -52,17 +52,7 @@ func _physics_process(delta: float) -> void:
 		velocity.y = jump_velocity
 
 	var input_vector := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
-	var direction := Vector3.ZERO
-	if camera_pivot != null and is_instance_valid(camera_pivot):
-		var forward := -camera_pivot.global_transform.basis.z
-		forward.y = 0.0
-		forward = forward.normalized()
-		var right := camera_pivot.global_transform.basis.x
-		right.y = 0.0
-		right = right.normalized()
-		direction = (right * input_vector.x + forward * -input_vector.y).normalized()
-	else:
-		direction = Vector3(input_vector.x, 0.0, -input_vector.y).normalized()
+	var direction := _movement_direction(input_vector)
 
 	var current_speed := sprint_speed if Input.is_action_pressed("sprint") else speed
 	velocity.x = direction.x * current_speed
@@ -79,6 +69,25 @@ func _physics_process(delta: float) -> void:
 
 	if Input.is_action_just_pressed("attack") and _can_attack:
 		_attack()
+
+
+func _movement_direction(input_vector: Vector2) -> Vector3:
+	var direction := Vector3.ZERO
+	if camera_pivot != null and is_instance_valid(camera_pivot):
+		var forward := -camera_pivot.global_transform.basis.z
+		forward.y = 0.0
+		forward = forward.normalized()
+		var right := camera_pivot.global_transform.basis.x
+		right.y = 0.0
+		right = right.normalized()
+		direction = right * input_vector.x + forward * -input_vector.y
+	else:
+		direction = Vector3(input_vector.x, 0.0, -input_vector.y)
+
+	# Preserve analog stick magnitude for slow movement; clamp keyboard/diagonal input.
+	if direction.length_squared() > 1.0:
+		direction = direction.normalized()
+	return direction
 
 
 func take_damage(amount: float) -> void:

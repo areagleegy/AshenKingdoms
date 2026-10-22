@@ -88,14 +88,34 @@ def classify_text(text: str) -> list[dict[str, Any]]:
         for line in lines
         if re.search(r"\[PASS\].*malformed JSON is rejected safely", line, re.IGNORECASE)
     }
+    expected_oversized_save_sources = {
+        _source_key(line)
+        for line in lines
+        if re.search(
+            r"\[PASS\].*save system rejects payloads larger than the configured size limit",
+            line,
+            re.IGNORECASE,
+        )
+    }
     for rule in RULES:
         matched = []
         for line in lines:
             if successful_unittest.search(line):
                 continue
-            # Godot's save-system negative test intentionally feeds invalid JSON.
+            # Explicit PASS assertions are evidence of expected behavior, not failures.
+            if re.search(r"(?:^|:\s*)\[PASS\]", line, re.IGNORECASE):
+                continue
+            # Godot's save-system negative tests intentionally feed invalid JSON or
+            # an oversized payload. Suppress only the matching rejection in the
+            # same source log; errors from other tests remain visible.
             if _source_key(line) in expected_bad_json_sources and re.search(
                 r"ERROR:\s*Parse JSON failed", line, re.IGNORECASE
+            ):
+                continue
+            if _source_key(line) in expected_oversized_save_sources and re.search(
+                r"ERROR:\s*Refusing to save data larger than the local save-size limit",
+                line,
+                re.IGNORECASE,
             ):
                 continue
             # This is the Android Debug Bridge daemon, not the game's ENet peer.

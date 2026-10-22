@@ -150,13 +150,25 @@ func is_safe_relative_path(path: String) -> bool:
 		return false
 	if path.begins_with("/") or path.begins_with("\\") or path.contains(":") or path.contains("\\") or path.to_utf8_buffer().has(0):
 		return false
-	var segments := path.split("/", false)
+	# Preserve empty components so repeated or trailing separators are rejected.
+	var segments := path.split("/", true)
 	if segments.is_empty():
 		return false
 	for segment in segments:
 		if segment.is_empty() or segment == "." or segment == "..":
 			return false
-		if segment.strip_edges() != segment:
+		if segment.strip_edges() != segment or segment.ends_with("."):
+			return false
+		for character_index in segment.length():
+			var code := segment.unicode_at(character_index)
+			if code < 32 or code == 127 or code == 34 or code == 60 or code == 62 or code == 124 or code == 63 or code == 42:
+				return false
+		# Windows device names remain reserved even when an extension is added
+		# (for example CON.png, AUX.json, or LPT1.glb).
+		var dot_index := segment.find(".")
+		var device_name := segment.substr(0, dot_index) if dot_index >= 0 else segment
+		device_name = device_name.to_upper()
+		if device_name in ["CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"]:
 			return false
 	return true
 

@@ -1,6 +1,7 @@
 extends SceneTree
 
 const CATALOG_SCRIPT_PATH := "res://scripts/content/content_catalog.gd"
+const CONTENT_MANAGER_SCRIPT_PATH := "res://scripts/content/content_manager.gd"
 var _failures := 0
 var _catalog_script: Script
 var _catalog: RefCounted
@@ -97,6 +98,13 @@ func _run() -> void:
 	_check(not bool(_catalog.call("is_safe_relative_path", "../escape.txt")), "parent traversal is rejected by path helper")
 	_check(not bool(_catalog.call("is_safe_relative_path", "/absolute/path.txt")), "absolute paths are rejected by path helper")
 	_check(bool(_catalog.call("is_safe_relative_path", "characters/hero.glb")), "nested relative asset path is accepted")
+	_check(not bool(_catalog.call("is_safe_relative_path", "characters//hero.glb")), "empty path segments are rejected")
+	_check(not bool(_catalog.call("is_safe_relative_path", "characters/hero.glb/")), "trailing path separators are rejected")
+	_check(not bool(_catalog.call("is_safe_relative_path", "characters/hero.glb.")), "trailing-dot filenames are rejected for cross-platform safety")
+	_check(not bool(_catalog.call("is_safe_relative_path", "characters/CON.png")), "Windows reserved device filenames are rejected even with an extension")
+	_check(not bool(_catalog.call("is_safe_relative_path", "characters/AUX.json")), "Windows auxiliary device filenames are rejected")
+	_check(not bool(_catalog.call("is_safe_relative_path", "characters/bad?.glb")), "Windows-invalid filename characters are rejected")
+	_check(not bool(_catalog.call("is_safe_relative_path", "characters/" + String.chr(1) + "bad.glb")), "control characters are rejected from asset paths")
 
 	var installer_script: Script = load("res://scripts/content/content_package_installer.gd") as Script
 	_check(installer_script != null, "content package installer script exists and loads")
@@ -139,13 +147,123 @@ func _run() -> void:
 			var tampered_pack: Dictionary = test_pack.duplicate(true)
 			tampered_pack["sha256"] = "f".repeat(64)
 			_check(not bool(installer.call("verify_archive", archive_path, tampered_pack).get("ok", true)), "package archive digest mismatch is rejected")
+
+			# Case-only path collisions work on Linux but can alias to one file on
+			# case-insensitive Windows/macOS file systems; reject them before install.
+			var collision_archive := "user://content_catalog_case_collision.zip"
+			var collision_writer := ZIPPacker.new()
+			var collision_open_error := collision_writer.open(collision_archive)
+			_check(collision_open_error == OK, "case-collision ZIP archive can be created")
+			if collision_open_error == OK:
+				collision_writer.start_file("world.glb")
+				collision_writer.write_file(asset_bytes)
+				collision_writer.close_file()
+				collision_writer.start_file("WORLD.glb")
+				collision_writer.write_file(asset_bytes)
+				collision_writer.close_file()
+				collision_writer.close()
+				var collision_file := FileAccess.open(collision_archive, FileAccess.READ)
+				var collision_size := collision_file.get_length() if collision_file != null else 0
+				if collision_file != null:
+					collision_file.close()
+				var collision_pack := test_pack.duplicate(true)
+				collision_pack["download_size"] = collision_size
+				collision_pack["sha256"] = FileAccess.get_sha256(collision_archive)
+				collision_pack["files"] = [
+					{"path": "world.glb", "size": asset_bytes.size(), "sha256": _sha256_bytes(asset_bytes).hex_encode()},
+					{"path": "WORLD.glb", "size": asset_bytes.size(), "sha256": _sha256_bytes(asset_bytes).hex_encode()}
+				]
+				_check(
+					not bool(installer.call("verify_archive", collision_archive, collision_pack).get("ok", true)),
+					"installer rejects case-insensitive path collisions before extraction"
+				)
+				DirAccess.remove_absolute(ProjectSettings.globalize_path(collision_archive))
+
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(archive_path))
 
 	var content_manager: Node = root.get_node_or_null("ContentManager")
 	_check(content_manager != null, "content manager autoload exists")
 	if content_manager != null:
 		_check(str(content_manager.call("get_catalog_state")) == "not_configured", "base game starts with content downloads disabled when no service is configured")
+
+		var unavailable_states: Array[Dictionary] = []
+		content_manager.pack_state_changed.connect(
+			func(pack_id: String, state: String, details: Dictionary) -> void:
+				unavailable_states.append({"id": pack_id, "state": state, "details": details})
+		)
+		content_manager.set("_catalog", {"stale_pack": {"id": "stale_pack"}})
+		content_manager.call("_fail_catalog", "Expected smoke-test catalog failure.")
+		_check(content_manager.call("get_catalog").is_empty(), "catalog failure clears the active catalog")
+		_check(
+			unavailable_states.size() == 1
+			and str(unavailable_states[0].get("id", "")) == "stale_pack"
+			and str(unavailable_states[0].get("state", "")) == "unavailable",
+			"catalog failure marks previously listed packs unavailable before discarding their IDs"
+		)
+
+	_test_oversized_registry_is_rejected()
 	_finish()
+
+
+func _test_oversized_registry_is_rejected() -> void:
+	const REGISTRY_PATH := "user://content/registry.json"
+	var had_original := FileAccess.file_exists(REGISTRY_PATH)
+	var original_contents := ""
+	if had_original:
+		var original_file := FileAccess.open(REGISTRY_PATH, FileAccess.READ)
+		if original_file == null:
+			_check(false, "existing content registry can be preserved before test")
+			return
+		original_contents = original_file.get_as_text()
+		original_file.close()
+
+	var content_root := ProjectSettings.globalize_path("user://content")
+	if DirAccess.make_dir_recursive_absolute(content_root) != OK:
+		_check(false, "content registry test directory can be prepared")
+		return
+	var fixture := FileAccess.open(REGISTRY_PATH, FileAccess.WRITE)
+	if fixture == null:
+		_check(false, "oversized registry fixture can be created")
+		_restore_registry_fixture(had_original, original_contents, REGISTRY_PATH)
+		return
+	fixture.store_string("x".repeat(1024 * 1024 + 1))
+	fixture.flush()
+	var write_error: Error = fixture.get_error()
+	fixture.close()
+	_check(write_error == OK, "oversized registry fixture is fully written")
+
+	var manager_script := load(CONTENT_MANAGER_SCRIPT_PATH) as Script
+	_check(manager_script != null, "content manager source loads for isolated registry test")
+	if manager_script != null:
+		var isolated_manager := manager_script.new() as Node
+		isolated_manager.call("_load_registry")
+		var installed_value = isolated_manager.call("get_installed_packs")
+		_check(
+			installed_value is Dictionary and installed_value.is_empty(),
+			"content manager rejects a registry larger than the configured read limit"
+		)
+		isolated_manager.free()
+
+	_restore_registry_fixture(had_original, original_contents, REGISTRY_PATH)
+
+
+func _restore_registry_fixture(had_original: bool, original_contents: String, path: String) -> void:
+	if not had_original:
+		if FileAccess.file_exists(path):
+			var remove_error := DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+			_check(remove_error == OK, "temporary oversized registry fixture is removed")
+		else:
+			_check(true, "temporary oversized registry fixture is absent")
+		return
+	var output := FileAccess.open(path, FileAccess.WRITE)
+	if output == null:
+		_check(false, "original content registry can be restored")
+		return
+	output.store_string(original_contents)
+	output.flush()
+	var write_error: Error = output.get_error()
+	output.close()
+	_check(write_error == OK, "original content registry is restored")
 
 
 func _sha256_bytes(bytes: PackedByteArray) -> PackedByteArray:
