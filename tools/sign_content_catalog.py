@@ -16,6 +16,7 @@ from urllib.parse import urlparse
 try:
     from tools.package_content import (
         ALLOWED_EXTENSIONS,
+        CATALOG_SCHEMA_VERSION,
         MAX_ARCHIVE_BYTES,
         MAX_FILE_BYTES,
         MAX_FILES,
@@ -49,8 +50,8 @@ MAX_PACKS = 500
 
 
 def validate_catalog(catalog: Any) -> dict[str, Any]:
-    if not isinstance(catalog, dict) or catalog.get("schema_version") != 1:
-        raise PackageError("Catalog root/schema_version is invalid.")
+    if not isinstance(catalog, dict) or catalog.get("schema_version") != CATALOG_SCHEMA_VERSION:
+        raise PackageError(f"Catalog root/schema_version must equal {CATALOG_SCHEMA_VERSION}.")
     packs = catalog.get("packs")
     if not isinstance(packs, list) or len(packs) > MAX_PACKS:
         raise PackageError("Catalog packs must be a bounded array.")
