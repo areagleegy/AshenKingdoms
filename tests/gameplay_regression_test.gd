@@ -381,6 +381,15 @@ func _test_dialogue_and_quests() -> void:
 	_check(not bool(dialogue.call("get_flag", &"string_flag")), "dialogue restore rejects non-Boolean flag values")
 	_check(dialogue.get("flags").size() == 1, "dialogue restore rejects overlong flag names")
 
+	var excessive_flags: Dictionary = {}
+	for flag_index in range(300):
+		excessive_flags["flag_%03d" % flag_index] = true
+	dialogue.call("deserialize", {"flags": excessive_flags})
+	_check(
+		dialogue.get("flags").size() == 256,
+		"dialogue restore enforces a hard cap on processed saved flag entries"
+	)
+
 	var missing_graph: DialogueGraph = DialogueGraphScript.new()
 	missing_graph.entry_node_id = &"missing"
 	_check(not bool(dialogue.call("start", missing_graph)), "dialogue rejects a graph with a missing entry node")
