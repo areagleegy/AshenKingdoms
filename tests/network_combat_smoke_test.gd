@@ -27,6 +27,7 @@ func _run() -> void:
 	_test_input_direction_validation(avatar)
 	_test_input_rate_limit(avatar)
 	_test_stale_input_reset(avatar)
+	_test_server_authority_guards()
 
 	avatar.call("server_grant_experience", 100)
 	print("[network-smoke] XP tested")
@@ -138,6 +139,48 @@ func _test_stale_input_reset(avatar: Node) -> void:
 	avatar.call("_set_requested_input", Vector3.ZERO, true, false, true)
 	_check(bool(avatar.get("_jump_buffered")), "jump is recognized after input resumes")
 	_check(bool(avatar.get("_attack_requested")), "attack is recognized after input resumes")
+
+
+func _test_server_authority_guards() -> void:
+	var avatar_file := FileAccess.open("res://scripts/networking/network_avatar.gd", FileAccess.READ)
+	_check(avatar_file != null, "network avatar source is available for authority checks")
+	if avatar_file != null:
+		var avatar_source := avatar_file.get_as_text()
+		avatar_file.close()
+		_check(
+			avatar_source.contains("if sender_id != owner_peer_id or sender_id <= 1 or is_dead:"),
+			"movement RPC rejects non-owner, server-id and dead-player senders"
+		)
+		_check(
+			avatar_source.contains("if not _consume_input_rate_token(now):"),
+			"movement RPC applies per-avatar rate limiting before input mutation"
+		)
+		_check(
+			avatar_source.contains("func apply_damage_from_server(amount: float, attacker_peer_id: int = 0) -> void:\n\tif not multiplayer.is_server() or amount <= 0.0"),
+			"network player damage requires server authority and positive damage"
+		)
+		_check(
+			avatar_source.contains("func register_enemy_defeat() -> void:\n\tif not multiplayer.is_server():"),
+			"enemy-defeat progression requires server authority"
+		)
+		_check(
+			avatar_source.contains("func server_grant_experience(amount: int) -> void:\n\tif not multiplayer.is_server() or amount <= 0"),
+			"experience grants require server authority and positive amounts"
+		)
+
+	var enemy_file := FileAccess.open("res://scripts/networking/network_enemy.gd", FileAccess.READ)
+	_check(enemy_file != null, "network enemy source is available for authority checks")
+	if enemy_file != null:
+		var enemy_source := enemy_file.get_as_text()
+		enemy_file.close()
+		_check(
+			enemy_source.contains("func apply_damage_from_server(amount: float, attacker_peer_id: int) -> void:\n\tif not multiplayer.is_server() or amount <= 0.0"),
+		"enemy damage requires server authority and positive damage"
+		)
+		_check(
+			enemy_source.contains("func _physics_process(delta: float) -> void:\n\tif not multiplayer.is_server() or is_dead:"),
+		"enemy AI simulation runs only on the server"
+		)
 
 
 func _check(condition: bool, description: String) -> void:
