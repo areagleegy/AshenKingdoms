@@ -14,6 +14,8 @@ const DialogueChoiceScript: Script = preload("res://scripts/dialogue/dialogue_ch
 const InputSetupScript = preload("res://scripts/core/input_setup.gd")
 
 const SAVE_PATH := "user://savegame.json"
+const SAVE_BACKUP_PATH := "user://savegame.json.bak"
+const SAVE_TEMP_PATH := "user://savegame.json.tmp"
 const POTION_PATH := "res://resources/items/health_potion.tres"
 
 var _failures := 0
@@ -132,10 +134,30 @@ func _test_inventory_and_potions() -> void:
 
 
 func _test_save_and_load(had_original_save: bool, original_save: String) -> void:
+	var had_original_backup := FileAccess.file_exists(SAVE_BACKUP_PATH)
+	var original_backup := ""
+	if had_original_backup:
+		var backup_file := FileAccess.open(SAVE_BACKUP_PATH, FileAccess.READ)
+		if backup_file == null:
+			_check(false, "existing backup can be backed up before regression tests")
+			return
+		original_backup = backup_file.get_as_text()
+		backup_file.close()
+
+	var had_original_temp := FileAccess.file_exists(SAVE_TEMP_PATH)
+	var original_temp := ""
+	if had_original_temp:
+		var temp_file := FileAccess.open(SAVE_TEMP_PATH, FileAccess.READ)
+		if temp_file == null:
+			_check(false, "existing temporary save can be backed up before regression tests")
+			return
+		original_temp = temp_file.get_as_text()
+		temp_file.close()
+
 	var save_system: Node = SaveSystemScript.new()
 	root.add_child(save_system)
 
-	_check(bool(save_system.call("save_game", {"level": 4, "health": 61.5, "flags": {"intro_seen": true}})), "save system writes structured data")
+	_check(bool(save_system.call("save_game", {"level": 4, "health": 61.5, "flags": {"intro_seen": true}})), "save system writes a validated snapshot")
 	var loaded = save_system.call("load_game")
 	_check(loaded is Dictionary, "save system returns a dictionary for valid JSON")
 	if loaded is Dictionary:
@@ -144,30 +166,63 @@ func _test_save_and_load(had_original_save: bool, original_save: String) -> void
 		var flags = loaded.get("flags", {})
 		_check(flags is Dictionary and bool(flags.get("intro_seen", false)), "nested dialogue flags survive save/load")
 
+	_check(bool(save_system.call("save_game", {"level": 5, "health": 42.0})), "second save preserves the previous valid snapshot")
 	var malformed := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if malformed == null:
 		_check(false, "test can create malformed JSON fixture")
 	else:
 		malformed.store_string("{not valid JSON")
+		malformed.flush()
 		malformed.close()
-		var corrupt = save_system.call("load_game")
-		_check(corrupt is Dictionary and corrupt.is_empty(), "malformed JSON safely returns an empty dictionary")
+		var recovered = save_system.call("load_game")
+		_check(
+			recovered is Dictionary
+			and int(recovered.get("level", 0)) == 4
+			and is_equal_approx(float(recovered.get("health", 0.0)), 61.5),
+			"malformed primary save recovers the last known-good backup"
+		)
+		_check(bool(save_system.call("has_save")), "backup recovery leaves a usable save")
 
-	_restore_original_save(had_original_save, original_save, save_system)
-	_check(not bool(save_system.call("has_save")) if not had_original_save else bool(save_system.call("has_save")), "save fixture is cleaned up or original save is restored")
+	_restore_original_save(
+		had_original_save, original_save,
+		had_original_backup, original_backup,
+		had_original_temp, original_temp,
+		save_system
+	)
+	_check(FileAccess.file_exists(SAVE_PATH) == had_original_save, "original primary save presence is restored")
+	_check(FileAccess.file_exists(SAVE_BACKUP_PATH) == had_original_backup, "original backup presence is restored")
+	_check(FileAccess.file_exists(SAVE_TEMP_PATH) == had_original_temp, "original temporary-file presence is restored")
 	save_system.queue_free()
 
 
-func _restore_original_save(had_original_save: bool, original_save: String, save_system: Node) -> void:
-	if had_original_save:
-		var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-		if file == null:
-			_check(false, "original save can be restored after test")
-			return
-		file.store_string(original_save)
-		file.close()
-	else:
-		_check(bool(save_system.call("delete_save")), "temporary save file is removed after test")
+func _restore_original_save(
+	had_original_save: bool,
+	original_save: String,
+	had_original_backup: bool,
+	original_backup: String,
+	had_original_temp: bool,
+	original_temp: String,
+	save_system: Node
+) -> void:
+	_check(bool(save_system.call("delete_save")), "save test files are removed before restoring fixtures")
+	_restore_text_fixture(SAVE_PATH, had_original_save, original_save, "primary save")
+	_restore_text_fixture(SAVE_BACKUP_PATH, had_original_backup, original_backup, "backup save")
+	_restore_text_fixture(SAVE_TEMP_PATH, had_original_temp, original_temp, "temporary save")
+
+
+func _restore_text_fixture(path: String, should_exist: bool, contents: String, description: String) -> void:
+	if not should_exist:
+		_check(not FileAccess.file_exists(path), "%s is absent after cleanup" % description)
+		return
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		_check(false, "original %s can be restored" % description)
+		return
+	file.store_string(contents)
+	file.flush()
+	var write_error: Error = file.get_error()
+	file.close()
+	_check(write_error == OK, "original %s content is restored" % description)
 
 
 func _test_dialogue_and_quests() -> void:
