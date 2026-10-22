@@ -261,7 +261,8 @@ func _test_runtime_input_registration() -> void:
 		&"move_forward", &"move_back", &"move_left", &"move_right",
 		&"look_left", &"look_right", &"look_up", &"look_down",
 		&"jump", &"sprint", &"inventory", &"pause", &"save", &"load",
-		&"interact", &"attack"
+		&"interact", &"attack", &"ui_accept", &"ui_cancel",
+		&"ui_up", &"ui_down", &"ui_left", &"ui_right"
 	]
 	var initial_event_counts: Dictionary = {}
 	for action in actions:
@@ -290,6 +291,12 @@ func _test_gamepad_input_bindings() -> void:
 	_check(_has_joypad_button(&"inventory", JOY_BUTTON_Y), "Y/Triangle button maps to inventory")
 	_check(_has_joypad_button(&"sprint", JOY_BUTTON_LEFT_STICK), "left stick press maps to sprint")
 	_check(_has_joypad_button(&"pause", JOY_BUTTON_START), "Start button maps to pause menu")
+	_check(_has_joypad_button(&"ui_accept", JOY_BUTTON_A), "A/Cross confirms focused UI controls")
+	_check(_has_joypad_button(&"ui_cancel", JOY_BUTTON_B), "B/Circle maps to UI cancel")
+	_check(_has_joypad_button(&"ui_up", JOY_BUTTON_DPAD_UP), "D-pad up navigates focused UI")
+	_check(_has_joypad_button(&"ui_down", JOY_BUTTON_DPAD_DOWN), "D-pad down navigates focused UI")
+	_check(_has_joypad_button(&"ui_left", JOY_BUTTON_DPAD_LEFT), "D-pad left navigates focused UI")
+	_check(_has_joypad_button(&"ui_right", JOY_BUTTON_DPAD_RIGHT), "D-pad right navigates focused UI")
 
 
 func _test_controller_navigation_configuration() -> void:
