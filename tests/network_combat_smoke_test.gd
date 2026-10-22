@@ -56,6 +56,9 @@ func _run() -> void:
 		death_event["count"] = int(death_event["count"]) + 1
 		death_event["attacker"] = attacker_peer_id
 	)
+	enemy.died.connect(func(_dead_enemy: Node, _attacker_peer_id: int) -> void:
+		avatar.call("register_enemy_defeat")
+	)
 	avatar.call("_server_try_attack")
 	_check(is_equal_approx(float(enemy.get("current_health")), 65.0), "server attack damages an enemy within range and in front")
 	avatar.call("_server_try_attack")
@@ -73,13 +76,27 @@ func _run() -> void:
 
 	enemy.global_position = avatar.global_position + Vector3(0.0, 0.0, -2.0)
 	await get_tree().create_timer(0.7).timeout
+	var total_xp_before_death := _total_experience(avatar)
 	enemy.call("apply_damage_from_server", 999.0, 1)
 	print("[network-smoke] lethal hit applied")
 	_check(bool(enemy.get("is_dead")), "lethal server damage marks the enemy dead")
 	_check(float(enemy.get("current_health")) == 0.0, "enemy health is clamped at zero")
 	_check(int(death_event["count"]) == 1 and int(death_event["attacker"]) == 1, "enemy death emits one attacker event")
+	_check(
+		_total_experience(avatar) - total_xp_before_death == 35,
+		"one enemy death grants exactly one standard XP reward"
+	)
+	var level_after_death := int(avatar.get("level"))
+	var xp_after_death := int(avatar.get("experience"))
+	var quest_after_death := int(avatar.get("quest_progress"))
 	enemy.call("apply_damage_from_server", 999.0, 1)
 	_check(int(death_event["count"]) == 1, "repeated lethal damage cannot emit a duplicate death event")
+	_check(
+		int(avatar.get("level")) == level_after_death
+		and int(avatar.get("experience")) == xp_after_death
+		and int(avatar.get("quest_progress")) == quest_after_death,
+		"repeated lethal damage cannot grant duplicate XP or quest progress"
+	)
 
 	var player_max_health := float(avatar.get("max_health"))
 	avatar.call("apply_damage_from_server", player_max_health + 1.0, 2)
@@ -101,6 +118,14 @@ func _run() -> void:
 
 	print("[network-smoke] failures: %d" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
+
+
+func _total_experience(avatar: Node) -> int:
+	var total := int(avatar.get("experience"))
+	var current_level := int(avatar.get("level"))
+	for level_index in range(1, current_level):
+		total += 100 + ((level_index - 1) * 50)
+	return total
 
 
 func _check(condition: bool, description: String) -> void:
