@@ -3,6 +3,7 @@ set -euo pipefail
 
 export GODOT_SILENCE_ROOT_WARNING=1
 export ASHEN_TEST_PORT="$((40000 + RANDOM % 20000))"
+export ASHEN_TEST_COMBAT=1
 
 server_log="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/ashen-network-server.log"
 server_pid=""
