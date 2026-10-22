@@ -178,6 +178,7 @@ func _test_player_position_finite_guard() -> void:
 	_check(bool(main_for_test.call("_restore_player_position", {"x": 1.0, "y": 2.0, "z": 3.0})), "finite numeric coordinates are accepted")
 	_check(test_player.global_position.is_equal_approx(Vector3(1.0, 2.0, 3.0)), "valid saved position is restored")
 	test_player.queue_free()
+	main_for_test.free()
 
 
 func _cleanup_test_save_files(base_path: String) -> void:
