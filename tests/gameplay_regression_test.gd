@@ -4,6 +4,7 @@ const PlayerScript: Script = preload("res://scripts/player/player.gd")
 const HealthScript: Script = preload("res://scripts/components/health.gd")
 const InventoryScript: Script = preload("res://scripts/components/inventory.gd")
 const ItemResourceScript: Script = preload("res://scripts/items/item_resource.gd")
+const WorldItemDropScript: Script = preload("res://scripts/items/world_item_drop.gd")
 const ProgressionScript: Script = preload("res://scripts/core/progression_manager.gd")
 const QuestManagerScript: Script = preload("res://scripts/core/quest_manager.gd")
 const SaveSystemScript: Script = preload("res://scripts/core/save_system.gd")
@@ -13,11 +14,19 @@ const DialogueNodeScript: Script = preload("res://scripts/dialogue/dialogue_node
 const DialogueChoiceScript: Script = preload("res://scripts/dialogue/dialogue_choice.gd")
 const MainScript: Script = preload("res://scripts/core/main.gd")
 
-const SAVE_PATH := "user://savegame.json"
+const SAVE_PATH: String = "user://savegame.json"
+const SAVE_RELATED_FILES: Array[String] = [
+	"user://savegame.json",
+	"user://savegame.bak.json",
+	"user://savegame.tmp",
+	"user://savegame.bak.tmp",
+	"user://savegame.json.old",
+]
 const POTION_PATH := "res://resources/items/health_potion.tres"
 
 var _failures := 0
 var _checks := 0
+var _save_snapshots: Dictionary = {}
 
 
 func _initialize() -> void:
@@ -25,23 +34,20 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	var had_original_save := FileAccess.file_exists(SAVE_PATH)
-	var original_save := ""
-	if had_original_save:
-		var original_file := FileAccess.open(SAVE_PATH, FileAccess.READ)
-		if original_file == null:
-			_check(false, "existing save can be backed up before regression tests")
-			quit(1)
-			return
-		original_save = original_file.get_as_text()
-		original_file.close()
+	_save_snapshots = _isolate_save_files()
+	if _save_snapshots.has("__snapshot_error"):
+		quit(1)
+		return
 
 	_test_player_and_health()
 	_test_inventory_and_potions()
-	_test_save_and_load(had_original_save, original_save)
+	_test_inventory_restore_edge_cases()
+	_test_world_item_drop()
+	_test_save_and_load()
 	_test_dialogue_and_quests()
 	_test_android_configuration()
 	_test_runtime_input_registration()
+	_restore_save_files(_save_snapshots)
 
 	print("[regression] checks: %d, failures: %d" % [_checks, _failures])
 	quit(1 if _failures > 0 else 0)
@@ -128,7 +134,133 @@ func _test_inventory_and_potions() -> void:
 	player.queue_free()
 
 
-func _test_save_and_load(had_original_save: bool, original_save: String) -> void:
+func _test_inventory_restore_edge_cases() -> void:
+	var potion := load(POTION_PATH) as ItemResource
+	if potion == null:
+		_check(false, "inventory edge-case test item loads")
+		return
+
+	var split_inventory := InventoryScript.new() as Inventory
+	split_inventory.slot_count = 2
+	root.add_child(split_inventory)
+	var overstack_amount := potion.max_stack + 3
+	split_inventory.call(
+		"restore_save_data",
+		[{"id": String(potion.id), "amount": overstack_amount}, null]
+	)
+	_check(
+		int(split_inventory.call("count_item", potion.id)) == overstack_amount,
+		"overstacked save quantity is distributed across available slots without loss"
+	)
+	_check(
+		int((split_inventory.get("slots") as Array)[1].get("amount", 0)) == 3,
+		"overflow quantity occupies a second slot"
+	)
+	split_inventory.queue_free()
+
+	var unknown_inventory := InventoryScript.new() as Inventory
+	root.add_child(unknown_inventory)
+	unknown_inventory.call("restore_save_data", [{"id": "future_item_from_mod", "amount": 7}])
+	var unknown_serialized: Array = unknown_inventory.call("to_save_data")
+	_check(
+		unknown_serialized[0] is Dictionary
+		and String(unknown_serialized[0].get("id", "")) == "future_item_from_mod"
+		and int(unknown_serialized[0].get("amount", 0)) == 7,
+		"unknown item IDs and quantities survive a restore/save round-trip"
+	)
+	unknown_inventory.queue_free()
+
+	var limited_inventory := InventoryScript.new() as Inventory
+	limited_inventory.slot_count = 1
+	root.add_child(limited_inventory)
+	limited_inventory.call(
+		"restore_save_data",
+		[{"id": String(potion.id), "amount": potion.max_stack + 4}]
+	)
+	_check(
+		int(limited_inventory.call("count_item", potion.id)) == potion.max_stack,
+		"limited inventory fills its visible stack to the valid maximum"
+	)
+	var limited_serialized: Array = limited_inventory.call("to_save_data")
+	_check(
+		limited_serialized.size() > limited_inventory.slot_count
+		and limited_serialized[-1] is Dictionary
+		and limited_serialized[-1].has("__inventory_pending_items"),
+		"overflow beyond capacity is retained in serialized pending inventory data"
+	)
+	var limited_round_trip := InventoryScript.new() as Inventory
+	limited_round_trip.slot_count = 1
+	root.add_child(limited_round_trip)
+	limited_round_trip.call("restore_save_data", limited_serialized)
+	var round_trip_data: Array = limited_round_trip.call("to_save_data")
+	var pending: Array = []
+	for entry in round_trip_data:
+		if entry is Dictionary and entry.has("__inventory_pending_items"):
+			pending = entry.get("__inventory_pending_items", [])
+	_check(
+		pending.size() == 1 and int(pending[0].get("amount", 0)) == 4,
+		"overflow pending quantity survives another save/load cycle"
+	)
+	limited_inventory.queue_free()
+	limited_round_trip.queue_free()
+
+
+func _test_world_item_drop() -> void:
+	var player := _make_player()
+	var inventory: Inventory = player.get_node("Inventory") as Inventory
+	var potion := load(POTION_PATH) as ItemResource
+	_check(potion != null, "world drop test item loads")
+	if potion == null:
+		player.queue_free()
+		return
+
+	inventory.call("add_item", potion, 1)
+	var drop := WorldItemDropScript.new() as Area3D
+	_check(drop != null, "world item drop instance is created")
+	if drop == null:
+		player.queue_free()
+		return
+	_check(bool(drop.call("configure", potion.id, 1)), "world drop accepts a registered item and positive quantity")
+	root.add_child(drop)
+	drop.set("_available_after_msec", 0)
+	drop.call("_on_body_entered", player)
+	_check(int(inventory.call("count_item", potion.id)) == 2, "pickup transfers dropped item into inventory")
+	_check(int(drop.get("amount")) == 0, "successful pickup consumes the world drop quantity")
+	drop.free()
+
+	inventory.set("slot_count", 1)
+	inventory.set("slots", [])
+	inventory.call("_ensure_slot_count")
+	inventory.call("add_item", potion, potion.max_stack - 1)
+	var partial_drop := WorldItemDropScript.new() as Area3D
+	_check(bool(partial_drop.call("configure", potion.id, 5)), "partial-capacity world drop is configured")
+	root.add_child(partial_drop)
+	partial_drop.set("_available_after_msec", 0)
+	partial_drop.call("_on_body_entered", player)
+	_check(
+		int(inventory.call("count_item", potion.id)) == potion.max_stack,
+		"pickup fills the remaining stack capacity"
+	)
+	_check(
+		int(partial_drop.get("amount")) == 4,
+		"pickup preserves the unaccepted remainder in the world drop"
+	)
+	partial_drop.free()
+
+	inventory.set("slots", [])
+	inventory.call("_ensure_slot_count")
+	inventory.call("add_item", potion, potion.max_stack)
+	var blocked_drop := WorldItemDropScript.new() as Area3D
+	_check(bool(blocked_drop.call("configure", potion.id, 1)), "second world drop is configured")
+	root.add_child(blocked_drop)
+	blocked_drop.set("_available_after_msec", 0)
+	blocked_drop.call("_on_body_entered", player)
+	_check(int(blocked_drop.get("amount")) == 1, "full inventory leaves the dropped item in the world")
+	blocked_drop.free()
+	player.queue_free()
+
+
+func _test_save_and_load() -> void:
 	var save_system: Node = SaveSystemScript.new()
 	root.add_child(save_system)
 
@@ -150,21 +282,54 @@ func _test_save_and_load(had_original_save: bool, original_save: String) -> void
 		var corrupt = save_system.call("load_game")
 		_check(corrupt is Dictionary and corrupt.is_empty(), "malformed JSON safely returns an empty dictionary")
 
-	_restore_original_save(had_original_save, original_save, save_system)
-	_check(not bool(save_system.call("has_save")) if not had_original_save else bool(save_system.call("has_save")), "save fixture is cleaned up or original save is restored")
 	save_system.queue_free()
 
 
-func _restore_original_save(had_original_save: bool, original_save: String, save_system: Node) -> void:
-	if had_original_save:
-		var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+func _isolate_save_files() -> Dictionary:
+	var snapshots: Dictionary = {}
+	for path in SAVE_RELATED_FILES:
+		if not FileAccess.file_exists(path):
+			snapshots[path] = null
+			continue
+		var file := FileAccess.open(path, FileAccess.READ)
 		if file == null:
-			_check(false, "original save can be restored after test")
-			return
-		file.store_string(original_save)
+			push_error("Could not snapshot save-related file: %s" % path)
+			snapshots["__snapshot_error"] = true
+			return snapshots
+		snapshots[path] = file.get_buffer(file.get_length())
 		file.close()
-	else:
-		_check(bool(save_system.call("delete_save")), "temporary save file is removed after test")
+
+	# Tests must run against an empty isolated save namespace, not the user's saves.
+	for path in SAVE_RELATED_FILES:
+		if not FileAccess.file_exists(path):
+			continue
+		var remove_error := DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+		if remove_error != OK:
+			push_error("Could not isolate save-related file: %s" % path)
+			_restore_save_files(snapshots)
+			snapshots["__snapshot_error"] = true
+			return snapshots
+	return snapshots
+
+
+func _restore_save_files(snapshots: Dictionary) -> void:
+	for path in SAVE_RELATED_FILES:
+		var absolute_path := ProjectSettings.globalize_path(path)
+		var original: Variant = snapshots.get(path, null)
+		if original == null:
+			if FileAccess.file_exists(path):
+				var remove_error := DirAccess.remove_absolute(absolute_path)
+				_check(remove_error == OK, "new save-related file is removed: %s" % path)
+			continue
+		var file := FileAccess.open(path, FileAccess.WRITE)
+		if file == null:
+			_check(false, "original save-related file can be restored: %s" % path)
+			continue
+		file.store_buffer(original as PackedByteArray)
+		file.flush()
+		var write_error: Error = file.get_error()
+		file.close()
+		_check(write_error == OK, "original save-related file is restored: %s" % path)
 
 
 func _test_dialogue_and_quests() -> void:
