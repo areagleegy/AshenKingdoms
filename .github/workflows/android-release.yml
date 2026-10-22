@@ -35,16 +35,16 @@ jobs:
       ANDROID_VERSION_NAME: ${{ inputs.version_name }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "17"
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
         with:
           packages: platform-tools
 
@@ -164,7 +164,7 @@ jobs:
           sha256sum build/android/AshenKingdoms.aab
 
       - name: Upload signed Google Play App Bundle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ashen-kingdoms-android-play-release
           path: build/android/AshenKingdoms.aab
