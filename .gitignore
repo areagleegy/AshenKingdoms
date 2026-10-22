@@ -15,3 +15,5 @@ export_credentials.cfg
 .DS_Store
 Thumbs.db
 .idea/
+*.pem
+!*.public.pem
