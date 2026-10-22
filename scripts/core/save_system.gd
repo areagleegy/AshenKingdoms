@@ -54,8 +54,8 @@ func save_game(data: Dictionary) -> bool:
 		_remove_file_if_exists(temporary_path)
 		return false
 
-	if not bool(_read_save_file(temporary_path).get("ok", false)):
-		push_error("Temporary save did not contain a valid JSON object.")
+	if not bool(_read_save_file(temporary_path).get("ok", false)) or FileAccess.get_file_as_string(temporary_path) != serialized:
+		push_error("Temporary save failed JSON or byte-for-byte verification.")
 		_remove_file_if_exists(temporary_path)
 		return false
 
@@ -67,7 +67,7 @@ func save_game(data: Dictionary) -> bool:
 				push_error("Could not stage a verified backup; the existing save was left untouched.")
 				_remove_file_if_exists(temporary_path)
 				return false
-		elif str(current_state.get("status", "")) not in [LOAD_STATUS_INVALID_JSON, LOAD_STATUS_INVALID_SCHEMA]:
+		elif str(current_state.get("status", "")) not in [LOAD_STATUS_INVALID_JSON, LOAD_STATUS_INVALID_SCHEMA, LOAD_STATUS_INVALID_SIZE]:
 			# A read/open error is not evidence that the primary save is corrupt.
 			push_error("Could not verify the current save before replacement.")
 			_remove_file_if_exists(temporary_path)
@@ -84,8 +84,8 @@ func save_game(data: Dictionary) -> bool:
 		return false
 
 	var final_state := _read_save_file(save_path)
-	if not bool(final_state.get("ok", false)):
-		push_error("The final save failed verification; attempting backup recovery.")
+	if not bool(final_state.get("ok", false)) or FileAccess.get_file_as_string(save_path) != serialized:
+		push_error("The final save failed JSON or byte-for-byte verification; attempting backup recovery.")
 		if not _restore_backup_to_primary():
 			push_error("Backup recovery failed; the backup file was preserved for manual recovery.")
 		return false
@@ -164,6 +164,7 @@ func _read_save_file(path: String) -> Dictionary:
 func _stage_backup_from_current() -> bool:
 	if not bool(_read_save_file(save_path).get("ok", false)):
 		return false
+	var source_text := FileAccess.get_file_as_string(save_path)
 
 	var backup_temporary := _backup_temporary_path()
 	_remove_file_if_exists(backup_temporary)
@@ -171,7 +172,7 @@ func _stage_backup_from_current() -> bool:
 	if copy_error != OK:
 		_remove_file_if_exists(backup_temporary)
 		return false
-	if not bool(_read_save_file(backup_temporary).get("ok", false)):
+	if not bool(_read_save_file(backup_temporary).get("ok", false)) or FileAccess.get_file_as_string(backup_temporary) != source_text:
 		_remove_file_if_exists(backup_temporary)
 		return false
 
@@ -179,7 +180,7 @@ func _stage_backup_from_current() -> bool:
 	if rename_error != OK:
 		_remove_file_if_exists(backup_temporary)
 		return false
-	return bool(_read_save_file(_backup_path()).get("ok", false))
+	return bool(_read_save_file(_backup_path()).get("ok", false)) and FileAccess.get_file_as_string(_backup_path()) == source_text
 
 
 func _restore_backup_to_primary() -> bool:
