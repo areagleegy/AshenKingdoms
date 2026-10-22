@@ -53,6 +53,19 @@ if [[ "$client_status" -ne 0 ]]; then
   exit "$client_status"
 fi
 
+if ! grep -q "\[network-input-test\] rejected non-finite direction" "$server_log"; then
+  echo "Host did not record rejection of a non-finite input vector."
+  cat "$server_log"
+  exit 1
+fi
+if ! grep -q "\[network-input-test\] rejected input rate limit" "$server_log"; then
+  echo "Host did not enforce the configured input RPC rate limit during the client burst."
+  cat "$server_log"
+  exit 1
+fi
+echo "[PASS] server rejects non-finite vectors received over ENet"
+echo "[PASS] server enforces the per-avatar RPC rate limit under an ENet burst"
+
 server_health="$(sed -n 's/.*\[combat-server\] enemy_health slot=1 health=\([0-9][0-9]*\.[0-9][0-9]\).*/\1/p' "$server_log" | head -n 1)"
 client_health="$(sed -n 's/.*\[combat-client\] enemy_health slot=1 health=\([0-9][0-9]*\.[0-9][0-9]\).*/\1/p' "$client_log" | head -n 1)"
 if [[ -z "$server_health" || -z "$client_health" ]]; then
