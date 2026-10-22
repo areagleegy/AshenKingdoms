@@ -23,6 +23,15 @@ func _process(delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		apply_look_delta((event as InputEventMouseMotion).relative * mouse_sensitivity)
+		return
+
+	# Reserve the left side for touch movement controls; look only from the right.
+	if event is InputEventScreenDrag:
+		var drag := event as InputEventScreenDrag
+		var viewport_width := get_viewport().get_visible_rect().size.x
+		if viewport_width > 0.0 and drag.position.x >= viewport_width * 0.42:
+			apply_look_delta(drag.relative * touch_sensitivity)
+			get_viewport().set_input_as_handled()
 
 
 func apply_look_delta(delta: Vector2) -> void:
