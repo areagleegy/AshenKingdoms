@@ -88,12 +88,7 @@ func _run() -> void:
 		"nested": {"value": 7}
 	}
 	_check(bool(save_system.call("save_game", sample_data)), "save system writes JSON data")
-	var saved_file := FileAccess.open(SAVE_PATH, FileAccess.READ)
-	if saved_file != null:
-		print("[save-smoke] raw save: %s" % saved_file.get_as_text())
-		saved_file.close()
 	var loaded_data = save_system.call("load_game")
-	print("[save-smoke] loaded data: %s" % str(loaded_data))
 	_check(loaded_data is Dictionary, "save system loads a JSON object")
 	if loaded_data is Dictionary:
 		_check(loaded_data.get("smoke_test_marker", "") == "ashen-kingdoms", "loaded save retains its marker")
