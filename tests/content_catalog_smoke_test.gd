@@ -66,6 +66,20 @@ func _run() -> void:
 	insecure_catalog["packs"][0]["url"] = "http://content.example.invalid/packs/world.zip"
 	_check(not bool(_catalog.call("validate_catalog", insecure_catalog).get("ok", true)), "non-HTTPS package URLs are rejected")
 
+	for invalid_url in [
+		"https://",
+		"https:///packs/world.zip",
+		"https://user:password@content.example.invalid/world.zip",
+		"https://bad..host/world.zip",
+		"https://content.example.invalid:99999/world.zip",
+		"https://content.example.invalid:/world.zip",
+		"https://content.example.invalid/world.zip#fragment",
+		"https://content.example.invalid/a b.zip"
+	]:
+		var invalid_url_catalog: Dictionary = valid_catalog.duplicate(true)
+		invalid_url_catalog["packs"][0]["url"] = invalid_url
+		_check(not bool(_catalog.call("validate_catalog", invalid_url_catalog).get("ok", true)), "malformed or credential-bearing HTTPS package URL is rejected: %s" % invalid_url)
+
 	var traversal_catalog: Dictionary = valid_catalog.duplicate(true)
 	traversal_catalog["packs"][0]["files"][0]["path"] = "../outside.cfg"
 	_check(not bool(_catalog.call("validate_catalog", traversal_catalog).get("ok", true)), "path traversal in file manifest is rejected")
