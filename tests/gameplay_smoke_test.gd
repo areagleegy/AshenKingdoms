@@ -4,6 +4,12 @@ const ProgressionManagerScript: Script = preload("res://scripts/core/progression
 const QuestManagerScript: Script = preload("res://scripts/core/quest_manager.gd")
 const SaveSystemScript: Script = preload("res://scripts/core/save_system.gd")
 const SAVE_PATH: String = "user://savegame.json"
+const MANAGED_SAVE_PATHS: Array[String] = [
+	SAVE_PATH,
+	"user://savegame.json.tmp",
+	"user://savegame.json.bak",
+	"user://savegame.json.bak.tmp",
+]
 
 var _failures: int = 0
 
@@ -13,16 +19,15 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	var had_original_save := FileAccess.file_exists(SAVE_PATH)
-	var original_save := ""
-	if had_original_save:
-		var original_file := FileAccess.open(SAVE_PATH, FileAccess.READ)
-		if original_file == null:
-			push_error("Could not back up existing save before running smoke tests.")
-			quit(1)
-			return
-		original_save = original_file.get_as_text()
-		original_file.close()
+	if not _managed_save_paths_are_safe():
+		push_error("Refusing to run smoke tests because a managed save path is a directory.")
+		quit(1)
+		return
+	var original_files := _snapshot_managed_saves()
+	if original_files.size() != MANAGED_SAVE_PATHS.size():
+		push_error("Could not snapshot all managed save files before running smoke tests.")
+		quit(1)
+		return
 
 	var network_manager: Node = root.get_node_or_null("NetworkManager")
 	_check(network_manager != null, "network manager autoload is present for smoke tests")
@@ -82,6 +87,7 @@ func _run() -> void:
 		var loaded_nested = loaded_data.get("nested", {})
 		_check(loaded_nested is Dictionary and int(loaded_nested.get("value", 0)) == 7, "loaded save retains nested values")
 
+	_check(bool(save_system.call("delete_save")), "test clears primary and backups before malformed JSON case")
 	var corrupt_file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if corrupt_file == null:
 		_check(false, "test can open save file to simulate corruption")
@@ -91,22 +97,77 @@ func _run() -> void:
 		var corrupt_data = save_system.call("load_game")
 		_check(corrupt_data is Dictionary and corrupt_data.is_empty(), "malformed JSON is rejected safely")
 
-	_restore_original_save(had_original_save, original_save, save_system)
+	_restore_original_save(original_files)
+	_check(_managed_save_files_match(original_files), "all original save and backup files are restored")
 
 	print("[smoke] failures: %d" % _failures)
 	quit(1 if _failures > 0 else 0)
 
 
-func _restore_original_save(had_original_save: bool, original_save: String, save_system: Node) -> void:
-	if had_original_save:
-		var restore_file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-		if restore_file == null:
-			_check(false, "existing save file can be restored after the test")
-			return
-		restore_file.store_string(original_save)
-		restore_file.close()
-	else:
-		_check(bool(save_system.call("delete_save")), "temporary smoke-test save is removed")
+func _snapshot_managed_saves() -> Dictionary:
+	var snapshot: Dictionary = {}
+	for path in MANAGED_SAVE_PATHS:
+		if FileAccess.file_exists(path):
+			var file := FileAccess.open(path, FileAccess.READ)
+			if file == null:
+				return {}
+			snapshot[path] = {"exists": true, "text": file.get_as_text()}
+			file.close()
+		else:
+			snapshot[path] = {"exists": false, "text": ""}
+	return snapshot
+
+
+func _restore_original_save(snapshot: Dictionary) -> void:
+	for path in MANAGED_SAVE_PATHS:
+		if _is_directory(path):
+			var dir_error: Error = DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+			_check(dir_error == OK, "test-created managed directory is removed: %s" % path)
+		var state: Dictionary = snapshot.get(path, {"exists": false, "text": ""})
+		if bool(state.get("exists", false)):
+			var file := FileAccess.open(path, FileAccess.WRITE)
+			if file == null:
+				_check(false, "original managed save is reopened for restoration: %s" % path)
+				continue
+			file.store_string(String(state.get("text", "")))
+			file.flush()
+			var write_error: Error = file.get_error()
+			file.close()
+			_check(write_error == OK and _read_saved_text(path) == String(state.get("text", "")), "original managed save is restored: %s" % path)
+		elif FileAccess.file_exists(path):
+			var remove_error: Error = DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+			_check(remove_error == OK, "test-created save file is removed: %s" % path)
+
+
+func _managed_save_paths_are_safe() -> bool:
+	for path in MANAGED_SAVE_PATHS:
+		if _is_directory(path):
+			return false
+	return true
+
+
+func _managed_save_files_match(snapshot: Dictionary) -> bool:
+	for path in MANAGED_SAVE_PATHS:
+		var state: Dictionary = snapshot.get(path, {"exists": false, "text": ""})
+		if bool(state.get("exists", false)):
+			if not FileAccess.file_exists(path) or _read_saved_text(path) != String(state.get("text", "")):
+				return false
+		elif FileAccess.file_exists(path):
+			return false
+	return true
+
+
+func _is_directory(path: String) -> bool:
+	return DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(path))
+
+
+func _read_saved_text(path: String) -> String:
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return ""
+	var text := file.get_as_text()
+	file.close()
+	return text
 
 
 func _check(condition: bool, description: String) -> void:
