@@ -61,6 +61,22 @@
       "id": "successful-test-name-is-not-error",
       "expected_category": null,
       "log": "test_parse_error_is_ranked_first (DiagnosticsClassifierTests) ... ok"
+    },
+    {
+      "id": "expected-oversized-save-rejection",
+      "expected_category": null,
+      "log": "regression.log: ERROR: Refusing to save data larger than the local save-size limit.\\nregression.log: [PASS] save system rejects payloads larger than the configured size limit"
+    },
+    {
+      "id": "pass-missing-optional-player-model",
+      "expected_category": null,
+      "log": "player.log: [PASS] missing player.glb selects the documented placeholder path"
+    },
+    {
+      "id": "runtime-script-error-is-detected",
+      "expected_category": "generic_error",
+      "log": "network-loopback.log: SCRIPT ERROR: Cannot call method 'get_unique_id' on a null value."
     }
+
   ]
 }
