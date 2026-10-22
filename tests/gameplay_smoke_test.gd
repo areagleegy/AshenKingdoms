@@ -80,9 +80,9 @@ func _run() -> void:
 		"player_position": {"x": 0.0, "y": 0.92, "z": 0.0},
 		"player_health": 100.0,
 		"level": 1,
-		"experience": 0,
+		"experience": 75,
 		"inventory": [],
-		"quest": {"id": "", "title": "لا توجد مهمة نشطة", "progress": 0, "active": false},
+		"quest": {"id": "ash_trail", "title": "اقتفاء الرماد", "progress": 3, "active": false},
 		"dialogue": {},
 		"smoke_test_marker": "ashen-kingdoms",
 		"nested": {"value": 7}
@@ -94,6 +94,20 @@ func _run() -> void:
 		_check(loaded_data.get("smoke_test_marker", "") == "ashen-kingdoms", "loaded save retains its marker")
 		var loaded_nested = loaded_data.get("nested", {})
 		_check(loaded_nested is Dictionary and int(loaded_nested.get("value", 0)) == 7, "loaded save retains nested values")
+
+		var persisted_progression: Node = ProgressionManagerScript.new()
+		root.add_child(persisted_progression)
+		persisted_progression.call("restore_state", int(loaded_data.get("level", 1)), int(loaded_data.get("experience", 0)))
+		var persisted_quest: Node = QuestManagerScript.new()
+		persisted_quest.set("progression", persisted_progression)
+		root.add_child(persisted_quest)
+		persisted_quest.call("load_state", loaded_data.get("quest", {}))
+		_check(int(persisted_quest.get("progress")) == 3 and not bool(persisted_quest.get("active")), "completed quest state survives save/load")
+		persisted_quest.call("on_enemy_defeated", &"ash_wraith")
+		_check(int(persisted_progression.get("experience")) == 75, "reloaded completed quest does not grant its XP reward twice")
+		_check(not bool(persisted_quest.call("start_quest", &"ash_trail")), "reloaded completed quest cannot be accepted again")
+		persisted_quest.queue_free()
+		persisted_progression.queue_free()
 
 	save_system.call("delete_save")
 	var corrupt_file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
