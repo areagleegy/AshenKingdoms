@@ -110,6 +110,7 @@ func _run() -> void:
 	var recovered_data = save_system.call("load_game")
 	_check(recovered_data is Dictionary and recovered_data.get("smoke_test_marker", "") == "backup-state", "load recovers the previous valid backup")
 	_check(str(save_system.get("last_load_status")) == "recovered_backup", "load status reports backup recovery")
+	_check(FileAccess.get_file_as_string(_test_save_path) == FileAccess.get_file_as_string(_test_save_path + ".bak"), "restored primary save matches the verified backup bytes")
 
 	save_system.set("rename_hook_for_testing", Callable(self, "_fail_primary_rename_for_test"))
 	_check(not bool(save_system.call("save_game", {"smoke_test_marker": "must-not-replace"})), "replacement failure is not reported as a successful save")
