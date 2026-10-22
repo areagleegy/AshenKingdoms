@@ -24,6 +24,8 @@ func _run() -> void:
 	print("[network-smoke] avatar ready")
 	_check(float(avatar.get("current_health")) == 100.0, "network avatar starts with expected health")
 	_check(bool(multiplayer.is_server()), "offline smoke harness is allowed to exercise server logic")
+	_test_input_direction_validation(avatar)
+	_test_input_rate_limit(avatar)
 
 	avatar.call("server_grant_experience", 100)
 	print("[network-smoke] XP tested")
@@ -68,6 +70,50 @@ func _run() -> void:
 
 	print("[network-smoke] failures: %d" % _failures)
 	get_tree().quit(1 if _failures > 0 else 0)
+
+
+func _test_input_direction_validation(avatar: Node) -> void:
+	_check(
+		bool(avatar.call("_is_valid_input_direction", Vector3(0.6, 0.0, 0.8))),
+		"input validator accepts finite horizontal movement vectors"
+	)
+	_check(
+		not bool(avatar.call("_is_valid_input_direction", Vector3(NAN, 0.0, 0.0))),
+		"input validator rejects NaN movement components"
+	)
+	_check(
+		not bool(avatar.call("_is_valid_input_direction", Vector3(INF, 0.0, 0.0))),
+		"input validator rejects infinite movement components"
+	)
+	_check(
+		not bool(avatar.call("_is_valid_input_direction", Vector3(0.0, 0.2, 1.0))),
+		"input validator rejects non-horizontal movement"
+	)
+	_check(
+		not bool(avatar.call("_is_valid_input_direction", Vector3(2.0, 0.0, 0.0))),
+		"input validator rejects excessive movement components"
+	)
+
+
+func _test_input_rate_limit(avatar: Node) -> void:
+	for packet_index in range(5):
+		_check(
+			bool(avatar.call("_consume_input_rate_token", 1000)),
+			"input rate limiter accepts initial burst packet %d" % (packet_index + 1)
+		)
+	_check(
+		not bool(avatar.call("_consume_input_rate_token", 1000)),
+		"input rate limiter rejects packets beyond burst budget"
+	)
+	for packet_index in range(3):
+		_check(
+			bool(avatar.call("_consume_input_rate_token", 1100)),
+			"input rate limiter replenishes tokens over time: %d" % (packet_index + 1)
+		)
+	_check(
+		not bool(avatar.call("_consume_input_rate_token", 1100)),
+		"input rate limiter enforces the replenished budget"
+	)
 
 
 func _check(condition: bool, description: String) -> void:
