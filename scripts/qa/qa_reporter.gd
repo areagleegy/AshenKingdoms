@@ -120,8 +120,8 @@ func set_test_results(results: Array) -> void:
 
 		var duration_value: Variant = raw_result.get("duration_ms", 0)
 		var error_value: Variant = raw_result.get("error_code", 0)
-		var duration_ms := max(0, int(duration_value)) if typeof(duration_value) in [TYPE_INT, TYPE_FLOAT] else 0
-		var error_code := int(error_value) if typeof(error_value) in [TYPE_INT, TYPE_FLOAT] else 0
+		var duration_ms: int = max(0, int(duration_value)) if typeof(duration_value) in [TYPE_INT, TYPE_FLOAT] else 0
+		var error_code: int = int(error_value) if typeof(error_value) in [TYPE_INT, TYPE_FLOAT] else 0
 		_test_results.append({
 			"id": test_id,
 			"status": status,
