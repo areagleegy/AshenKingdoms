@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 import struct
 import tempfile
@@ -96,7 +97,7 @@ class GeneratePlayerGlbTests(unittest.TestCase):
         self.validate_rejects(make_glb(declared_size_delta=4))
 
     def test_rejects_truncated_chunk_header(self) -> None:
-        content = make_glb(chunks=[(JSON_CHUNK, b'{"asset":{"version":"2.0"}}    ')])
+        content = make_glb(chunks=[(JSON_CHUNK, make_json_chunk())])
         content += bytes([0, 0, 0, 0])
         content = bytearray(content)
         struct.pack_into("<I", content, 8, len(content))
@@ -134,7 +135,7 @@ class GeneratePlayerGlbTests(unittest.TestCase):
         self.validate_rejects(make_glb(chunks=[(JSON_CHUNK, json_chunk), (JSON_CHUNK, json_chunk)]))
 
     def test_rejects_duplicate_binary_chunks(self) -> None:
-        json_chunk = b'{"asset":{"version":"2.0"}}    '
+        json_chunk = make_json_chunk()
         binary_chunk = b"\\x00\\x00\\x00\\x00"
         self.validate_rejects(make_glb(chunks=[
             (JSON_CHUNK, json_chunk),
@@ -161,7 +162,7 @@ class GeneratePlayerGlbTests(unittest.TestCase):
 
     def test_accepts_supported_base64_data_uri(self) -> None:
         image_data = b"fixture"
-        encoded = __import__("base64").b64encode(image_data).decode("ascii")
+        encoded = base64.b64encode(image_data).decode("ascii")
         image_url = f"data:image/png;base64,{encoded}"
         self.assertEqual(generate_player_glb._read_image_reference(image_url, None), image_url)
 
@@ -218,6 +219,23 @@ class GeneratePlayerGlbTests(unittest.TestCase):
                 generate_player_glb._download_glb(
                     "https://cdn.example.invalid/model.glb", output, force=True
                 )
+        self.assertEqual(output.read_bytes(), original)
+        self.assertFalse(output.with_suffix(".glb.part").exists())
+
+
+    def test_replace_failure_preserves_existing_output(self) -> None:
+        output = self.root / "player.glb"
+        original = b"previous-good-model"
+        output.write_bytes(original)
+        with mock.patch(
+            "tools.generate_player_glb.urllib.request.urlopen",
+            return_value=FakeResponse(make_glb()),
+        ):
+            with mock.patch("tools.generate_player_glb.os.replace", side_effect=OSError("simulated replace failure")):
+                with self.assertRaises(OSError):
+                    generate_player_glb._download_glb(
+                        "https://cdn.example.invalid/model.glb", output, force=True
+                    )
         self.assertEqual(output.read_bytes(), original)
         self.assertFalse(output.with_suffix(".glb.part").exists())
 
