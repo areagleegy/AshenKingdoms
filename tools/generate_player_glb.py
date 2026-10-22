@@ -39,9 +39,9 @@ class MeshyError(RuntimeError):
 
 def _read_image_reference(image_url: str | None, image_file: Path | None) -> str:
     if image_url:
-        if image_url.startswith("data:"):
+        if image_url.lower().startswith("data:"):
             metadata, separator, encoded = image_url.partition(",")
-            mime_type = metadata[5:].split(";", 1)[0].lower() if metadata.startswith("data:") else ""
+            mime_type = metadata[5:].split(";", 1)[0].lower() if metadata.lower().startswith("data:") else ""
             if not separator or metadata.lower() != f"data:{mime_type};base64" or mime_type not in SUPPORTED_MIME_TYPES:
                 raise MeshyError("--image-url data URI must be base64 JPG, PNG, or WEBP.")
             max_encoded_length = 4 * ((MAX_IMAGE_BYTES + 2) // 3)
@@ -123,8 +123,8 @@ def _request_json(
 
 def _download_glb(url: str, output: Path, force: bool) -> None:
     parsed = urlparse(url)
-    if parsed.scheme != "https" or not parsed.netloc:
-        raise MeshyError("The returned model URL was not a valid HTTPS URL.")
+    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+        raise MeshyError("The returned model URL must be HTTPS without embedded credentials.")
     output.parent.mkdir(parents=True, exist_ok=True)
     if output.exists() and not force:
         raise MeshyError(f"Output already exists: {output}. Use --force to replace it.")
@@ -152,8 +152,8 @@ def _download_glb(url: str, output: Path, force: bool) -> None:
                     target.write(chunk)
 
         _validate_glb_container(partial)
-        if output.exists() and force:
-            output.unlink()
+        # os.replace performs the final atomic promotion. Keep any previous good
+        # output intact unless the validated replacement can actually be committed.
         os.replace(partial, output)
     except Exception:
         try:
@@ -230,6 +230,8 @@ def _validate_glb_container(path: Path) -> None:
                     if chunk_type == GLB_BIN_CHUNK_TYPE:
                         if saw_binary:
                             raise MeshyError("GLB may contain at most one BIN chunk.")
+                        if chunk_index != 1:
+                            raise MeshyError("The optional GLB BIN chunk must appear second.")
                         saw_binary = True
                     # Read in bounded blocks instead of seeking: seeking beyond EOF
                     # can hide a truncated BIN/extension chunk.
