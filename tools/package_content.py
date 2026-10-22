@@ -65,8 +65,11 @@ def validate_version(value: str) -> str:
 
 
 def validate_package_url(value: str) -> str:
-    if not value.startswith("https://") or len(value) > 2048:
-        raise PackageError("Package URL must be an HTTPS URL.")
+    if not isinstance(value, str) or len(value) > 2048 or any(character.isspace() for character in value):
+        raise PackageError("Package URL must be a valid HTTPS URL.")
+    parsed = urlparse(value)
+    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+        raise PackageError("Package URL must be HTTPS and must not contain embedded credentials.")
     return value
 
 
@@ -179,7 +182,13 @@ def validate_provenance_manifest(
             if not isinstance(value, str) or len(value) > 2048:
                 raise PackageError(f"assets[{index}].{field} must be a valid HTTP(S) URL.")
             parsed = urlparse(value)
-            if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username or parsed.password:
+            if (
+                any(character.isspace() for character in value)
+                or parsed.scheme not in {"http", "https"}
+                or not parsed.hostname
+                or parsed.username
+                or parsed.password
+            ):
                 raise PackageError(f"assets[{index}].{field} must be a valid HTTP(S) URL without credentials.")
             metadata[field] = value
         for field in ("commercial_use", "redistribution_allowed"):
