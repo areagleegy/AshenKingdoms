@@ -39,6 +39,8 @@ jobs:
         run: |
           test -f project.godot
           test -f export_presets.cfg
+          test -f .github/workflows/android-release.yml
+          test -f docs/ANDROID_RELEASE_BUILD_AR.md
           test -f scenes/boot/Main.tscn
           test -f scripts/core/main.gd
           test -f scripts/core/input_setup.gd
