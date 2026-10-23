@@ -1,6 +1,7 @@
 name: Experimental Android QA APK
 
 on:
+  pull_request:
   workflow_dispatch:
     inputs:
       ai_diagnose:
@@ -24,7 +25,7 @@ jobs:
     env:
       GODOT_TEMPLATE_DIR: 4.6.stable
       GODOT_SILENCE_ROOT_WARNING: "1"
-      ASHEN_AI_DIAGNOSE: ${{ inputs.ai_diagnose && 'true' || 'false' }}
+      ASHEN_AI_DIAGNOSE: ${{ github.event_name == 'workflow_dispatch' && inputs.ai_diagnose && 'true' || 'false' }}
       ASHEN_AI_ENDPOINT: ${{ secrets.ASHEN_AI_ENDPOINT }}
       ASHEN_AI_API_KEY: ${{ secrets.ASHEN_AI_API_KEY }}
       ASHEN_AI_MODEL: ${{ vars.ASHEN_AI_MODEL }}
