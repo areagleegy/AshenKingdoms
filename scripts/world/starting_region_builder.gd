@@ -7,10 +7,13 @@ const STONE_MID := Color(0.25, 0.26, 0.27, 1.0)
 const ASH_WOOD := Color(0.17, 0.12, 0.09, 1.0)
 const EMBER_GLOW := Color(0.62, 0.23, 0.075, 1.0)
 const WELL_WATER := Color(0.035, 0.10, 0.13, 1.0)
+
+var _catalog_loader: Node
 const WORLD_INTERACTABLE_SCRIPT: Script = preload("res://scripts/world/world_interactable.gd")
 
 
 func build(parent: Node3D, region: Dictionary) -> Node3D:
+	_catalog_loader = parent.get_node_or_null("/root/WorldCatalog")
 	var feature_root := Node3D.new()
 	feature_root.name = "RegionFeatures"
 	feature_root.set_meta("region_id", str(region.get("id", "")))
@@ -127,8 +130,11 @@ func _create_poi(parent: Node3D, landmark_id: String, position: Vector3) -> Node
 	poi.set_meta("landmark_id", landmark_id)
 	poi.set("interaction_id", StringName(landmark_id))
 	poi.set("region_id", StringName(STARTER_REGION_ID))
-	poi.set("display_name", _landmark_display_name(landmark_id))
-	poi.set("interaction_message", _landmark_interaction_message(landmark_id))
+	var point_data := _get_point_of_interest_record(landmark_id)
+	var names: Variant = point_data.get("name", {})
+	var descriptions: Variant = point_data.get("description", {})
+	poi.set("display_name", _get_localized_text(names, "ar", _landmark_display_name(landmark_id)))
+	poi.set("interaction_message", _get_localized_text(descriptions, "ar", _landmark_interaction_message(landmark_id)))
 	parent.add_child(poi)
 	return poi
 
@@ -143,6 +149,20 @@ func _landmark_display_name(landmark_id: String) -> String:
 			return "حجر الطريق المكسور"
 		_:
 			return "معلم مجهول"
+
+
+func _get_point_of_interest_record(landmark_id: String) -> Dictionary:
+	if not is_instance_valid(_catalog_loader) or not _catalog_loader.has_method("get_record"):
+		return {}
+	var result: Variant = _catalog_loader.call("get_record", "points_of_interest", landmark_id)
+	return result if result is Dictionary else {}
+
+
+func _get_localized_text(container: Variant, language: String, fallback: String) -> String:
+	if not container is Dictionary:
+		return fallback
+	var value: Variant = container.get(language, "")
+	return str(value) if value is String and not str(value).is_empty() else fallback
 
 
 func _landmark_interaction_message(landmark_id: String) -> String:

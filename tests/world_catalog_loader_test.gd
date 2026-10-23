@@ -26,6 +26,10 @@ func _run() -> void:
 	_check(loader.call("get_region", "ashen_basin").get("id", "") == "ashen_basin", "region lookup returns the requested region")
 	_check(loader.call("get_equipment", "weapons", "basin_sword").get("damage", 0) == 30, "weapon lookup returns structured combat data")
 	_check(loader.call("get_record", "world_events", "ashfall").get("id", "") == "ashfall", "world event lookup returns the requested event")
+	var gate_record: Dictionary = loader.call("get_record", "points_of_interest", "cinder_gate")
+	_check(gate_record.get("region", "") == "ashen_basin", "point-of-interest catalog lookup returns its region")
+	var gate_name: Dictionary = gate_record.get("name", {})
+	_check(gate_name.get("ar", "") == "بوابة الجمر" and gate_name.get("en", "") == "Cinder Gate", "point-of-interest record contains bilingual names")
 	_check(loader.call("get_record", "quest_chains", "a_wall_made_of_ash").get("id", "") == "a_wall_made_of_ash", "expanded character questlines are available by ID")
 	_check(loader.call("get_last_error").is_empty(), "successful default load leaves no validation error")
 
@@ -52,6 +56,16 @@ func _run() -> void:
 	unknown_threat["regions"][0]["threats"] = ["missing_creature"]
 	_check(_write_json(temp_path, unknown_threat), "unknown creature fixture can be written")
 	_check(not loader.call("load_catalog", temp_path), "unknown creature references are rejected")
+
+	var missing_point: Dictionary = valid_catalog.duplicate(true)
+	missing_point["points_of_interest"].erase(missing_point["points_of_interest"][0])
+	_check(_write_json(temp_path, missing_point), "missing point-of-interest fixture can be written")
+	_check(not loader.call("load_catalog", temp_path), "region references to missing point-of-interest records are rejected")
+
+	var mismatched_point_region: Dictionary = valid_catalog.duplicate(true)
+	mismatched_point_region["points_of_interest"][0]["region"] = "coalwood"
+	_check(_write_json(temp_path, mismatched_point_region), "mismatched point-of-interest fixture can be written")
+	_check(not loader.call("load_catalog", temp_path), "point-of-interest region ownership mismatches are rejected")
 
 	var unknown_habitat: Dictionary = valid_catalog.duplicate(true)
 	unknown_habitat["creatures"][0]["habitats"] = ["missing_region"]

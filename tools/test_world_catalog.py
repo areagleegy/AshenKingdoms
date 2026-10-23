@@ -50,6 +50,32 @@ class WorldCatalogTests(unittest.TestCase):
         world["characters"][0]["questline"] = "Missing Questline"
         self.assertTrue(any("unknown questline" in error for error in validate_world(world)))
 
+    def test_landmark_catalog_matches_region_landmarks(self) -> None:
+        region_landmarks = {
+            landmark
+            for region in self.world["regions"]
+            for landmark in region["landmarks"]
+        }
+        point_ids = {point["id"] for point in self.world["points_of_interest"]}
+        self.assertEqual(region_landmarks, point_ids)
+
+    def test_missing_point_of_interest_record_is_rejected(self) -> None:
+        world = copy.deepcopy(self.world)
+        world["points_of_interest"] = [
+            point for point in world["points_of_interest"] if point["id"] != "cinder_gate"
+        ]
+        self.assertTrue(any("unknown point of interest" in error for error in validate_world(world)))
+
+    def test_point_of_interest_region_must_match_region_membership(self) -> None:
+        world = copy.deepcopy(self.world)
+        world["points_of_interest"][0]["region"] = "coalwood"
+        self.assertTrue(any("region does not match" in error for error in validate_world(world)))
+
+    def test_point_of_interest_requires_bilingual_description(self) -> None:
+        world = copy.deepcopy(self.world)
+        world["points_of_interest"][0]["description"] = {"ar": "وصف فقط"}
+        self.assertTrue(any("Arabic and English descriptions" in error for error in validate_world(world)))
+
     def test_unknown_creature_habitat_is_rejected(self) -> None:
         world = copy.deepcopy(self.world)
         world["creatures"][0]["habitats"] = ["missing_region"]

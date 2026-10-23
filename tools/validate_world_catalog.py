@@ -15,8 +15,8 @@ def validate_world(world: Any) -> list[str]:
     if not isinstance(world, dict):
         return ["world root must be an object"]
     schema_version = world.get("schema_version")
-    if isinstance(schema_version, bool) or not isinstance(schema_version, int) or schema_version != 1:
-        errors.append("schema_version must be integer 1")
+    if isinstance(schema_version, bool) or not isinstance(schema_version, int) or schema_version != 2:
+        errors.append("schema_version must be integer 2")
     if world.get("world_id") != "ashen_kingdoms":
         errors.append("world_id must be ashen_kingdoms")
 
@@ -68,6 +68,7 @@ def validate_world(world: Any) -> list[str]:
     quests = records(("quest_chains",), "quest_chains")
     waterways = records(("waterways",), "waterways")
     world_events = records(("world_events",), "world_events")
+    points_of_interest = records(("points_of_interest",), "points_of_interest")
 
     region_ids = unique_ids(regions, "regions")
     settlement_ids = unique_ids(settlements, "settlements")
@@ -77,8 +78,10 @@ def validate_world(world: Any) -> list[str]:
     quest_ids = unique_ids(quests, "quest_chains")
     unique_ids(waterways, "waterways")
     unique_ids(world_events, "world_events")
+    point_ids = unique_ids(points_of_interest, "points_of_interest")
 
     landmark_ids: set[str] = set()
+    landmark_regions: dict[str, str] = {}
     for region in regions:
         label = f"region {region.get('id')}"
         names = region.get("name")
@@ -88,9 +91,31 @@ def validate_world(world: Any) -> list[str]:
             if landmark in landmark_ids:
                 errors.append(f"duplicate landmark id: {landmark}")
             landmark_ids.add(landmark)
+            landmark_regions[landmark] = str(region.get("id", ""))
+            if landmark not in point_ids:
+                errors.append(f"{label} references unknown point of interest {landmark}")
         for creature_id in string_list(region, "threats", label):
             if creature_id not in creature_ids:
                 errors.append(f"{label} references unknown creature {creature_id}")
+
+    for point in points_of_interest:
+        label = f"point of interest {point.get('id')}"
+        point_id = point.get("id")
+        point_region = point.get("region")
+        if not isinstance(point_region, str) or point_region not in region_ids:
+            errors.append(f"{label} references unknown region {point_region}")
+        elif isinstance(point_id, str) and landmark_regions.get(point_id) != point_region:
+            errors.append(f"{label} region does not match the region landmark list")
+        names = point.get("name")
+        if not isinstance(names, dict) or not isinstance(names.get("ar"), str) or not names.get("ar") or not isinstance(names.get("en"), str) or not names.get("en"):
+            errors.append(f"{label} must have Arabic and English names")
+        descriptions = point.get("description")
+        if not isinstance(descriptions, dict) or not isinstance(descriptions.get("ar"), str) or not descriptions.get("ar") or not isinstance(descriptions.get("en"), str) or not descriptions.get("en"):
+            errors.append(f"{label} must have Arabic and English descriptions")
+        if not isinstance(point.get("kind"), str) or not point.get("kind"):
+            errors.append(f"{label} must have a non-empty kind")
+        if isinstance(point_id, str) and point_id not in landmark_ids:
+            errors.append(f"{label} is not listed in any region's landmarks")
 
     for settlement in settlements:
         if settlement.get("region") not in region_ids:
@@ -244,7 +269,8 @@ def main() -> int:
         "World catalog valid: "
         f"{len(world['regions'])} regions, {len(world['settlements'])} settlements, "
         f"{len(world['factions'])} factions, {len(world['characters'])} characters, "
-        f"{len(world['creatures'])} creatures, {len(world['quest_chains'])} quest chains."
+        f"{len(world['creatures'])} creatures, {len(world['quest_chains'])} quest chains, "
+        f"{len(world['points_of_interest'])} points of interest."
     )
     return 0
 

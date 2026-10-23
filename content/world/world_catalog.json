@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "world_id": "ashen_kingdoms",
   "title": {
     "en": "Ashen Kingdoms",
@@ -219,6 +219,281 @@
         "reopen the mine lift",
         "choose who controls Sootkeep"
       ]
+    }
+  ],
+  "points_of_interest": [
+    {
+      "id": "cinder_gate",
+      "region": "ashen_basin",
+      "kind": "gate",
+      "name": {
+        "ar": "بوابة الجمر",
+        "en": "Cinder Gate"
+      },
+      "description": {
+        "ar": "نقطة عبور وحراسة عند طرف حوض الرماد. أصلح إشاراتها لفتح الطريق نحو الأطلال.",
+        "en": "A guarded crossing at the edge of Ashen Basin. Restore its signals to reopen the road toward the ruins."
+      }
+    },
+    {
+      "id": "pilgrims_well",
+      "region": "ashen_basin",
+      "kind": "well",
+      "name": {
+        "ar": "بئر الحجاج",
+        "en": "Pilgrims' Well"
+      },
+      "description": {
+        "ar": "بئر حجري قديم تتوقف عنده القوافل؛ تشير آثاره إلى عابرين سبقوا العاصفة.",
+        "en": "An old stone well where caravans stop; its tracks suggest travelers passed shortly before the ash storm."
+      }
+    },
+    {
+      "id": "broken_waystone",
+      "region": "ashen_basin",
+      "kind": "waystone",
+      "name": {
+        "ar": "حجر الطريق المكسور",
+        "en": "Broken Waystone"
+      },
+      "description": {
+        "ar": "علامة طريق إمبراطورية خامدة، محفور في قلبها أثر لزجاج الجمر.",
+        "en": "A dormant imperial waystone with an Emberglass trace carved into its core."
+      }
+    },
+    {
+      "id": "throne_without_a_king",
+      "region": "ruined_crown",
+      "kind": "throne",
+      "name": {
+        "ar": "عرش بلا ملك",
+        "en": "Throne Without a King"
+      },
+      "description": {
+        "ar": "قاعة خلافة مهجورة أزيلت منها أسماء الورثة من السجلات الرسمية.",
+        "en": "An abandoned succession hall where the heirs' names were removed from official records."
+      }
+    },
+    {
+      "id": "bell_tower",
+      "region": "ruined_crown",
+      "kind": "bell_tower",
+      "name": {
+        "ar": "برج الأجراس",
+        "en": "Bell Tower"
+      },
+      "description": {
+        "ar": "برج متصدع ما زالت أصداؤه تغيّر سلوك المخلوقات قرب العاصمة.",
+        "en": "A fractured tower whose echoes still alter creature behavior near the old capital."
+      }
+    },
+    {
+      "id": "underkeep",
+      "region": "ruined_crown",
+      "kind": "underkeep",
+      "name": {
+        "ar": "السرداب السفلي",
+        "en": "The Underkeep"
+      },
+      "description": {
+        "ar": "شبكة ممرات تحت العاصمة، أُغلقت بواباتها بعد آخر نغمة للآلة.",
+        "en": "A network of passages under the capital, sealed after the machine's last great toll."
+      }
+    },
+    {
+      "id": "widow_tree",
+      "region": "coalwood",
+      "kind": "tree",
+      "name": {
+        "ar": "شجرة الأرملة",
+        "en": "Widow Tree"
+      },
+      "description": {
+        "ar": "شجرة محترقة تحمل على جذعها علامات تحذير تركها متعقبون مفقودون.",
+        "en": "A burned tree marked with warnings left by trackers who never returned."
+      }
+    },
+    {
+      "id": "charcoal_camp",
+      "region": "coalwood",
+      "kind": "camp",
+      "name": {
+        "ar": "معسكر الفحم",
+        "en": "Charcoal Camp"
+      },
+      "description": {
+        "ar": "مخيم صانعي فحم مهجور؛ بقايا الأدوات تكشف طريقًا عبر الجذور.",
+        "en": "An abandoned charcoal burners' camp whose tools point to a route through the roots."
+      }
+    },
+    {
+      "id": "root_chapel",
+      "region": "coalwood",
+      "kind": "chapel",
+      "name": {
+        "ar": "كنيسة الجذور",
+        "en": "Root Chapel"
+      },
+      "description": {
+        "ar": "مصلّى حجري ابتلعت جذوره الملتوية جزءًا من المذبح القديم.",
+        "en": "A stone chapel partly swallowed by twisted roots and its old altar."
+      }
+    },
+    {
+      "id": "drowned_belfry",
+      "region": "bellfen",
+      "kind": "belfry",
+      "name": {
+        "ar": "برج الأجراس الغارق",
+        "en": "Drowned Belfry"
+      },
+      "description": {
+        "ar": "برج نصف غارق تتبدل مداخله مع مدّ الأجراس ومستوى مياه المستنقع.",
+        "en": "A half-drowned bell tower whose entrances shift with the bell-tide and mire level."
+      }
+    },
+    {
+      "id": "reed_market",
+      "region": "bellfen",
+      "kind": "market",
+      "name": {
+        "ar": "سوق القصب",
+        "en": "Reed Market"
+      },
+      "description": {
+        "ar": "سوق فوق ركائز خشبية؛ يبيع سكانه الأعشاب وأخبار الطرق المائية.",
+        "en": "A market on wooden stilts where locals trade herbs and news of the waterways."
+      }
+    },
+    {
+      "id": "sunk_ferry",
+      "region": "bellfen",
+      "kind": "ferry",
+      "name": {
+        "ar": "العبّارة الغارقة",
+        "en": "Sunk Ferry"
+      },
+      "description": {
+        "ar": "عبّارة قديمة تحت الماء؛ يمكن استعادة سلسلة جرّها لفتح معبر آمن.",
+        "en": "An old ferry beneath the water; recovering its tow-chain may reopen a safer crossing."
+      }
+    },
+    {
+      "id": "blackwake_harbor",
+      "region": "sable_coast",
+      "kind": "harbor",
+      "name": {
+        "ar": "ميناء بلاكويك",
+        "en": "Blackwake Harbor"
+      },
+      "description": {
+        "ar": "ميناء تجاري تؤثر سمعة اللاعب فيه على خدمات السفن والإمدادات.",
+        "en": "A trading harbor where reputation affects ship services and provisions."
+      }
+    },
+    {
+      "id": "saltwatch_lighthouse",
+      "region": "sable_coast",
+      "kind": "lighthouse",
+      "name": {
+        "ar": "منارة مراقبة الملح",
+        "en": "Saltwatch Lighthouse"
+      },
+      "description": {
+        "ar": "منارة متضررة ترسم عدستها مسارًا آمنًا بين الشعاب عند إصلاحها.",
+        "en": "A damaged lighthouse whose lens can mark a safe course through the reefs when repaired."
+      }
+    },
+    {
+      "id": "wreckers_cove",
+      "region": "sable_coast",
+      "kind": "cove",
+      "name": {
+        "ar": "خليج الحطام",
+        "en": "Wreckers' Cove"
+      },
+      "description": {
+        "ar": "خليج مخفي تجمع فيه الأطقم الحرة حطام السفن والحمولات المفقودة.",
+        "en": "A hidden cove where free crews gather shipwrecks and lost cargo."
+      }
+    },
+    {
+      "id": "red_crater",
+      "region": "cinder_isles",
+      "kind": "crater",
+      "name": {
+        "ar": "الفوهة الحمراء",
+        "en": "Red Crater"
+      },
+      "description": {
+        "ar": "فوهة بركانية تكشف طبقات خام من زجاج الجمر بعد هدوء الرماد.",
+        "en": "A volcanic crater exposing raw Emberglass seams after the ash settles."
+      }
+    },
+    {
+      "id": "glassbeach",
+      "region": "cinder_isles",
+      "kind": "beach",
+      "name": {
+        "ar": "شاطئ الزجاج",
+        "en": "Glass Beach"
+      },
+      "description": {
+        "ar": "شاطئ من رمل متزجج وشظايا حادة؛ يخفي المدّ قطعًا نادرة بين الصخور.",
+        "en": "A beach of fused sand and sharp shards where the tide hides rare fragments."
+      }
+    },
+    {
+      "id": "monastery_of_tides",
+      "region": "cinder_isles",
+      "kind": "monastery",
+      "name": {
+        "ar": "دير المدّ",
+        "en": "Monastery of Tides"
+      },
+      "description": {
+        "ar": "دير بحري مهجور، تحفظ أروقته سجلات قديمة عن حركة المياه والأجراس.",
+        "en": "An abandoned sea monastery whose halls preserve old records of water and bell cycles."
+      }
+    },
+    {
+      "id": "sootkeep",
+      "region": "sootmarch",
+      "kind": "keep",
+      "name": {
+        "ar": "حصن السخام",
+        "en": "Sootkeep"
+      },
+      "description": {
+        "ar": "حصن جبلي تتنازع عليه الفصائل، وتتحكم السيطرة عليه في المرور إلى المرتفعات.",
+        "en": "A mountain stronghold contested by factions; control of it determines access to the highlands."
+      }
+    },
+    {
+      "id": "ironvein_mine",
+      "region": "sootmarch",
+      "kind": "mine",
+      "name": {
+        "ar": "منجم عرق الحديد",
+        "en": "Ironvein Mine"
+      },
+      "description": {
+        "ar": "منجم بارد مغلق يحتوي على خام يصلح لصناعة العتاد المتقدم.",
+        "en": "A cold, sealed mine containing ore suitable for advanced equipment."
+      }
+    },
+    {
+      "id": "windbreak_pass",
+      "region": "sootmarch",
+      "kind": "mountain_pass",
+      "name": {
+        "ar": "ممر كاسر الريح",
+        "en": "Windbreak Pass"
+      },
+      "description": {
+        "ar": "ممر جبلي مكشوف تضيق فيه الرؤية؛ العواصف تحدد توقيت العبور الآمن.",
+        "en": "An exposed mountain pass where storms reduce visibility and determine safe crossing windows."
+      }
     }
   ],
   "waterways": [

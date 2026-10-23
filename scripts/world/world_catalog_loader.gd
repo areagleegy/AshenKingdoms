@@ -5,10 +5,10 @@ signal catalog_loaded(catalog: Dictionary)
 signal catalog_load_failed(message: String)
 
 const DEFAULT_CATALOG_PATH := "res://content/world/world_catalog.json"
-const EXPECTED_SCHEMA_VERSION := 1
+const EXPECTED_SCHEMA_VERSION := 2
 const MAX_CATALOG_BYTES := 2 * 1024 * 1024
 const REQUIRED_ARRAYS := [
-	"regions", "settlements", "factions", "characters",
+	"regions", "points_of_interest", "settlements", "factions", "characters",
 	"creatures", "quest_chains", "waterways", "world_events"
 ]
 
@@ -122,24 +122,49 @@ func _validate_catalog(candidate: Dictionary) -> String:
 	var region_ids: Dictionary = ids_by_collection["regions"]
 	var settlement_ids: Dictionary = ids_by_collection["settlements"]
 	var creature_ids: Dictionary = ids_by_collection["creatures"]
+	var point_of_interest_ids: Dictionary = ids_by_collection["points_of_interest"]
 	var landmark_ids: Dictionary = {}
 	for region in candidate["regions"]:
+		var region_id := str(region.get("id", ""))
 		var names: Variant = region.get("name")
 		if not names is Dictionary or str(names.get("ar", "")).is_empty() or str(names.get("en", "")).is_empty():
-			return "Region '%s' must have Arabic and English names." % str(region.get("id", ""))
+			return "Region '%s' must have Arabic and English names." % region_id
 		var landmarks: Variant = region.get("landmarks", [])
 		if not landmarks is Array:
-			return "Region '%s' landmarks must be an array." % str(region.get("id", ""))
+			return "Region '%s' landmarks must be an array." % region_id
 		for landmark in landmarks:
 			if not landmark is String or str(landmark).is_empty():
-				return "Region '%s' contains an invalid landmark ID." % str(region.get("id", ""))
-			landmark_ids[str(landmark)] = true
+				return "Region '%s' contains an invalid landmark ID." % region_id
+			var landmark_id := str(landmark)
+			if landmark_ids.has(landmark_id):
+				return "Landmark ID '%s' is listed more than once." % landmark_id
+			if not point_of_interest_ids.has(landmark_id):
+				return "Region '%s' references unknown point of interest '%s'." % [region_id, landmark_id]
+			landmark_ids[landmark_id] = region_id
 		var threats: Variant = region.get("threats", [])
 		if not threats is Array:
-			return "Region '%s' threats must be an array." % str(region.get("id", ""))
+			return "Region '%s' threats must be an array." % region_id
 		for creature_id in threats:
 			if not creature_ids.has(str(creature_id)):
-				return "Region '%s' references unknown creature '%s'." % [str(region.get("id", "")), str(creature_id)]
+				return "Region '%s' references unknown creature '%s'." % [region_id, str(creature_id)]
+
+	for point in candidate["points_of_interest"]:
+		var point_id := str(point.get("id", ""))
+		var point_region := str(point.get("region", ""))
+		if not region_ids.has(point_region):
+			return "Point of interest '%s' references an unknown region." % point_id
+		if not landmark_ids.has(point_id):
+			return "Point of interest '%s' is not listed in any region." % point_id
+		if str(landmark_ids[point_id]) != point_region:
+			return "Point of interest '%s' region does not match the region landmark list." % point_id
+		var point_name: Variant = point.get("name", {})
+		if not point_name is Dictionary or str(point_name.get("ar", "")).is_empty() or str(point_name.get("en", "")).is_empty():
+			return "Point of interest '%s' must have Arabic and English names." % point_id
+		var point_description: Variant = point.get("description", {})
+		if not point_description is Dictionary or str(point_description.get("ar", "")).is_empty() or str(point_description.get("en", "")).is_empty():
+			return "Point of interest '%s' must have Arabic and English descriptions." % point_id
+		if str(point.get("kind", "")).is_empty():
+			return "Point of interest '%s' must have a non-empty kind." % point_id
 
 	for settlement in candidate["settlements"]:
 		if not region_ids.has(str(settlement.get("region", ""))):
