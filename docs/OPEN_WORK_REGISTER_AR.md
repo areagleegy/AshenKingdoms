@@ -4,6 +4,16 @@
 > **المستودع:** [areagleegy/AshenKingdoms](https://github.com/areagleegy/AshenKingdoms)  
 > **الغرض:** سجل مرجعي لحالات القضايا وطلبات الدمج المفتوحة التي أرجعتها واجهة GitHub وقت إنشاء اللقطة. هذا السجل ليس حالة حيّة، ولا يثبت اكتمال أي ميزة.
 
+## متابعة بعد الدمج — 2026-10-23
+
+بعد إعداد اللقطة التاريخية التالية ودمج [PR #97](https://github.com/areagleegy/AshenKingdoms/pull/97)، أُعيد الاستعلام عن GitHub:
+
+- رأس `main` عند المتابعة: `11f1168a9a33c06a20c93a12ba2eef0f8bc8be43`.
+- العدد الحالي وقت هذا الاستعلام: **53 Pull Requests مفتوحة** و**16 Issue مفتوحة مستقلة**.
+- [PR #97](https://github.com/areagleegy/AshenKingdoms/pull/97) مدمج؛ لم يعد ضمن قائمة PRs المفتوحة.
+- الجدول التاريخي أدناه يحتفظ بلقطة ما قبل الدمج عمدًا: لذلك يظهر فيه 54 PR مفتوحًا ويعرض PR #97 مفتوحًا. لا تستخدم الأعداد أو الحالة في الجدول التاريخي باعتبارها العدد الحي.
+- المصدر الحالي قبل اتخاذ إجراء هو [قائمة Pull Requests](https://github.com/areagleegy/AshenKingdoms/pulls) و[قائمة Issues](https://github.com/areagleegy/AshenKingdoms/issues). أعد الاستعلام لتحديث اللقطة بدل تعديل الماضي بأثر رجعي.
+
 ## 1. ملخص اللقطة
 
 - رأس الفرع الافتراضي `main`: `683975a2ef03bd283ee821b075d7b9f81f2c05b8`.
