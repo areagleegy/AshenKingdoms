@@ -100,6 +100,7 @@ func _create_world() -> void:
 	world = Node3D.new()
 	world.name = "World"
 	add_child(world)
+	_configure_starting_region_context()
 
 	var environment_node := WorldEnvironment.new()
 	var environment := Environment.new()
@@ -135,6 +136,24 @@ func _create_world() -> void:
 	ground_material.roughness = 1.0
 	ground_mesh_node.material_override = ground_material
 	world.add_child(ground_mesh_node)
+
+
+
+func _configure_starting_region_context() -> void:
+	var catalog_loader := get_node_or_null("/root/WorldCatalog")
+	if catalog_loader == null:
+		push_warning("World catalog autoload is unavailable; using the default world scene.")
+		return
+	var region: Dictionary = catalog_loader.call("get_region", "ashen_basin")
+	if region.is_empty():
+		push_warning("Starting region 'ashen_basin' is missing from the world catalog.")
+		return
+	world.set_meta("region_id", str(region.get("id", "ashen_basin")))
+	world.set_meta("region_data", region.duplicate(true))
+	var region_name: Variant = region.get("name", {})
+	if region_name is Dictionary:
+		world.set_meta("region_name_ar", str(region_name.get("ar", "حوض الرماد")))
+		world.set_meta("region_name_en", str(region_name.get("en", "Ashen Basin")))
 
 
 func _create_managers() -> void:
