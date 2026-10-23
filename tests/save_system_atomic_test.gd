@@ -80,6 +80,7 @@ func _test_backup_recovery(save_system: Node) -> void:
 
 	# A missing primary file should also recover the backup.
 	_remove_if_exists(SAVE_PATH)
+	_check(bool(save_system.call("has_save")), "backup-only recovery state is reported as an available save")
 	loaded = save_system.call("load_game")
 	_check(int(loaded.get("level", -1)) == 2, "missing primary save recovers backup")
 
