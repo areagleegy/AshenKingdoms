@@ -47,7 +47,7 @@ func _process(_delta: float) -> void:
 		var state: Dictionary = _downloads.get(pack_id, {})
 		var request: HTTPRequest = state.get("request")
 		if request != null and is_instance_valid(request):
-			download_progress.emit(str(pack_id), int(request.downloaded_bytes), int(state.get("record", {}).get("download_size", 0)))
+			download_progress.emit(str(pack_id), int(request.get_downloaded_bytes()), int(state.get("record", {}).get("download_size", 0)))
 
 
 func get_catalog_state() -> String:
