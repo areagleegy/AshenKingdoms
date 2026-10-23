@@ -200,7 +200,7 @@ func _test_quest_reward_once() -> Dictionary:
 	var reward := int(progression.get("experience")) == 75
 	quests.call("on_enemy_defeated", &"ash_wraith")
 	var reward_not_duplicated := int(progression.get("experience")) == 75
-	var cannot_restart := not bool(quests.call("start_quest", &"ash_trail")
+	var cannot_restart := not bool(quests.call("start_quest", &"ash_trail"))
 	quests.free()
 	progression.free()
 
