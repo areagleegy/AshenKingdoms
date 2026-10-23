@@ -163,11 +163,13 @@ def analyze_report(report: dict[str, Any], minimum_fps: float = 30.0,
             "أعد القياس في مشهد اللعب والقتال؛ هذه إشارة فرز وليست وحدها تشخيصًا نهائيًا لعنق الزجاجة.",
         ))
 
-    if event_counts.get("combat.player_attack_started", 0) == 0:
+    solo_attacks = event_counts.get("combat.player_attack_started", 0)
+    network_attacks = event_counts.get("combat.network_player_attack_started", 0)
+    if solo_attacks + network_attacks == 0:
         findings.append(_finding(
             "no_live_combat_observed", "info", "لم تُسجّل ضربة لاعب فعلية أثناء جلسة الهاتف",
-            {"attack_events": 0},
-            "افتح اللعب الفردي، وهاجم عدوًا ثم جرّب هجومًا لا يصيب هدفًا، وبعدها أعد تصدير التقرير.",
+            {"solo_attack_events": solo_attacks, "network_attack_events": network_attacks},
+            "افتح اللعب الفردي أو جلسة الشبكة، وهاجم عدوًا ثم جرّب هجومًا لا يصيب هدفًا، وبعدها أعد تصدير التقرير.",
         ))
     if event_counts.get("dialogue_started", 0) == 0:
         findings.append(_finding(
