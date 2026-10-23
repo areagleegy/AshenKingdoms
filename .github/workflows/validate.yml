@@ -41,6 +41,8 @@ jobs:
           test -f export_presets.cfg
           test -f scenes/boot/Main.tscn
           test -f scripts/core/main.gd
+          test -f scripts/domain/progression_rules.gd
+          test -f tests/domain/progression_rules_test.gd
           test -f scripts/core/server.gd
           test -f README.md
           test -f LICENSE
@@ -141,6 +143,13 @@ jobs:
         run: |
           set -o pipefail
           godot --headless --path . --script res://tests/gameplay_regression_test.gd 2>&1 | tee "$RUNNER_TEMP/gameplay-regression.log"
+
+      - name: Run pure progression domain tests
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -o pipefail
+          godot --headless --path . --script res://tests/domain/progression_rules_test.gd 2>&1 | tee "$RUNNER_TEMP/domain-progression-tests.log"
 
       - name: Run player character smoke tests
         env:
