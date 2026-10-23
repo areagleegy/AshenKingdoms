@@ -24,6 +24,10 @@ func _run() -> void:
 	_check(weapon_ids.size() == 7, "seven prototype weapons load")
 	_check(armor_ids.size() == 4, "four prototype armor records load")
 	_check(is_equal_approx(float(catalog.call("get_max_carry_weight")), 30.0), "carry capacity is available from the loaded catalog cache")
+	var thresholds: Array = catalog.call("get_encumbrance_thresholds_percent")
+	_check(thresholds == [50.0, 80.0, 100.0], "encumbrance thresholds load from armor catalog data")
+	thresholds[0] = 1.0
+	_check((catalog.call("get_encumbrance_thresholds_percent") as Array) == [50.0, 80.0, 100.0], "callers cannot mutate cached encumbrance thresholds")
 	_check(weapon_ids.has("cinder_maul"), "heavy weapon is addressable by stable ID")
 	_check(weapon_ids.has("ash_lance"), "charged weapon is addressable by stable ID")
 	_check(armor_ids.has("cinder_plate"), "heavy armor is addressable by stable ID")
