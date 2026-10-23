@@ -161,6 +161,7 @@ func _test_dialogue_choice_branch() -> Dictionary:
 	graph.entry_node_id = &"qa_start"
 	graph.nodes = graph_nodes
 
+	manager.set_meta("qa_synthetic_test", true)
 	get_tree().root.add_child(manager)
 	var did_start := bool(manager.call("start", graph))
 	manager.call("choose", 99)
@@ -188,6 +189,7 @@ func _test_quest_reward_once() -> Dictionary:
 		return _result("quest_reward_once", "fail", Time.get_ticks_msec() - started, ERR_CANT_CREATE)
 
 	quests.set("progression", progression)
+	quests.set_meta("qa_synthetic_test", true)
 	get_tree().root.add_child(progression)
 	get_tree().root.add_child(quests)
 	var accepted := bool(quests.call("start_quest", &"ash_trail"))
