@@ -14,6 +14,14 @@ const DialogueChoiceScript: Script = preload("res://scripts/dialogue/dialogue_ch
 const MainScript: Script = preload("res://scripts/core/main.gd")
 
 const SAVE_PATH := "user://savegame.json"
+const SAVE_ARTIFACT_PATHS := [
+	"user://savegame.json",
+	"user://savegame.json.tmp",
+	"user://savegame.json.bak",
+	"user://savegame.json.bak.tmp",
+	"user://savegame.json.old",
+	"user://savegame.json.bak.old"
+]
 const POTION_PATH := "res://resources/items/health_potion.tres"
 
 var _failures := 0
@@ -25,20 +33,16 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	var had_original_save := FileAccess.file_exists(SAVE_PATH)
-	var original_save := ""
-	if had_original_save:
-		var original_file := FileAccess.open(SAVE_PATH, FileAccess.READ)
-		if original_file == null:
-			_check(false, "existing save can be backed up before regression tests")
-			quit(1)
-			return
-		original_save = original_file.get_as_text()
-		original_file.close()
+	var original_artifacts := _snapshot_save_artifacts()
+	if original_artifacts.size() != SAVE_ARTIFACT_PATHS.size():
+		_check(false, "all original save artifacts can be preserved before regression tests")
+		quit(1)
+		return
 
 	_test_player_and_health()
 	_test_inventory_and_potions()
-	_test_save_and_load(had_original_save, original_save)
+	_test_save_and_load()
+	_restore_save_artifacts(original_artifacts)
 	_test_dialogue_and_quests()
 	_test_android_configuration()
 	_test_runtime_input_registration()
@@ -128,43 +132,176 @@ func _test_inventory_and_potions() -> void:
 	player.queue_free()
 
 
-func _test_save_and_load(had_original_save: bool, original_save: String) -> void:
+func _test_save_and_load() -> void:
 	var save_system: Node = SaveSystemScript.new()
 	root.add_child(save_system)
+	_check(bool(save_system.call("delete_save")), "save test starts from an isolated state")
 
-	_check(bool(save_system.call("save_game", {"level": 4, "health": 61.5, "flags": {"intro_seen": true}})), "save system writes structured data")
+	var saved_inventory: Array = []
+	for _slot_index in range(24):
+		saved_inventory.append(null)
+	saved_inventory[0] = {"id": "health_potion", "amount": 3}
+	var first_data := {
+		"version": 1,
+		"player_position": {"x": 12.5, "y": 0.92, "z": -3.25},
+		"player_health": 61.5,
+		"level": 4,
+		"experience": 23,
+		"inventory": saved_inventory,
+		"quest": {"id": "ash_trail", "title": "اقتفاء الرماد", "progress": 1, "active": true},
+		"dialogue": {"flags": {"intro_seen": true, "quest_accepted": true}}
+	}
+	_check(bool(save_system.call("save_game", first_data)), "save system writes the actual main.gd gameplay save shape")
 	var loaded = save_system.call("load_game")
 	_check(loaded is Dictionary, "save system returns a dictionary for valid JSON")
 	if loaded is Dictionary:
-		_check(int(loaded.get("level", 0)) == 4, "saved progression values load correctly")
-		_check(is_equal_approx(float(loaded.get("health", 0.0)), 61.5), "saved floating-point health loads correctly")
-		var flags = loaded.get("flags", {})
-		_check(flags is Dictionary and bool(flags.get("intro_seen", false)), "nested dialogue flags survive save/load")
+		_check(int(loaded.get("version", 0)) == 1, "save schema version survives save/load")
+		_check(int(loaded.get("level", 0)) == 4 and int(loaded.get("experience", -1)) == 23, "saved progression values load correctly")
+		_check(is_equal_approx(float(loaded.get("player_health", 0.0)), 61.5), "saved player health loads correctly")
+		var position_data = loaded.get("player_position", {})
+		_check(
+			position_data is Dictionary
+			and is_equal_approx(float(position_data.get("x", 0.0)), 12.5)
+			and is_equal_approx(float(position_data.get("y", 0.0)), 0.92)
+			and is_equal_approx(float(position_data.get("z", 0.0)), -3.25),
+			"saved player position round-trips with all coordinates"
+		)
+		var restored_inventory = loaded.get("inventory", [])
+		_check(
+			restored_inventory is Array
+			and restored_inventory.size() == 24
+			and restored_inventory[0] is Dictionary
+			and str(restored_inventory[0].get("id", "")) == "health_potion"
+			and int(restored_inventory[0].get("amount", 0)) == 3,
+			"actual inventory slot data survives save/load"
+		)
+		var quest_data = loaded.get("quest", {})
+		_check(
+			quest_data is Dictionary
+			and str(quest_data.get("id", "")) == "ash_trail"
+			and int(quest_data.get("progress", -1)) == 1
+			and bool(quest_data.get("active", false)),
+			"actual quest state survives save/load"
+		)
+		var dialogue_data = loaded.get("dialogue", {})
+		var flags = dialogue_data.get("flags", {}) if dialogue_data is Dictionary else {}
+		_check(flags is Dictionary and bool(flags.get("intro_seen", false)) and bool(flags.get("quest_accepted", false)), "serialized dialogue flags survive save/load")
 
+	var second_data: Dictionary = first_data.duplicate(true)
+	second_data["level"] = 5
+	second_data["player_health"] = 42.0
+	second_data["player_position"]["x"] = 14.0
+	_check(bool(save_system.call("save_game", second_data)), "subsequent save replaces the primary file")
 	var malformed := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if malformed == null:
 		_check(false, "test can create malformed JSON fixture")
 	else:
 		malformed.store_string("{not valid JSON")
+		malformed.flush()
 		malformed.close()
-		var corrupt = save_system.call("load_game")
-		_check(corrupt is Dictionary and corrupt.is_empty(), "malformed JSON safely returns an empty dictionary")
+		var recovered = save_system.call("load_game")
+		_check(
+			recovered is Dictionary
+			and int(recovered.get("level", 0)) == 4
+			and is_equal_approx(float(recovered.get("player_health", 0.0)), 61.5)
+			and is_equal_approx(float(recovered.get("player_position", {}).get("x", 0.0)), 12.5),
+			"corrupt primary save recovers the previous main.gd-compatible gameplay snapshot"
+		)
+		_check(bool(save_system.call("has_save")), "valid backup remains discoverable after recovery")
 
-	_restore_original_save(had_original_save, original_save, save_system)
-	_check(not bool(save_system.call("has_save")) if not had_original_save else bool(save_system.call("has_save")), "save fixture is cleaned up or original save is restored")
+	var backup_path := SAVE_PATH + ".bak"
+	if FileAccess.file_exists(backup_path):
+		_check(DirAccess.remove_absolute(ProjectSettings.globalize_path(backup_path)) == OK, "test removes backup before recovery checks")
+	_check(
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH)) == OK,
+		"test removes primary save to simulate an interrupted first save"
+	)
+	var staged_path := SAVE_PATH + ".tmp"
+	var staged_file := FileAccess.open(staged_path, FileAccess.WRITE)
+	if staged_file == null:
+		_check(false, "test can create a complete staged save fixture")
+	else:
+		staged_file.store_string(JSON.stringify(first_data, "\t"))
+		staged_file.flush()
+		var staged_write_error: Error = staged_file.get_error()
+		staged_file.close()
+		_check(staged_write_error == OK, "complete staged save fixture is written")
+		var staged_recovered = save_system.call("load_game")
+		_check(
+			staged_recovered is Dictionary
+			and int(staged_recovered.get("level", 0)) == 4
+			and is_equal_approx(float(staged_recovered.get("player_health", 0.0)), 61.5),
+			"valid staged data recovers an interrupted first save"
+		)
+
+	var unsupported := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	if unsupported == null:
+		_check(false, "test can create unsupported-schema fixture")
+	else:
+		unsupported.store_string("{\"version\":99,\"level\":4}")
+		unsupported.flush()
+		unsupported.close()
+		var unsupported_data = save_system.call("load_game")
+		_check(unsupported_data is Dictionary and unsupported_data.is_empty(), "unsupported save schema is rejected safely")
+
+	var invalid_position := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	if invalid_position == null:
+		_check(false, "test can create invalid-field fixture")
+	else:
+		invalid_position.store_string("{\"version\":1,\"player_position\":{\"x\":0,\"y\":\"invalid\",\"z\":0}}")
+		invalid_position.flush()
+		invalid_position.close()
+		var invalid_data = save_system.call("load_game")
+		_check(invalid_data is Dictionary and invalid_data.is_empty(), "save fields with invalid types are rejected")
+		_check(not bool(save_system.call("has_save")), "invalid primary and missing backup are not considered recoverable")
+
+	_check(bool(save_system.call("delete_save")), "save test removes temporary and backup artifacts")
 	save_system.queue_free()
 
 
-func _restore_original_save(had_original_save: bool, original_save: String, save_system: Node) -> void:
-	if had_original_save:
-		var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+func _snapshot_save_artifacts() -> Dictionary:
+	var snapshots: Dictionary = {}
+	for path in SAVE_ARTIFACT_PATHS:
+		var snapshot := {"exists": FileAccess.file_exists(path), "content": PackedByteArray()}
+		if bool(snapshot["exists"]):
+			var file := FileAccess.open(path, FileAccess.READ)
+			if file == null:
+				push_error("Cannot preserve existing save artifact before tests: %s" % path)
+				return {}
+			var size := file.get_length()
+			if size > 2 * 1024 * 1024:
+				file.close()
+				push_error("Save artifact is unexpectedly large; refusing to alter test state: %s" % path)
+				return {}
+			var bytes := file.get_buffer(size)
+			file.close()
+			if bytes.size() != size:
+				push_error("Cannot read the full save artifact before tests: %s" % path)
+				return {}
+			snapshot["content"] = bytes
+		snapshots[path] = snapshot
+	return snapshots
+
+
+func _restore_save_artifacts(snapshots: Dictionary) -> void:
+	for path in SAVE_ARTIFACT_PATHS:
+		if FileAccess.file_exists(path):
+			if DirAccess.remove_absolute(ProjectSettings.globalize_path(path)) != OK:
+				_check(false, "test save artifact can be removed before restoring original state")
+				continue
+		var snapshot: Dictionary = snapshots.get(path, {})
+		if not bool(snapshot.get("exists", false)):
+			continue
+		var file := FileAccess.open(path, FileAccess.WRITE)
 		if file == null:
-			_check(false, "original save can be restored after test")
-			return
-		file.store_string(original_save)
+			_check(false, "original save artifact can be restored")
+			continue
+		var original_bytes: PackedByteArray = snapshot.get("content", PackedByteArray())
+		file.store_buffer(original_bytes)
+		file.flush()
+		var write_error: Error = file.get_error()
 		file.close()
-	else:
-		_check(bool(save_system.call("delete_save")), "temporary save file is removed after test")
+		_check(write_error == OK, "original save artifact contents are restored")
 
 
 func _test_dialogue_and_quests() -> void:

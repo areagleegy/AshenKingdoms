@@ -129,13 +129,44 @@ func _run() -> void:
 					"sha256": _sha256_bytes(asset_bytes).hex_encode()
 				}]
 			}
+			var failed_snapshot_path := "user://content_catalog_bad_snapshot.zip"
+			var failed_snapshot: bool = bool(installer.call(
+				"_copy_bounded_archive_snapshot",
+				archive_path,
+				failed_snapshot_path,
+				archive_size + 1
+			))
+			_check(not failed_snapshot, "bounded snapshot copy rejects a source whose size differs from the catalog")
+			_check(not FileAccess.file_exists(failed_snapshot_path), "failed snapshot copy leaves no partial archive")
+
 			var verified: Dictionary = installer.call("verify_archive", archive_path, test_pack)
 			_check(bool(verified.get("ok", false)), "valid ZIP package and per-file digests are accepted")
 			var installed: Dictionary = installer.call("install_archive", archive_path, test_pack)
 			_check(bool(installed.get("ok", false)), "verified package installs into private content storage")
 			if bool(installed.get("ok", false)):
-				_check(FileAccess.file_exists(str(installed["installed_path"]).path_join("world.glb")), "installed package asset exists")
+				var installed_file_path := str(installed["installed_path"]).path_join("world.glb")
+				_check(FileAccess.file_exists(installed_file_path), "installed package asset exists")
+				_check(
+					FileAccess.get_sha256(installed_file_path).to_lower() == str(test_pack["files"][0]["sha256"]).to_lower(),
+					"installed bytes still match the catalog digest"
+				)
 				installer.call("remove_installed_pack", "content_smoke_pack", "1.0.0")
+
+			var extraction_guard_path := "user://content_extract_digest_smoke"
+			var extraction_guard_absolute := ProjectSettings.globalize_path(extraction_guard_path)
+			if DirAccess.dir_exists_absolute(extraction_guard_absolute):
+				installer.call("_remove_tree", extraction_guard_absolute)
+			_check(DirAccess.make_dir_recursive_absolute(extraction_guard_absolute) == OK, "test extraction staging directory can be created")
+			var extraction_guard: Dictionary = installer.call(
+				"_extract_archive_to_staging",
+				archive_path,
+				extraction_guard_path,
+				{"world.glb": {"size": asset_bytes.size(), "sha256": "f".repeat(64)}}
+			)
+			_check(not bool(extraction_guard.get("ok", true)), "extraction rejects file bytes whose digest changed after archive verification")
+			_check(not FileAccess.file_exists(extraction_guard_path.path_join("world.glb")), "rejected file bytes are never written to staging")
+			installer.call("_remove_tree", extraction_guard_absolute)
+
 			var tampered_pack: Dictionary = test_pack.duplicate(true)
 			tampered_pack["sha256"] = "f".repeat(64)
 			_check(not bool(installer.call("verify_archive", archive_path, tampered_pack).get("ok", true)), "package archive digest mismatch is rejected")
