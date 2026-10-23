@@ -94,7 +94,9 @@ func get_region(region_id: String) -> Dictionary:
 
 func _validate_catalog(candidate: Dictionary) -> String:
 	var schema_version: Variant = candidate.get("schema_version")
-	if not schema_version is int or schema_version != EXPECTED_SCHEMA_VERSION:
+	if not (schema_version is int or schema_version is float):
+		return "Unsupported world catalog schema version."
+	if float(schema_version) != float(EXPECTED_SCHEMA_VERSION):
 		return "Unsupported world catalog schema version."
 	if str(candidate.get("world_id", "")) != "ashen_kingdoms":
 		return "Unexpected world catalog ID."
