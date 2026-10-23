@@ -107,7 +107,13 @@ func _rpc_submit_input(direction: Vector3, jump_down: bool, sprint_down: bool, a
 	if not multiplayer.is_server():
 		return
 	var sender_id := multiplayer.get_remote_sender_id()
-	if sender_id != owner_peer_id or sender_id <= 1 or is_dead:
+	if sender_id <= 1:
+		return
+	# Charge the peer-wide budget before ownership or payload checks so repeated
+	# RPCs aimed at another avatar cannot bypass application-level throttling.
+	if not NetworkManager.consume_peer_rpc_token(sender_id):
+		return
+	if sender_id != owner_peer_id or is_dead:
 		return
 	if not _is_valid_input_direction(direction):
 		return
