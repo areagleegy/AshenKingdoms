@@ -100,6 +100,7 @@ jobs:
           test -f addons/ashen_free_asset_pipeline/plugin.cfg
           test -f addons/ashen_asset_bridge/plugin.gd
           test -f addons/ashen_asset_bridge/plugin.cfg
+          test -f tests/asset_plugins_smoke_test.gd
           test -f tools/test_ai_test_diagnostics.py
           test -f tools/diagnostic_cases.json
           test -f tools/diagnostic_benchmark.py
@@ -148,6 +149,13 @@ jobs:
         run: |
           set -o pipefail
           godot --headless --path . --script res://tests/player_character_smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/player-character-tests.log"
+
+      - name: Run asset editor plugin smoke tests
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -o pipefail
+          godot --headless --path . --script res://tests/asset_plugins_smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/asset-plugin-tests.log"
 
       - name: Run network combat smoke tests
         env:
