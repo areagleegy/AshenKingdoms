@@ -137,3 +137,119 @@
 - وجود خطة أو علامة إكمال في سجل سابق لا يثبت وحده نجاح التنفيذ.
 - الملفات والمشاهد والكود الحالي ونتائج CI المرتبطة بالالتزام هي مصادر إثبات التنفيذ.
 - لا تُخزّن مفاتيح API أو أسرار التوقيع أو بيانات الاعتماد في الوثائق أو المستودع.
+
+
+## خريطة الأنظمة والملفات الأساسية
+
+استنادًا إلى `docs/TECHNICAL_ARCHITECTURE.md` و`project.godot`:
+
+- نقطة البدء: `scenes/ui/MainMenu.tscn`.
+- مشهد اللعب الفردي: `scenes/boot/Main.tscn`.
+- ساحة الشبكة: `scenes/network/MultiplayerArena.tscn`.
+- Autoloads: `DialogueManager` من `scripts/dialogue/dialogue_manager.gd`، و`ContentManager` من `scripts/content/content_manager.gd`، و`NetworkManager` من `scripts/core/network_manager.gd`.
+- المنطق الأساسي: `scripts/core/main.gd`، `scripts/core/progression_manager.gd`، `scripts/core/quest_manager.gd`، `scripts/core/save_system.gd`.
+- اللاعب والأعداء والمكونات القابلة لإعادة الاستخدام موجودة ضمن `scripts/player/` و`scripts/enemies/` و`scripts/components/`.
+- واجهات HUD والحوار والقائمة في `scripts/ui/` ومشاهد UI المقابلة.
+- ملفات المحتوى القابل للتنزيل موجودة في `scripts/content/`، وأدوات بناء وتوقيع الحزم في `tools/package_content.py` و`tools/sign_content_catalog.py`.
+
+هذه خريطة أولية من الوثائق وليست بديلًا عن فحص الملفات قبل أي تغيير. عند اختلاف الوثيقة عن الكود، يُراجع الكود ويُحدّث التوثيق في نفس PR.
+
+## الحفظ المحلي والتدرج والمهام والحوار
+
+- الحفظ الحالي يستخدم JSON في `user://savegame.json`.
+- بيانات الحفظ ينبغي أن تستخدم قيمًا بسيطة ومعرّفات عناصر، لا مراجع موارد Godot مباشرة.
+- اللعب الفردي يتضمن حركة وقتالًا وصحة وأعداء وجردًا وجرعات وخبرة ومستويات ومهمة تجريبية.
+- الحوار وNPC محليان تجريبيان؛ أعلام الحوار تحفظ ضمن بيانات الحفظ تحت `dialogue.flags`.
+- آثار الحوار تمر عبر `DialogueManager._apply_effects()` في اللعب الفردي. لا تفترض أنها متصلة بساحة الشبكة.
+- اختبارات اللعب المذكورة في `docs/TEST_PLAN.md` تشمل ترقية المستوى، ومنح مكافأة المهمة مرة واحدة، واستعادة المهمة، وكتابة JSON ورفض JSON غير صالح، والحفظ والتحميل. يجب قراءة نتائج التشغيل الفعلية قبل تسجيل نجاحها.
+
+## الشبكة وحدود الثقة
+
+مرجع التشغيل: `docs/NETWORKING.md`، ومرجع المخاطر: `docs/NETWORK_THREAT_MODEL_AR.md`.
+
+- ساحة ENet منفصلة عن حلقة اللعب الفردي، ويبدأ المضيف عبر `NetworkManager.start_host()` من مسار القائمة.
+- العميل يرسل نية الإدخال، بينما تُحسب الحركة والضرر والصحة والخبرة ومكافآت المهمة على الخادم في النموذج التجريبي.
+- اختبار loopback المحلي لا يثبت العمل عبر الإنترنت، ولا مصادقة المستخدمين، ولا أمان خادم عام.
+- لا توجد مصادقة حسابات أو حفظ شبكي دائم أو نظام مكافحة غش إنتاجي كامل حسب الوثائق.
+- لا تتصل ساحة الشبكة حاليًا بنظام الحوار والجرد والجرعات المحليين.
+- ENet معطل في تصدير Web؛ يتطلب دعم Web متعدد اللاعبين ناقلًا متوافقًا مع المتصفح وخادمًا ملائمًا.
+- لا تستخدم النسخة الحالية لخادم عام إنتاجي أو اقتصاد حقيقي أو بيانات حسابات.
+
+## التحقق والبناء والإصدار
+
+المراجع التنفيذية:
+- `.github/workflows/validate.yml`
+- `.github/workflows/build.yml`
+- `docs/TEST_PLAN.md`
+- `docs/BUILD_ANDROID_WEB_AR.md`
+- `docs/RELEASE_SCOPE_AR.md`
+- `docs/PROJECT_STATUS_AR.md`
+
+أوامر تحقق محلي موثقة في خطة الاختبار، من جذر المستودع بعد تثبيت Godot CLI 4.6 وPython 3 وبيئة Unix حيث يلزم:
+
+```bash
+python3 tools/validate_docs.py
+godot --headless --path . --editor --quit
+godot --headless --path . --script res://tests/script_load_smoke_test.gd
+godot --headless --path . --script res://tests/gameplay_smoke_test.gd
+godot --headless --path . --script res://tests/gameplay_regression_test.gd
+godot --headless --path . --script res://tests/player_character_smoke_test.gd
+timeout 45s godot --headless --path . res://tests/network_combat_smoke_test.tscn
+bash tools/test-network-loopback.sh
+godot --headless --path . --script res://tests/content_catalog_smoke_test.gd
+python -m unittest tools.test_package_content tools.test_sign_content_catalog -v
+python -m unittest discover -s tools -p 'test_ai_test_diagnostics.py' -v
+python3 -m py_compile tools/generate_player_glb.py tools/validate_free_assets.py
+python3 tools/generate_player_glb.py --help
+python3 tools/validate_free_assets.py
+git diff --check
+```
+
+لا تشغّل جميع الأوامر على نحو أعمى في بيئة لا تتوفر فيها المتطلبات؛ سجّل الأوامر التي لم تُنفذ وسببها. هذه قائمة مأخوذة من خطة الاختبار وقد تتغير؛ ملفات سير العمل هي المرجع التنفيذي النهائي.
+
+### بوابات الإصدار غير المثبت اكتمالها
+
+- اختبار APK على هاتف Android فعلي، مع تسجيل الجهاز وإصدار النظام والنتيجة.
+- نشر Web عبر HTTP/HTTPS واختباره في المتصفحات المستهدفة.
+- اختبار الشبكة بين جهازين فعليين إذا كان الإصدار يعلن دعم الشبكة على تلك المنصة.
+- تحديد هوية التطبيق وتوقيع الإنتاج وقناة التوزيع.
+- فحص تراخيص الأصول وإسنادها ومراجعة الملفات الفعلية، لا سجل الأصول وحده.
+- مراجعة CI على رأس PR نفسه وربط النتيجة بالـ commit والـ artifact.
+- قبول الإصدار بقرار موثق. نجاح التصدير وحده لا يثبت قبول المستخدم أو الأداء الفعلي.
+
+## الأصول وحزم المحتوى
+
+- سجل الأصول: `assets/asset_manifest.json`، وإسناد الأصول: `docs/ASSET_CREDITS.md`.
+- السياسة تتطلب التحقق من الترخيص والمصدر والسماح بالاستخدام التجاري وإعادة التوزيع؛ كون الأصل مجانيًا لا يكفي.
+- سجل الأصول الحالي لا يثبت اكتمال مجموعة فنية نهائية.
+- حزم المحتوى الاختيارية لها تحقق توقيع RSA-SHA256 وبصمات SHA-256 وحدود للمسارات والأحجام والاعتماديات بحسب الوثائق.
+- تنزيل المحتوى مؤجل ومعطل افتراضيًا؛ لا يوجد CDN إنتاجي أو مفتاح عام مضبوط أو حزم فعلية منشورة وفق `content/README.md`.
+- لا يُضمّن المفتاح الخاص في المستودع أو اللعبة أو CI. يجب أن تبقى اللعبة قابلة للعب دون إنترنت عند عدم تهيئة خدمة المحتوى.
+- استئناف التنزيل وفحص المساحة على Android وإدارة إصدارات الحزم ما زالت تحتاج إلى تحسين واختبار قبل اعتماد النظام للإنتاج.
+
+## فهرس الوثائق المرجعية
+
+| الموضوع | المرجع |
+|---|---|
+| مقدمة المشروع | `README.md` |
+| فهرس الوثائق | `docs/README.md` |
+| البنية التقنية | `docs/TECHNICAL_ARCHITECTURE.md` |
+| حالة التنفيذ | `docs/PROJECT_STATUS_AR.md` |
+| نطاق الإصدار | `docs/RELEASE_SCOPE_AR.md` |
+| خطة الاختبار | `docs/TEST_PLAN.md` |
+| الشبكة | `docs/NETWORKING.md` |
+| نموذج تهديدات الشبكة | `docs/NETWORK_THREAT_MODEL_AR.md` |
+| البناء والتصدير | `docs/BUILD_ANDROID_WEB_AR.md` |
+| دليل التوثيق | `docs/DOCUMENTATION_GUIDE_AR.md` |
+| الأصول والتراخيص | `assets/asset_manifest.json` و`docs/ASSET_CREDITS.md` |
+| الحزم الاختيارية | `content/README.md` |
+| سير عمل التحقق | `.github/workflows/validate.yml` |
+| سير عمل البناء | `.github/workflows/build.yml` |
+
+## حالة طلب توثيق الاستمرارية
+
+- أُنشئ فرع `docs/context-preservation-20261023`.
+- أُضيف الملف `docs/CONTINUITY.md` في الالتزام `765da416dd8f1bd95c228b15b53618f985f7fab5`.
+- فُتح PR #97 كمسودة: https://github.com/areagleegy/AshenKingdoms/pull/97
+- هذه الإضافة ليست مدمجة. يجب فحص CI ومراجعة المحتوى والروابط قبل تحويلها إلى جاهزة للمراجعة أو دمجها.
+- هذه الوثيقة ليست تصديرًا حرفيًا لمحادثات ChatGPT. يلزم حفظ التصدير الأصلي والمرفقات منفصلة قبل حذف المحادثات.
