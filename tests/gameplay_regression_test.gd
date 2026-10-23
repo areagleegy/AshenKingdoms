@@ -129,6 +129,18 @@ func _test_inventory_and_potions() -> void:
 
 
 func _test_save_and_load(had_original_save: bool, original_save: String) -> void:
+	# Preserve all save-related files, not only the primary file. These tests
+	# deliberately overwrite .bak and .tmp fixtures and must not destroy a
+	# pre-existing backup when run against a developer's user:// directory.
+	var had_original_backup := FileAccess.file_exists("user://savegame.json.bak")
+	var original_backup: Variant = _read_text_file("user://savegame.json.bak") if had_original_backup else ""
+	var had_original_temp := FileAccess.file_exists("user://savegame.json.tmp")
+	var original_temp: Variant = _read_text_file("user://savegame.json.tmp") if had_original_temp else ""
+	# Abort before mutating fixtures if an existing file could not be read.
+	if (had_original_backup and original_backup == null) or (had_original_temp and original_temp == null):
+		_check(false, "existing backup and temporary save files can be read before regression tests")
+		return
+
 	var save_system: Node = SaveSystemScript.new()
 	root.add_child(save_system)
 
@@ -150,9 +162,99 @@ func _test_save_and_load(had_original_save: bool, original_save: String) -> void
 		var corrupt = save_system.call("load_game")
 		_check(corrupt is Dictionary and corrupt.is_empty(), "malformed JSON safely returns an empty dictionary")
 
+	# Simulate a crash after the old save was moved to the backup but before the
+	# temporary save replaced it. Loading should recover the backup immediately.
+	if FileAccess.file_exists(SAVE_PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
+	var backup_fixture := FileAccess.open("user://savegame.json.bak", FileAccess.WRITE)
+	if backup_fixture == null:
+		_check(false, "test can create a backup-only recovery fixture")
+	else:
+		backup_fixture.store_string(JSON.stringify({"recovered_level": 7}))
+		backup_fixture.close()
+		_check(bool(save_system.call("has_save")), "has_save recognizes a backup-only save")
+		var recovered = save_system.call("load_game")
+		_check(recovered is Dictionary and int(recovered.get("recovered_level", 0)) == 7, "load_game restores a backup when the primary save is missing")
+		_check(FileAccess.file_exists(SAVE_PATH), "backup recovery restores the primary save path")
+
+
+		# A corrupt primary must not prevent recovery of a valid backup.
+		var corrupt_primary := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+		var valid_backup := FileAccess.open("user://savegame.json.bak", FileAccess.WRITE)
+		if corrupt_primary == null or valid_backup == null:
+			_check(false, "test can create corrupt-primary and valid-backup fixtures")
+			if corrupt_primary != null:
+				corrupt_primary.close()
+			if valid_backup != null:
+				valid_backup.close()
+		else:
+			corrupt_primary.store_string("{broken primary")
+			corrupt_primary.close()
+			valid_backup.store_string(JSON.stringify({"recovered_level": 12}))
+			valid_backup.close()
+			var recovered_corrupt = save_system.call("load_game")
+			_check(
+				recovered_corrupt is Dictionary and int(recovered_corrupt.get("recovered_level", 0)) == 12,
+				"load_game recovers valid backup when primary JSON is corrupt"
+			)
+			_check(FileAccess.file_exists(SAVE_PATH), "corrupt-primary recovery restores the primary save path")
+
+
+		# A subsequent save must not delete a valid backup just because the
+		# primary path exists but contains malformed JSON.
+		var corrupt_before_save := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+		var backup_before_save := FileAccess.open("user://savegame.json.bak", FileAccess.WRITE)
+		if corrupt_before_save == null or backup_before_save == null:
+			_check(false, "test can create corrupt-primary save fixture")
+			if corrupt_before_save != null:
+				corrupt_before_save.close()
+			if backup_before_save != null:
+				backup_before_save.close()
+		else:
+			corrupt_before_save.store_string("{bad primary")
+			corrupt_before_save.close()
+			backup_before_save.store_string(JSON.stringify({"older_level": 4}))
+			backup_before_save.close()
+			var saved_after_recovery := bool(save_system.call("save_game", {"fresh_save": true}))
+			var fresh_data = save_system.call("load_game")
+			_check(saved_after_recovery, "save_game succeeds after recovering a valid backup")
+			_check(
+				fresh_data is Dictionary and bool(fresh_data.get("fresh_save", false)),
+				"new save replaces the recovered backup only after a successful write"
+			)
+
 	_restore_original_save(had_original_save, original_save, save_system)
-	_check(not bool(save_system.call("has_save")) if not had_original_save else bool(save_system.call("has_save")), "save fixture is cleaned up or original save is restored")
+	_restore_auxiliary_save_file("user://savegame.json.bak", had_original_backup, original_backup)
+	_restore_auxiliary_save_file("user://savegame.json.tmp", had_original_temp, original_temp)
+	_check(
+		bool(save_system.call("has_save")) if had_original_save or had_original_backup else not bool(save_system.call("has_save")),
+		"save fixtures are cleaned up or original save files are restored"
+	)
 	save_system.queue_free()
+
+
+func _read_text_file(path: String) -> Variant:
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		return null
+	var content := file.get_as_text()
+	file.close()
+	return content
+
+
+func _restore_auxiliary_save_file(path: String, had_original_file: bool, original_content: String) -> void:
+	var absolute_path := ProjectSettings.globalize_path(path)
+	if FileAccess.file_exists(path) and DirAccess.remove_absolute(absolute_path) != OK:
+		_check(false, "test-generated save file can be removed: %s" % path)
+		return
+	if not had_original_file:
+		return
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		_check(false, "original save-related file can be restored: %s" % path)
+		return
+	file.store_string(original_content)
+	file.close()
 
 
 func _restore_original_save(had_original_save: bool, original_save: String, save_system: Node) -> void:
