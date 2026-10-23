@@ -12,6 +12,7 @@ const REQUIRED_ARRAYS := [
 	"creatures", "quest_chains", "waterways", "world_events"
 ]
 
+
 var _catalog: Dictionary = {}
 var _last_error := ""
 
@@ -82,14 +83,18 @@ func get_equipment(item_type: String, item_id: String) -> Dictionary:
 
 
 func get_region(region_id: String) -> Dictionary:
-	for region in _catalog.get("regions", []):
+	var regions: Variant = _catalog.get("regions", [])
+	if not regions is Array:
+		return {}
+	for region in regions:
 		if region is Dictionary and str(region.get("id", "")) == region_id:
 			return region.duplicate(true)
 	return {}
 
 
 func _validate_catalog(candidate: Dictionary) -> String:
-	if int(candidate.get("schema_version", -1)) != EXPECTED_SCHEMA_VERSION:
+	var schema_version: Variant = candidate.get("schema_version")
+	if not schema_version is int or schema_version != EXPECTED_SCHEMA_VERSION:
 		return "Unsupported world catalog schema version."
 	if str(candidate.get("world_id", "")) != "ashen_kingdoms":
 		return "Unexpected world catalog ID."
@@ -113,11 +118,20 @@ func _validate_catalog(candidate: Dictionary) -> String:
 		ids_by_collection[collection_name] = ids
 
 	var region_ids: Dictionary = ids_by_collection["regions"]
+	var settlement_ids: Dictionary = ids_by_collection["settlements"]
 	var creature_ids: Dictionary = ids_by_collection["creatures"]
+	var landmark_ids: Dictionary = {}
 	for region in candidate["regions"]:
 		var names: Variant = region.get("name")
 		if not names is Dictionary or str(names.get("ar", "")).is_empty() or str(names.get("en", "")).is_empty():
 			return "Region '%s' must have Arabic and English names." % str(region.get("id", ""))
+		var landmarks: Variant = region.get("landmarks", [])
+		if not landmarks is Array:
+			return "Region '%s' landmarks must be an array." % str(region.get("id", ""))
+		for landmark in landmarks:
+			if not landmark is String or str(landmark).is_empty():
+				return "Region '%s' contains an invalid landmark ID." % str(region.get("id", ""))
+			landmark_ids[str(landmark)] = true
 		var threats: Variant = region.get("threats", [])
 		if not threats is Array:
 			return "Region '%s' threats must be an array." % str(region.get("id", ""))
@@ -129,19 +143,32 @@ func _validate_catalog(candidate: Dictionary) -> String:
 		if not region_ids.has(str(settlement.get("region", ""))):
 			return "Settlement '%s' references an unknown region." % str(settlement.get("id", ""))
 
+	for creature in candidate["creatures"]:
+		var habitats: Variant = creature.get("habitats", [])
+		if not habitats is Array:
+			return "Creature '%s' habitats must be an array." % str(creature.get("id", ""))
+		for region_id in habitats:
+			if not region_ids.has(str(region_id)):
+				return "Creature '%s' references unknown habitat '%s'." % [str(creature.get("id", "")), str(region_id)]
+
 	var faction_ids: Dictionary = ids_by_collection["factions"]
 	var character_ids: Dictionary = ids_by_collection["characters"]
+	var quest_titles_en: Dictionary = {}
+	for quest in candidate["quest_chains"]:
+		var title: Variant = quest.get("title", {})
+		if not title is Dictionary or str(title.get("en", "")).is_empty() or str(title.get("ar", "")).is_empty():
+			return "Quest '%s' must have Arabic and English titles." % str(quest.get("id", ""))
+		var title_en := str(title.get("en", ""))
+		if quest_titles_en.has(title_en):
+			return "Quest titles must be unique: '%s'." % title_en
+		quest_titles_en[title_en] = true
+
 	for character in candidate["characters"]:
-		if not ids_by_collection["settlements"].has(str(character.get("home", ""))):
-			return "Character '%s' references an unknown home settlement." % str(character.get("id", ""))
+		var home_id := str(character.get("home", ""))
+		if not settlement_ids.has(home_id) and not landmark_ids.has(home_id):
+			return "Character '%s' references an unknown home settlement or landmark." % str(character.get("id", ""))
 		var questline := str(character.get("questline", ""))
-		var known_quest := false
-		for quest in candidate["quest_chains"]:
-			var quest_title: Variant = quest.get("title", {})
-			if quest_title is Dictionary and str(quest_title.get("en", "")) == questline:
-				known_quest = true
-				break
-		if not known_quest:
+		if not quest_titles_en.has(questline):
 			return "Character '%s' references an unknown questline." % str(character.get("id", ""))
 
 	for quest in candidate["quest_chains"]:
@@ -157,6 +184,14 @@ func _validate_catalog(candidate: Dictionary) -> String:
 		for related_faction in relations.keys():
 			if not faction_ids.has(str(related_faction)):
 				return "Faction '%s' references unknown faction '%s'." % [str(faction.get("id", "")), str(related_faction)]
+
+	for waterway in candidate["waterways"]:
+		var connected_regions: Variant = waterway.get("connects", [])
+		if not connected_regions is Array:
+			return "Waterway '%s' connects must be an array." % str(waterway.get("id", ""))
+		for region_id in connected_regions:
+			if not region_ids.has(str(region_id)):
+				return "Waterway '%s' references unknown region '%s'." % [str(waterway.get("id", "")), str(region_id)]
 
 	var equipment: Variant = candidate.get("equipment", {})
 	if not equipment is Dictionary:
@@ -184,15 +219,47 @@ func _validate_catalog(candidate: Dictionary) -> String:
 		var records: Variant = transport.get(transport_type, [])
 		if not records is Array:
 			return "Transport collection '%s' must be an array." % transport_type
+		var transport_ids: Dictionary = {}
 		for record in records:
-			if not record is Dictionary or str(record.get("id", "")).is_empty():
-				return "Transport collection '%s' contains an invalid record." % transport_type
-			for region_id in record.get("terrain_bonus", []):
+			if not record is Dictionary:
+				return "Transport collection '%s' contains a non-object entry." % transport_type
+			var transport_id := str(record.get("id", ""))
+			if transport_id.is_empty() or transport_ids.has(transport_id):
+				return "Transport collection '%s' contains a missing or duplicate ID." % transport_type
+			transport_ids[transport_id] = true
+			var terrain_bonus: Variant = record.get("terrain_bonus", [])
+			if not terrain_bonus is Array:
+				return "Transport '%s' terrain_bonus must be an array." % transport_id
+			for region_id in terrain_bonus:
 				if not region_ids.has(str(region_id)):
-					return "Transport '%s' references unknown region '%s'." % [str(record.get("id", "")), str(region_id)]
+					return "Transport '%s' references unknown region '%s'." % [transport_id, str(region_id)]
+
+	var progression: Variant = candidate.get("progression", {})
+	if not progression is Dictionary:
+		return "World catalog progression must be an object."
+	var recommended_order: Variant = progression.get("recommended_region_order", [])
+	if not recommended_order is Array:
+		return "Progression recommended_region_order must be an array."
+	for region_id in recommended_order:
+		if not region_ids.has(str(region_id)):
+			return "Progression references unknown region '%s'." % str(region_id)
+	var level_bands: Variant = progression.get("level_bands", [])
+	if not level_bands is Array:
+		return "Progression level_bands must be an array."
+	for band in level_bands:
+		if not band is Dictionary:
+			return "Progression contains a non-object level band."
+		var min_level: Variant = band.get("min")
+		var max_level: Variant = band.get("max")
+		if not (min_level is int or min_level is float) or not (max_level is int or max_level is float):
+			return "Progression level band must have numeric min and max values."
+		if float(min_level) < 0.0 or float(max_level) < float(min_level):
+			return "Progression level band has an invalid range."
+		if not region_ids.has(str(band.get("region", ""))):
+			return "Progression level band references an unknown region."
 
 	return ""
-	
+
 
 func _fail(message: String) -> bool:
 	_last_error = message

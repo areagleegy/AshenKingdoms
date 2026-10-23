@@ -4,7 +4,6 @@ from __future__ import annotations
 import copy
 import json
 import unittest
-from pathlib import Path
 
 from tools.validate_world_catalog import WORLD_PATH, validate_world
 
@@ -36,6 +35,39 @@ class WorldCatalogTests(unittest.TestCase):
         world = copy.deepcopy(self.world)
         world["equipment"]["weapons"][0]["damage"] = -1
         self.assertTrue(any("invalid damage" in error for error in validate_world(world)))
+
+    def test_character_home_may_reference_a_region_landmark(self) -> None:
+        self.assertEqual(validate_world(self.world), [])
+        uncrowned = next(item for item in self.world["characters"] if item["id"] == "the_uncrowned")
+        self.assertEqual(uncrowned["home"], "throne_without_a_king")
+
+    def test_unknown_creature_habitat_is_rejected(self) -> None:
+        world = copy.deepcopy(self.world)
+        world["creatures"][0]["habitats"] = ["missing_region"]
+        self.assertTrue(any("unknown habitat" in error for error in validate_world(world)))
+
+    def test_unknown_waterway_region_is_rejected(self) -> None:
+        world = copy.deepcopy(self.world)
+        world["waterways"][0]["connects"] = ["missing_region"]
+        self.assertTrue(any("references unknown region" in error for error in validate_world(world)))
+
+    def test_malformed_faction_relations_are_reported(self) -> None:
+        world = copy.deepcopy(self.world)
+        world["factions"][0]["relations"] = ["not", "an", "object"]
+        errors = validate_world(world)
+        self.assertTrue(any("relations must be an object" in error for error in errors))
+
+    def test_malformed_region_threats_are_reported_without_crashing(self) -> None:
+        world = copy.deepcopy(self.world)
+        world["regions"][0]["threats"] = {"unexpected": "object"}
+        errors = validate_world(world)
+        self.assertTrue(any("threats must be an array" in error for error in errors))
+
+    def test_malformed_transport_terrain_bonus_is_reported(self) -> None:
+        world = copy.deepcopy(self.world)
+        world["transport"]["mounts"][0]["terrain_bonus"] = {"ashen_basin": True}
+        errors = validate_world(world)
+        self.assertTrue(any("terrain_bonus must be an array" in error for error in errors))
 
 
 if __name__ == "__main__":
