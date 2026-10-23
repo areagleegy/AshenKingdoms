@@ -110,6 +110,7 @@ jobs:
           test -f scripts/qa/qa_test_runner.gd
           test -f scripts/qa/qa_overlay.gd
           test -f tests/qa_reporter_smoke_test.gd
+          test -f tests/qa_test_runner_smoke_test.gd
           test -f tools/analyze_android_qa_report.py
           test -f tools/test_android_qa_analyzer.py
           test -f tools/diagnostic_cases.json
@@ -132,6 +133,13 @@ jobs:
         run: |
           set -o pipefail
           timeout 120s godot --headless --path . --script res://tests/qa_reporter_smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/qa-reporter-tests.log"
+
+      - name: Run QA behavioral test runner in headless mode
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -o pipefail
+          timeout 120s godot --headless --path . --script res://tests/qa_test_runner_smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/qa-runner-tests.log"
 
       - name: Validate local asset tools and license manifest
         run: |
