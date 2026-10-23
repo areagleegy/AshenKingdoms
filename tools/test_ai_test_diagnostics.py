@@ -33,6 +33,13 @@ class DiagnosticsClassifierTests(unittest.TestCase):
         log = "test_parse_error_is_ranked_first (test_ai_test_diagnostics.DiagnosticsClassifierTests) ... ok"
         self.assertEqual(classify_text(log), [])
 
+    def test_passing_placeholder_asset_assertions_are_not_reported_as_errors(self):
+        log = (
+            "player-character-tests.log: [PASS] missing player.glb selects the documented placeholder path\\n"
+            "player-character-tests.log: [PASS] player tolerates missing AnimationPlayer\\n"
+        )
+        self.assertEqual(classify_text(log), [])
+
     def test_adb_daemon_refusal_is_not_game_network_error(self):
         log = "cannot connect to daemon at tcp:5037: Connection refused"
         self.assertEqual(classify_text(log), [])
@@ -105,6 +112,19 @@ class DiagnosticsClassifierTests(unittest.TestCase):
             advice, status = request_ai_advice(report, "ERROR: synthetic failure")
         self.assertIsNone(advice)
         self.assertEqual(status, "disabled")
+
+    def test_remote_ai_rejects_plain_http_without_requesting_endpoint(self):
+        report = {"diagnostics": []}
+        with patch.dict(os.environ, {
+            "ASHEN_AI_DIAGNOSE": "true",
+            "ASHEN_AI_ENDPOINT": "http://example.invalid/v1",
+            "ASHEN_AI_API_KEY": "test-only-secret-token",
+        }):
+            with patch("ai_test_diagnostics.urllib.request.urlopen") as urlopen:
+                advice, status = request_ai_advice(report, "ERROR: synthetic failure")
+        self.assertIsNone(advice)
+        self.assertEqual(status, "insecure_or_invalid_endpoint_rejected")
+        urlopen.assert_not_called()
 
 
 class DiagnosticBenchmarkTests(unittest.TestCase):

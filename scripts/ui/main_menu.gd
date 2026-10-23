@@ -11,6 +11,7 @@ var _join_button: Button
 
 
 func _ready() -> void:
+	_initialize_qa_reporter()
 	NetworkManager.status_changed.connect(_on_network_status_changed)
 	NetworkManager.session_connected.connect(_on_session_connected)
 	NetworkManager.connection_failed.connect(_on_connection_failed)
@@ -25,6 +26,21 @@ func _ready() -> void:
 		return
 
 	_build_ui()
+
+
+func _initialize_qa_reporter() -> void:
+	if not OS.has_feature("qa_tools"):
+		return
+	if get_tree().root.get_node_or_null("QAReporter") != null:
+		return
+	var reporter_script := load("res://scripts/qa/qa_reporter.gd") as Script
+	if reporter_script == null:
+		push_warning("QA reporter script could not be loaded in this QA build.")
+		return
+	var reporter := reporter_script.new() as Node
+	reporter.name = "QAReporter"
+	get_tree().root.add_child(reporter)
+	reporter.call("record_event", "main_menu_ready")
 
 
 func _build_ui() -> void:
@@ -62,6 +78,13 @@ func _build_ui() -> void:
 	solo_button.custom_minimum_size = Vector2(0.0, 48.0)
 	solo_button.pressed.connect(_start_solo)
 	layout.add_child(solo_button)
+
+	if OS.has_feature("qa_tools"):
+		var qa_button := Button.new()
+		qa_button.text = "فحص QA ونسخ التقرير"
+		qa_button.custom_minimum_size = Vector2(0.0, 46.0)
+		qa_button.pressed.connect(_run_qa_diagnostics)
+		layout.add_child(qa_button)
 
 	var separator := HSeparator.new()
 	layout.add_child(separator)
@@ -199,6 +222,105 @@ func _on_connection_failed(reason: String) -> void:
 	_set_status(reason)
 	if is_instance_valid(_join_button):
 		_join_button.disabled = false
+
+
+func _run_qa_diagnostics() -> void:
+	if not OS.has_feature("qa_tools"):
+		return
+
+	var reporter := get_tree().root.get_node_or_null("QAReporter")
+	if reporter == null:
+		_set_status("تعذّر تشغيل QAReporter في هذا البناء.")
+		return
+
+	var runner_script := load("res://scripts/qa/qa_test_runner.gd") as Script
+	if runner_script == null:
+		reporter.call("record_event", "qa_test_runner_load_failed")
+		_set_status("تعذّر تحميل مشغّل اختبارات QA.")
+		return
+
+	var runner := runner_script.new() as Node
+	runner.name = "QATestRunner"
+	get_tree().root.add_child(runner)
+	var summary: Dictionary = runner.call("run_smoke_tests")
+	runner.queue_free()
+
+	reporter.call("record_event", "qa_report_requested", {
+		"passed": int(summary.get("passed", 0)),
+		"failed": int(summary.get("failed", 0)),
+	})
+	var export_result: Dictionary = reporter.call("export_report")
+	var report_json: String = str(reporter.call("get_report_json"))
+	_show_qa_report_window(summary, export_result, report_json)
+
+
+func _show_qa_report_window(summary: Dictionary, export_result: Dictionary, report_json: String) -> void:
+	var qa_window := Window.new()
+	qa_window.title = "تقرير QA — ممالك الرماد"
+	qa_window.size = Vector2i(920, 640)
+	qa_window.min_size = Vector2i(360, 360)
+	qa_window.close_requested.connect(qa_window.queue_free)
+
+	var layout := VBoxContainer.new()
+	layout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	layout.offset_left = 12.0
+	layout.offset_top = 12.0
+	layout.offset_right = -12.0
+	layout.offset_bottom = -12.0
+	layout.add_theme_constant_override("separation", 8)
+	qa_window.add_child(layout)
+
+	var summary_label := Label.new()
+	summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	summary_label.text = "نجح: %d | فشل: %d | نتيجة الفحص محلية ولا تُرسل تلقائيًا." % [
+		int(summary.get("passed", 0)),
+		int(summary.get("failed", 0)),
+	]
+	var report_path := str(export_result.get("path", ""))
+	if bool(export_result.get("ok", false)):
+		summary_label.text += "\nمسار الملف داخل بيانات التطبيق: " + report_path
+	else:
+		summary_label.text += "\nتعذّر حفظ الملف؛ يمكنك نسخ JSON من هذه النافذة."
+	layout.add_child(summary_label)
+
+	var report_view := TextEdit.new()
+	report_view.editable = false
+	report_view.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
+	report_view.text = report_json
+	report_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	report_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	layout.add_child(report_view)
+
+	var status_label := Label.new()
+	status_label.text = "لا يوجد إرسال شبكي أو تحليل AI داخل APK."
+	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	layout.add_child(status_label)
+
+	var buttons := HBoxContainer.new()
+	buttons.alignment = BoxContainer.ALIGNMENT_END
+	layout.add_child(buttons)
+
+	var copy_button := Button.new()
+	copy_button.text = "نسخ JSON"
+	copy_button.disabled = not DisplayServer.has_feature(DisplayServer.FEATURE_CLIPBOARD)
+	copy_button.pressed.connect(_copy_qa_report.bind(report_json, status_label))
+	buttons.add_child(copy_button)
+
+	var close_button := Button.new()
+	close_button.text = "إغلاق"
+	close_button.pressed.connect(qa_window.queue_free)
+	buttons.add_child(close_button)
+
+	add_child(qa_window)
+	qa_window.popup_centered(qa_window.size)
+
+
+func _copy_qa_report(report_json: String, status_label: Label) -> void:
+	if not DisplayServer.has_feature(DisplayServer.FEATURE_CLIPBOARD):
+		status_label.text = "الحافظة غير مدعومة هنا؛ حدّد نص JSON وانسخه يدويًا."
+		return
+	DisplayServer.clipboard_set(report_json)
+	status_label.text = "نُسخ تقرير QA إلى الحافظة. يمكنك لصقه في تقرير Issue أو رسالة."
 
 
 func _set_status(message: String) -> void:

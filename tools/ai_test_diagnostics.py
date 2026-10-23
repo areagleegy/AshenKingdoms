@@ -9,6 +9,7 @@ import re
 import sys
 import urllib.error
 import urllib.request
+from urllib.parse import urlsplit
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -77,6 +78,8 @@ def classify_text(text: str) -> list[dict[str, Any]]:
     # Successful unittest rows can contain words such as "parse_error" in the
     # test name; they are not evidence of a runtime failure.
     successful_unittest = re.compile(r"\btest_[A-Za-z0-9_]+(?:\s+\([^)]*\))?\s+\.\.\.\s+ok\s*$", re.IGNORECASE)
+    successful_assertion = re.compile(r"^\s*(?:[^:\n]+\.log:\s*)?\[(?:PASS|OK|SUCCESS)\]\s*", re.IGNORECASE)
+
     def _source_key(line: str) -> str:
         # build_report prefixes each line with its log filename; direct callers
         # without prefixes are treated as one input log.
@@ -91,7 +94,9 @@ def classify_text(text: str) -> list[dict[str, Any]]:
     for rule in RULES:
         matched = []
         for line in lines:
-            if successful_unittest.search(line):
+            if successful_unittest.search(line) or successful_assertion.match(line):
+                # Passing assertions may describe an intentionally missing or rejected
+                # resource; they are evidence of successful handling, not a live failure.
                 continue
             # Godot's save-system negative test intentionally feeds invalid JSON.
             if _source_key(line) in expected_bad_json_sources and re.search(
@@ -138,6 +143,14 @@ def request_ai_advice(report: dict[str, Any], combined_log: str) -> tuple[str | 
         return None, "disabled"
     if not endpoint:
         return None, "enabled_but_endpoint_missing"
+    parsed_endpoint = urlsplit(endpoint)
+    if (
+        parsed_endpoint.scheme.lower() != "https"
+        or not parsed_endpoint.netloc
+        or parsed_endpoint.username is not None
+        or parsed_endpoint.password is not None
+    ):
+        return None, "insecure_or_invalid_endpoint_rejected"
     if not endpoint.endswith("/chat/completions"):
         endpoint = endpoint.rstrip("/")
         endpoint += "/chat/completions" if endpoint.endswith("/v1") else "/v1/chat/completions"

@@ -147,3 +147,38 @@ jobs:
           path: build/android/AshenKingdoms.apk
           if-no-files-found: error
           retention-days: 7
+
+      - name: Stamp source commit and export Android QA APK
+        shell: bash
+        env:
+          QA_BUILD_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          path = Path("scripts/qa/qa_reporter.gd")
+          source = path.read_text(encoding="utf-8")
+          placeholder = 'const BUILD_COMMIT := "development"'
+          if source.count(placeholder) != 1:
+              raise SystemExit("Expected exactly one QA build commit placeholder")
+          commit = os.environ["QA_BUILD_COMMIT"]
+          if not commit or any(char not in "0123456789abcdef" for char in commit.lower()):
+              raise SystemExit("Invalid QA build commit identifier")
+          path.write_text(source.replace(placeholder, f'const BUILD_COMMIT := "{commit}"'), encoding="utf-8")
+          PY
+          godot --headless --path . --editor --quit
+          godot --headless --path . --export-debug "Android QA" build/android/AshenKingdoms-QA.apk
+          test -s build/android/AshenKingdoms-QA.apk
+          stat -c "QA_APK_BYTES=%s" build/android/AshenKingdoms-QA.apk
+          sha256sum build/android/AshenKingdoms-QA.apk
+
+      - name: Upload Android QA artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ashen-kingdoms-android-qa
+          path: build/android/AshenKingdoms-QA.apk
+          if-no-files-found: error
+          retention-days: 7

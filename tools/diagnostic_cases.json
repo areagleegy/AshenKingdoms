@@ -61,6 +61,11 @@
       "id": "successful-test-name-is-not-error",
       "expected_category": null,
       "log": "test_parse_error_is_ranked_first (DiagnosticsClassifierTests) ... ok"
+    },
+    {
+      "id": "passing-placeholder-fallback",
+      "expected_category": null,
+      "log": "player-character-tests.log: [PASS] missing player.glb selects the documented placeholder path\\nplayer-character-tests.log: [PASS] player tolerates missing AnimationPlayer\\n"
     }
   ]
 }
