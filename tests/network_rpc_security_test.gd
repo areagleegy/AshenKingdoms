@@ -34,15 +34,33 @@ func _run() -> void:
 		"_ready_peers.has(sender_id)",
 		"RPC_RATE_PER_SECOND",
 		"RPC_BURST_CAPACITY",
-		"_consume_rpc_token(sender_id)",
+		"consume_peer_rpc_token(sender_id)",
+		"func consume_peer_rpc_token(peer_id: int) -> bool:",
+		"not multiplayer.is_server() or peer_id <= 1",
 		"_rpc_rate_limits.erase(peer_id)",
 		"_ready_peers.erase(peer_id)",
 	], "arena-ready RPC guards and disconnect cleanup")
 
+	_check_rpc_budget_order()
 	await _test_input_token_bucket()
 
 	print("[network-rpc-security] checks: %d, failures: %d" % [_checks, _failures])
 	quit(1 if _failures > 0 else 0)
+
+
+func _check_rpc_budget_order() -> void:
+	var file := FileAccess.open(AVATAR_PATH, FileAccess.READ)
+	if file == null:
+		_check(false, "avatar source opens for RPC budget ordering check")
+		return
+	var source := file.get_as_text()
+	file.close()
+	var budget_index := source.find("if not NetworkManager.consume_peer_rpc_token(sender_id):")
+	var owner_check_index := source.find("if sender_id != owner_peer_id or is_dead:")
+	_check(
+		budget_index >= 0 and owner_check_index >= 0 and budget_index < owner_check_index,
+		"peer-wide RPC budget is consumed before avatar ownership and payload validation"
+	)
 
 
 func _test_input_token_bucket() -> void:
