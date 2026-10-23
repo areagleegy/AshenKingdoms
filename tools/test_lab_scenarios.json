@@ -1,0 +1,201 @@
+{
+  "schema_version": 1,
+  "project": "AshenKingdoms",
+  "engine": "Godot 4.6",
+  "profiles": {
+    "python": [
+      "diagnostics_unit",
+      "diagnostics_benchmark",
+      "docs_links",
+      "asset_licenses",
+      "content_python"
+    ],
+    "ci": [
+      "diagnostics_unit",
+      "diagnostics_benchmark",
+      "docs_links",
+      "asset_licenses",
+      "content_python",
+      "godot_import",
+      "web_export",
+      "android_export",
+      "script_load",
+      "gameplay_smoke",
+      "gameplay_regression",
+      "player_smoke",
+      "network_combat",
+      "enet_loopback",
+      "content_catalog"
+    ]
+  },
+  "scenarios": [
+    {
+      "id": "diagnostics_unit",
+      "area": "AI test diagnostics",
+      "kind": "automated",
+      "command": "diagnostics_unit",
+      "purpose": "تحقق من تصنيف السجلات وتنقيح الأسرار وسلوك المساعد الاختياري.",
+      "acceptance": "جميع اختبارات unittest تنجح."
+    },
+    {
+      "id": "diagnostics_benchmark",
+      "area": "AI test diagnostics",
+      "kind": "automated",
+      "command": "diagnostics_benchmark",
+      "purpose": "قياس تصنيف مجموعة أخطاء معروفة ورصد الإنذارات الكاذبة.",
+      "acceptance": "الأداة تنتهي بنجاح وتنتج تقرير القياس."
+    },
+    {
+      "id": "docs_links",
+      "area": "Documentation",
+      "kind": "automated",
+      "command": "docs_links",
+      "purpose": "فحص الروابط المحلية داخل وثائق Markdown.",
+      "acceptance": "لا توجد روابط محلية مكسورة."
+    },
+    {
+      "id": "asset_licenses",
+      "area": "Assets and licensing",
+      "kind": "automated",
+      "command": "asset_licenses",
+      "purpose": "التحقق من سجل الأصول والتراخيص.",
+      "acceptance": "كل أصل مطلوب له بيانات تحقق مقبولة."
+    },
+    {
+      "id": "content_python",
+      "area": "Content packages",
+      "kind": "automated",
+      "command": "content_python",
+      "purpose": "اختبار إنشاء الحزم وتوقيع الفهرس والتحقق من المسارات.",
+      "acceptance": "اختبارات الحزم والتوقيع تنجح."
+    },
+    {
+      "id": "godot_import",
+      "area": "Build and startup",
+      "kind": "automated",
+      "command": "godot_import",
+      "purpose": "استيراد المشروع وتحليل الموارد في Godot headless.",
+      "acceptance": "المشروع يستورد دون خطأ يمنع التحميل."
+    },
+    {
+      "id": "script_load",
+      "area": "Build and startup",
+      "kind": "automated",
+      "command": "script_load",
+      "purpose": "تحميل السكربتات والمشاهد المسجلة في اختبار الموارد.",
+      "acceptance": "لا يفشل تحميل مورد أو سكربت مطلوب."
+    },
+    {
+      "id": "gameplay_smoke",
+      "area": "Gameplay",
+      "kind": "automated",
+      "command": "gameplay_smoke",
+      "purpose": "اختبار أساسي لمسار اللعب.",
+      "acceptance": "كل فحوص smoke تنجح."
+    },
+    {
+      "id": "gameplay_regression",
+      "area": "Gameplay and save",
+      "kind": "automated",
+      "command": "gameplay_regression",
+      "purpose": "اختبار الصحة والجرد والحوار والمهام والحفظ وإعدادات الإدخال.",
+      "acceptance": "كل فحوص الانحدار الموجودة في هذا الفرع تنجح؛ تغطية استعادة النسخة الاحتياطية تحتاج اختبارًا مخصصًا ضمن إصلاح الحفظ قبل اعتمادها."
+    },
+    {
+      "id": "player_smoke",
+      "area": "Player and assets",
+      "kind": "automated",
+      "command": "player_smoke",
+      "purpose": "فحص تحميل اللاعب والأصول ومسار الرجوع الآمن.",
+      "acceptance": "اختبار اللاعب لا يفشل عند غياب أصل اختياري."
+    },
+    {
+      "id": "network_combat",
+      "area": "Multiplayer",
+      "kind": "automated",
+      "command": "network_combat",
+      "purpose": "اختبار القتال الشبكي ومدخلات الحركة غير الصالحة وحدودها.",
+      "acceptance": "اختبار الشبكة ينتهي قبل المهلة."
+    },
+    {
+      "id": "enet_loopback",
+      "area": "Multiplayer integration",
+      "kind": "automated",
+      "command": "enet_loopback",
+      "purpose": "تشغيل مضيف وعميل ENet كعمليتين منفصلتين محليًا.",
+      "acceptance": "اتصال loopback ينجح؛ لا يعني ذلك قبول الإنترنت."
+    },
+    {
+      "id": "content_catalog",
+      "area": "Content packages",
+      "kind": "automated",
+      "command": "content_catalog",
+      "purpose": "اختبار فهرس المحتوى والمثبت والتحقق من التلاعب والمسارات.",
+      "acceptance": "اختبار Godot الخاص بالفهرس والمثبت ينجح."
+    },
+    {
+      "id": "android_device",
+      "area": "Android acceptance",
+      "kind": "manual",
+      "command": null,
+      "purpose": "تثبيت APK على هاتف فعلي واختبار التشغيل واللمس والدوران والحفظ والاستئناف.",
+      "acceptance": "لا انهيار أو تجمد؛ الإدخال والحفظ والاستعادة تعمل؛ يسجل الطراز وإصدار Android ونتائج الاختبار."
+    },
+    {
+      "id": "web_browser",
+      "area": "Web acceptance",
+      "kind": "manual",
+      "command": null,
+      "purpose": "تشغيل التصدير عبر HTTP/HTTPS في المتصفحات المستهدفة.",
+      "acceptance": "تحميل بلا أخطاء حرجة؛ إدخال لوحة المفاتيح والفأرة صحيح؛ توثيق اختلاف المتصفحات."
+    },
+    {
+      "id": "multiplayer_devices",
+      "area": "Multiplayer acceptance",
+      "kind": "manual",
+      "command": null,
+      "purpose": "اختبار جهازين فعليين على الشبكة المقصودة مع فقد حزم وكمون وانقطاع وإعادة اتصال.",
+      "acceptance": "توثيق المضيف والعميل والمنفذ والكمون والانقطاع؛ عدم ادعاء دعم الإنترنت من loopback وحده."
+    },
+    {
+      "id": "soak_memory",
+      "area": "Runtime maintenance",
+      "kind": "manual",
+      "command": null,
+      "purpose": "جلسة لعب مطولة ومراقبة الذاكرة والحرارة ومعدل الإطارات وتسرب الموارد.",
+      "acceptance": "تحديد مدة وجهاز وخط أساس وحدود قبول قبل الاختبار؛ حفظ القياسات لا الانطباعات فقط."
+    },
+    {
+      "id": "save_fault_injection",
+      "area": "Persistence resilience",
+      "kind": "manual",
+      "command": null,
+      "purpose": "اختبار نسخة تجريبية مع انقطاع/فشل كتابة مضبوط ومساحة منخفضة دون تعريض حفظ المستخدم الحقيقي للخطر.",
+      "acceptance": "الحفظ السابق يبقى قابلًا للاسترجاع أو يظهر فشل واضح؛ لا يُجرى على بيانات حقيقية."
+    },
+    {
+      "id": "release_signing",
+      "area": "Release and maintenance",
+      "kind": "manual",
+      "command": null,
+      "purpose": "مراجعة توقيع إصدار Android وإصدار التطبيق والنسخ الاحتياطية وملاحظات الإصدار.",
+      "acceptance": "مفتاح التوقيع خارج Git، والتحقق من checksum ونسخة احتياطية وخطة رجوع."
+    },
+    {
+      "id": "web_export",
+      "area": "Build and export",
+      "kind": "automated",
+      "command": "web_export",
+      "purpose": "تصدير نسخة Web والتحقق من وجود ملف HTML غير فارغ.",
+      "acceptance": "Godot export-release Web ينتهي بنجاح وينتج index.html."
+    },
+    {
+      "id": "android_export",
+      "area": "Build and export",
+      "kind": "automated",
+      "command": "android_export",
+      "purpose": "تصدير APK تجريبي والتحقق من وجود الملف.",
+      "acceptance": "Godot export-debug Android ينتهي بنجاح وينتج APK؛ هذا لا يثبت التثبيت على هاتف."
+    }
+  ]
+}
