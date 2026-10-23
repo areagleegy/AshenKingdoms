@@ -15,7 +15,7 @@
 
 ## تعليمات الاستئناف
 
-1. اقرأ [سجل استمرارية المشروع](CONTINUITY.md) و[فهرس سياق المحادثات](CONVERSATION_CONTEXT_ARCHIVE_AR.md).
+1. اقرأ [سجل استمرارية المشروع](CONTINUITY.md)، و[فهرس سياق المحادثات](CONVERSATION_CONTEXT_ARCHIVE_AR.md)، و[خريطة التوثيق الشامل](REPOSITORY_DOCUMENTATION_MAP_AR.md)، و[سجل العمل المفتوح](OPEN_WORK_REGISTER_AR.md).
 2. افحص حالة GitHub الحالية بدل افتراض أن اللقطة المؤرخة ما زالت أحدث حالة.
 3. راجع التغييرات والاختبارات على رأس PR #95؛ احتفظ بالنطاق السلوكي الضيق.
 4. تحقق من Issue #96 وحافظ على فصل المسائل الثلاث في PR متابعة.
@@ -35,4 +35,13 @@
 ## بداية جاهزة للجلسة التالية
 
 > واصل مشروع Ashen Kingdoms بالاعتماد على `docs/CONTINUITY.md` و`docs/CONVERSATION_CONTEXT_ARCHIVE_AR.md` و`docs/SESSION_HANDOFF_AR.md`. تحقق أولًا من الحالة الفعلية للمستودع. نقطة الاستئناف المعروفة هي PR #95 ومعه Issue #96 كما هو موثق؛ لا توسع نطاق PR #95. اربط كل استنتاج بنتائج GitHub الحالية، وميّز ما هو متحقق عما هو مخطط أو يحتاج اختبارًا يدويًا. حدّث التوثيق داخل المستودع بعد التغييرات.
+
+
+
+## سجل العمل الحالي والتغطية
+
+- [OPEN_WORK_REGISTER_AR.md](OPEN_WORK_REGISTER_AR.md) لقطة مؤرخة تضم جميع عناصر PR وIssues المفتوحة المرصودة؛ ليست حالة حيّة.
+- [REPOSITORY_DOCUMENTATION_MAP_AR.md](REPOSITORY_DOCUMENTATION_MAP_AR.md) خريطة الأنظمة ومصادر الحقيقة والاختبارات والفجوات.
+- [DOCUMENTATION_AUDIT_AR.md](DOCUMENTATION_AUDIT_AR.md) يحدد ما تمت إضافته وما بقي دون إثبات.
+- لا تفترض أن حالة الميزات في `main` تغيّرت بمجرد وجود PR مفتوح. تحقق من `merged_at` أو رأس `main` ونتائج CI.
 
