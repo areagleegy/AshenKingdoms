@@ -175,12 +175,17 @@ func _test_future_version_rejected(save_system: Node) -> void:
 
 
 func _test_oversized_payload_rejected(save_system: Node) -> void:
+	# Unknown extension fields are tolerated by schema validation, so use one
+	# to exercise the serialized-byte limit rather than failing inventory limits.
 	var oversized := _valid_payload()
-	var large_inventory: Array = []
-	for _i in range(180000):
-		large_inventory.append("xxxxxxxx")
-	oversized["inventory"] = large_inventory
-	_check(not bool(save_system.call("save_game", oversized)), "payload larger than 1 MiB is rejected")
+	oversized["extension_blob"] = "x".repeat(1_048_576)
+	_check(not bool(save_system.call("save_game", oversized)), "serialized payload larger than 1 MiB is rejected before writing")
+
+	# Also exercise the read-side file-size guard with a raw oversized file.
+	_remove_if_exists(BACKUP_PATH)
+	_write_text(SAVE_PATH, "x".repeat(1_048_577))
+	var loaded: Dictionary = save_system.call("load_game")
+	_check(loaded.is_empty(), "oversized on-disk save is rejected before parsing")
 
 
 func _test_delete_cleans_recovery_files(save_system: Node) -> void:
