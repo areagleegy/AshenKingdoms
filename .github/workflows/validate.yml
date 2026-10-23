@@ -108,6 +108,7 @@ jobs:
           test -f tools/test_ai_test_diagnostics.py
           test -f scripts/qa/qa_reporter.gd
           test -f scripts/qa/qa_test_runner.gd
+          test -f scripts/qa/qa_overlay.gd
           test -f tests/qa_reporter_smoke_test.gd
           test -f tools/analyze_android_qa_report.py
           test -f tools/test_android_qa_analyzer.py
