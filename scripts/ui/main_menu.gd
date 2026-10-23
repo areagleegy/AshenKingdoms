@@ -272,9 +272,10 @@ func _show_qa_report_window(summary: Dictionary, export_result: Dictionary, repo
 
 	var summary_label := Label.new()
 	summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	summary_label.text = "نجح: %d | فشل: %d | نتيجة الفحص محلية ولا تُرسل تلقائيًا." % [
+	summary_label.text = "نجح: %d | فشل: %d | يحتاج تحققًا يدويًا: %d | التقرير محلي." % [
 		int(summary.get("passed", 0)),
 		int(summary.get("failed", 0)),
+		int(summary.get("skipped", 0)),
 	]
 	var report_path := str(export_result.get("path", ""))
 	if bool(export_result.get("ok", false)):
