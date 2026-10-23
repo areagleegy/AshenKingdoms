@@ -26,7 +26,10 @@ MAX_REPORT_BYTES = 5 * 1024 * 1024
 def _number(value: Any) -> float | None:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return None
-    result = float(value)
+    try:
+        result = float(value)
+    except (OverflowError, ValueError):
+        return None
     return result if math.isfinite(result) else None
 
 
@@ -52,7 +55,8 @@ def analyze_report(report: dict[str, Any], minimum_fps: float = 30.0,
     """Analyze an exported QA report using explainable offline rules."""
     if report.get("report_type") != REPORT_TYPE:
         raise ValueError(f"Unsupported report_type; expected {REPORT_TYPE}")
-    if report.get("schema_version") != 1:
+    schema_version = report.get("schema_version")
+    if isinstance(schema_version, bool) or schema_version != 1:
         raise ValueError("Unsupported or missing QA report schema_version")
     if critical_fps <= 0 or minimum_fps < critical_fps or maximum_frame_ms <= 0:
         raise ValueError("Invalid performance thresholds")
