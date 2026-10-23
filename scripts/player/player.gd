@@ -83,6 +83,7 @@ func _physics_process(delta: float) -> void:
 
 func take_damage(amount: float) -> void:
 	if not is_dead:
+		_qa_record_event("combat.player_damage_received", {"amount": amount})
 		health.take_damage(amount)
 
 
@@ -98,6 +99,7 @@ func reset_after_death(spawn_position: Vector3) -> void:
 func _attack() -> void:
 	_can_attack = false
 	_is_attacking = true
+	_qa_record_event("combat.player_attack_started", {"damage": attack_damage, "range": attack_range})
 	_play_animation(&"attack")
 	var from := global_position + Vector3.UP * 0.65
 	var to := from - global_transform.basis.z * attack_range
@@ -105,10 +107,16 @@ func _attack() -> void:
 	query.exclude = [get_rid()]
 	query.collide_with_areas = false
 	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	var damaged_target := false
 	if not hit.is_empty():
 		var collider: Object = hit.get("collider")
 		if collider is Node and collider.has_method("take_damage"):
 			collider.call("take_damage", attack_damage)
+			damaged_target = true
+	_qa_record_event(
+		"combat.player_attack_hit" if damaged_target else "combat.player_attack_miss",
+		{"damage": attack_damage if damaged_target else 0.0}
+	)
 
 	await get_tree().create_timer(attack_cooldown).timeout
 	_can_attack = true
@@ -175,7 +183,17 @@ func _update_animation(direction: Vector3) -> void:
 
 
 func _on_health_died() -> void:
+	_qa_record_event("combat.player_died")
 	is_dead = true
 	velocity = Vector3.ZERO
 	_play_animation(&"death")
 	died.emit(self)
+
+
+# QA hooks are inert in normal Android/Web exports and never record chat text.
+func _qa_record_event(event_name: String, details: Dictionary = {}) -> void:
+	if not OS.has_feature("qa_tools"):
+		return
+	var reporter := get_node_or_null("/root/QAReporter")
+	if reporter != null:
+		reporter.call("record_event", event_name, details)
