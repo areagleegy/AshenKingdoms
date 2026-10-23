@@ -33,6 +33,7 @@ func _run() -> void:
 	_test_save_and_load()
 	_test_player_position_finite_guard()
 	_test_autosave_notifications()
+	_test_main_close_notification_wiring()
 	_test_dialogue_and_quests()
 	_test_android_configuration()
 	_test_runtime_input_registration()
@@ -183,6 +184,33 @@ func _test_player_position_finite_guard() -> void:
 	main_for_test.free()
 
 
+func _test_main_close_notification_wiring() -> void:
+	var source_file := FileAccess.open("res://scripts/core/main.gd", FileAccess.READ)
+	_check(source_file != null, "main script is readable for close notification regression checks")
+	if source_file == null:
+		return
+	var source := source_file.get_as_text()
+	source_file.close()
+
+	var notification_start := source.find("func _notification(what: int) -> void:")
+	var next_function := source.find("\n\nfunc ", notification_start + 1)
+	_check(
+		notification_start >= 0 and next_function > notification_start,
+		"main notification handler can be located for regression checks"
+	)
+	if notification_start < 0 or next_function <= notification_start:
+		return
+
+	var notification_block := source.substr(notification_start, next_function - notification_start)
+	var close_branch := notification_block.find("if what == NOTIFICATION_WM_CLOSE_REQUEST:")
+	var save_call := notification_block.find("_handle_window_close_request()")
+	var quit_call := notification_block.find("get_tree().quit()")
+	_check(
+		close_branch >= 0 and save_call > close_branch and quit_call > save_call,
+		"window close notification autosaves before quitting the scene tree"
+	)
+
+
 func _test_autosave_notifications() -> void:
 	var autosave_path := "user://ashen_autosave_regression_%d.json" % OS.get_process_id()
 	_cleanup_test_save_files(autosave_path)
@@ -216,7 +244,7 @@ func _test_autosave_notifications() -> void:
 	)
 
 	test_player.global_position = Vector3(2.0, 3.0, 4.0)
-	main_for_test.call("_notification", Node.NOTIFICATION_WM_CLOSE_REQUEST)
+	main_for_test.call("_handle_window_close_request")
 	var loaded_after_close: Dictionary = save_system.call("load_game")
 	var position_after_close: Dictionary = loaded_after_close.get("player_position", {})
 	_check(

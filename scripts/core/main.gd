@@ -59,12 +59,16 @@ func _process(_delta: float) -> void:
 
 
 func _notification(what: int) -> void:
-	if (
-		what == NOTIFICATION_WM_CLOSE_REQUEST
-		or what == NOTIFICATION_WM_GO_BACK_REQUEST
-		or what == NOTIFICATION_APPLICATION_PAUSED
-	):
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		_handle_window_close_request()
+		get_tree().quit()
+	elif what == NOTIFICATION_WM_GO_BACK_REQUEST or what == NOTIFICATION_APPLICATION_PAUSED:
 		_autosave()
+
+
+func _handle_window_close_request() -> void:
+	# Kept separate so regression tests can verify the save without quitting their test runner.
+	_autosave()
 
 
 func _autosave() -> void:
