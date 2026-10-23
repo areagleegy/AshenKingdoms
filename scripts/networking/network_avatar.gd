@@ -44,6 +44,8 @@ var _input_rate_window_count: int = 0
 var _test_attack_count: int = 0
 var _next_attack_msec: int = 0
 var _death_generation: int = 0
+var _qa_was_moving: bool = false
+var _qa_was_sprinting: bool = false
 var _input_send_accumulator: float = 0.0
 var _base_color: Color = Color.WHITE
 
@@ -150,9 +152,19 @@ func _set_requested_input(direction: Vector3, jump_down: bool, sprint_down: bool
 	_requested_direction = Vector3(direction.x, 0.0, direction.z)
 	if _requested_direction.length_squared() > 1.0:
 		_requested_direction = _requested_direction.normalized()
+	if OS.has_feature("qa_tools"):
+		var moving_now := _requested_direction.length_squared() > 0.001
+		if moving_now != _qa_was_moving:
+			_qa_record_event("physics.network_player_movement_started" if moving_now else "physics.network_player_movement_stopped")
+			_qa_was_moving = moving_now
+		var sprinting_now := moving_now and sprint_down
+		if sprinting_now != _qa_was_sprinting:
+			_qa_record_event("physics.network_player_sprint_started" if sprinting_now else "physics.network_player_sprint_stopped")
+			_qa_was_sprinting = sprinting_now
 	_sprint_requested = sprint_down
 	if jump_down and not _last_jump_down:
 		_jump_buffered = true
+		_qa_record_event("physics.network_player_jump_requested")
 	if attack_down and not _last_attack_down:
 		_attack_requested = true
 	_last_jump_down = jump_down
