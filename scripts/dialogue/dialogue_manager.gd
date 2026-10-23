@@ -28,6 +28,7 @@ func start(graph: DialogueGraph) -> bool:
 		return false
 
 	_graph = graph
+	_qa_record_event("dialogue_started", {"node_count": graph.nodes.size()})
 	if not is_instance_valid(_player):
 		_player = get_tree().get_first_node_in_group("player")
 	dialogue_started.emit()
@@ -58,6 +59,7 @@ func choose(index: int) -> void:
 		return
 
 	var choice: DialogueChoice = available[index]
+	_qa_record_event("dialogue_choice_selected", {"choice_index": index})
 	_apply_effects(choice)
 	if choice.target_node_id == &"":
 		finish()
@@ -74,6 +76,7 @@ func choose(index: int) -> void:
 func finish() -> void:
 	if _graph == null and _current == null:
 		return
+	_qa_record_event("dialogue_ended")
 	_graph = null
 	_current = null
 	dialogue_ended.emit()
@@ -113,7 +116,9 @@ func _show_node(node: DialogueNode) -> void:
 
 	_current = candidate
 	_apply_effects(candidate)
-	dialogue_line_shown.emit(candidate, _visible_choices(candidate))
+	var visible_choices := _visible_choices(candidate)
+	dialogue_line_shown.emit(candidate, visible_choices)
+	_qa_record_event("dialogue_line_shown", {"choice_count": visible_choices.size()})
 
 
 func _visible_choices(node: DialogueNode) -> Array:
@@ -198,3 +203,12 @@ func deserialize(data: Dictionary) -> void:
 		return
 	for flag_name in raw_flags:
 		set_flag(StringName(str(flag_name)), bool(raw_flags[flag_name]))
+
+
+# QA telemetry records counts and branch indices only, never dialogue or choice text.
+func _qa_record_event(event_name: String, details: Dictionary = {}) -> void:
+	if not OS.has_feature("qa_tools"):
+		return
+	var reporter := get_node_or_null("/root/QAReporter")
+	if reporter != null:
+		reporter.call("record_event", event_name, details)
