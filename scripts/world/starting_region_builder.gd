@@ -126,6 +126,7 @@ func _create_poi(parent: Node3D, landmark_id: String, position: Vector3) -> Node
 	poi.position = position
 	poi.set_meta("landmark_id", landmark_id)
 	poi.set("interaction_id", StringName(landmark_id))
+	poi.set("region_id", StringName(STARTER_REGION_ID))
 	poi.set("display_name", _landmark_display_name(landmark_id))
 	poi.set("interaction_message", _landmark_interaction_message(landmark_id))
 	parent.add_child(poi)

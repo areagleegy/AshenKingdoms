@@ -107,7 +107,8 @@ func _build_ui() -> void:
 
 	_message_label = Label.new()
 	_message_label.position = Vector2(16, 190)
-	_message_label.custom_minimum_size = Vector2(380, 32)
+	_message_label.custom_minimum_size = Vector2(440, 56)
+	_message_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	_root.add_child(_message_label)
 
 	_build_inventory_panel()

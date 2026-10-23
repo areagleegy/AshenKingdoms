@@ -14,6 +14,7 @@ const HUD_SCRIPT: Script = preload("res://scripts/ui/hud.gd")
 const NPC_SCENE: PackedScene = preload("res://scenes/npc/NPC.tscn")
 const INTERACTION_SCRIPT: Script = preload("res://scripts/player/interaction_detector.gd")
 const REGION_BUILDER_SCRIPT: Script = preload("res://scripts/world/starting_region_builder.gd")
+const WORLD_JOURNAL_SCRIPT: Script = preload("res://scripts/world/world_journal.gd")
 
 var world: Node3D
 var player: CharacterBody3D
@@ -22,6 +23,7 @@ var enemies_container: Node3D
 var progression: Node
 var quests: Node
 var save_system: Node
+var world_journal: Node
 var hud: CanvasLayer
 
 
@@ -173,6 +175,10 @@ func _create_managers() -> void:
 	quests.set("progression", progression)
 	add_child(quests)
 	quests.call("refresh_ui")
+
+	world_journal = WORLD_JOURNAL_SCRIPT.new()
+	world_journal.name = "WorldJournal"
+	add_child(world_journal)
 
 	save_system = SAVE_SCRIPT.new()
 	save_system.name = "SaveSystem"
@@ -503,6 +509,11 @@ func _save_game() -> void:
 		return
 	var health := player.get_node("Health") as Health
 	var player_pos := player.global_position
+	var world_discoveries: Dictionary = {}
+	if is_instance_valid(world_journal):
+		var discovery_data: Variant = world_journal.call("to_save_data")
+		if discovery_data is Dictionary:
+			world_discoveries = discovery_data
 	var data: Dictionary = {
 		"version": 1,
 		"player_position": {"x": player_pos.x, "y": player_pos.y, "z": player_pos.z},
@@ -511,7 +522,8 @@ func _save_game() -> void:
 		"experience": int(progression.get("experience")),
 		"inventory": player.get_node("Inventory").call("to_save_data"),
 		"quest": quests.call("to_save_data"),
-		"dialogue": _serialize_dialogue_state()
+		"dialogue": _serialize_dialogue_state(),
+		"world_discoveries": world_discoveries
 	}
 	print("[SAVE] dialogue: %s" % str(data.get("dialogue", {})))
 	var success := bool(save_system.call("save_game", data))
@@ -555,6 +567,9 @@ func _load_game() -> void:
 	health.set_current_health(float(data.get("player_health", health.max_health)))
 	player.get_node("Inventory").call("restore_save_data", data.get("inventory", []))
 	quests.call("load_state", data.get("quest", {}))
+	var discovery_data: Variant = data.get("world_discoveries", {})
+	if is_instance_valid(world_journal):
+		world_journal.call("restore_save_data", discovery_data)
 	var dialogue_data = data.get("dialogue", {})
 	var dialogue_manager := get_node_or_null("/root/DialogueManager")
 	if dialogue_manager != null:

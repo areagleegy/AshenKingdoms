@@ -4,6 +4,7 @@ class_name WorldInteractable
 signal interacted(interaction_id: StringName)
 
 var interaction_id: StringName = &""
+var region_id: StringName = &""
 var display_name := "معلم"
 var interaction_message := ""
 var interaction_radius := 3.2
@@ -19,11 +20,18 @@ func _ready() -> void:
 
 func interact() -> void:
 	interacted.emit(interaction_id)
-	if interaction_message.is_empty():
+	var first_discovery := false
+	var journal := get_tree().get_first_node_in_group("world_journal")
+	if is_instance_valid(journal) and journal.has_method("discover_landmark"):
+		first_discovery = bool(journal.call("discover_landmark", region_id, interaction_id))
+	var message := interaction_message
+	if first_discovery:
+		message = "اكتشاف جديد: %s — %s" % [display_name, interaction_message]
+	if message.is_empty():
 		return
 	var hud := get_tree().get_first_node_in_group("game_hud")
 	if is_instance_valid(hud) and hud.has_method("show_message"):
-		hud.call("show_message", interaction_message)
+		hud.call("show_message", message)
 
 
 func set_prompt_visible(value: bool) -> void:

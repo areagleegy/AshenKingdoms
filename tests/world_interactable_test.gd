@@ -2,6 +2,7 @@ extends SceneTree
 
 const INTERACTABLE_PATH := "res://scripts/world/world_interactable.gd"
 const DETECTOR_PATH := "res://scripts/player/interaction_detector.gd"
+const JOURNAL_PATH := "res://scripts/world/world_journal.gd"
 var failures := 0
 
 
@@ -16,10 +17,20 @@ func _run() -> void:
 		quit(1)
 		return
 
+	var journal_script := load(JOURNAL_PATH) as Script
+	_check(journal_script != null, "world journal script loads")
+	if journal_script == null:
+		quit(1)
+		return
+	var journal := journal_script.new() as Node
+	journal.name = "WorldJournalUnderTest"
+	root.add_child(journal)
+
 	var target := Node3D.new()
 	target.name = "TestLandmark"
 	target.set_script(interactable_script)
 	target.set("interaction_id", &"pilgrims_well")
+	target.set("region_id", &"ashen_basin")
 	target.set("display_name", "بئر الحجاج")
 	target.set("interaction_message", "رسالة اختبار")
 	root.add_child(target)
@@ -49,6 +60,7 @@ func _run() -> void:
 	)
 	target.call("interact")
 	_check(emitted_ids.size() == 1 and emitted_ids[0] == &"pilgrims_well", "interact emits the stable landmark ID")
+	_check(bool(journal.call("is_discovered", &"ashen_basin", &"pilgrims_well")), "interacting with a known landmark records its discovery")
 
 	var detector_script := load(DETECTOR_PATH) as Script
 	_check(detector_script != null, "player interaction detector script loads")
@@ -69,6 +81,7 @@ func _run() -> void:
 		detector.free()
 
 	target.free()
+	journal.free()
 	print("[world-interactable] failures: %d" % failures)
 	quit(1 if failures > 0 else 0)
 
