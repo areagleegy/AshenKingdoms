@@ -17,10 +17,16 @@ func _run() -> void:
 
 	var loader := loader_script.new() as Node
 	root.add_child(loader)
-	_check(not loader.call("get_catalog").is_empty(), "default world catalog loads")
+	var default_catalog: Dictionary = loader.call("get_catalog")
+	_check(not default_catalog.is_empty(), "default world catalog loads")
+	if default_catalog.is_empty():
+		loader.queue_free()
+		quit(1)
+		return
 	_check(loader.call("get_region", "ashen_basin").get("id", "") == "ashen_basin", "region lookup returns the requested region")
 	_check(loader.call("get_equipment", "weapons", "basin_sword").get("damage", 0) == 30, "weapon lookup returns structured combat data")
 	_check(loader.call("get_record", "world_events", "ashfall").get("id", "") == "ashfall", "world event lookup returns the requested event")
+	_check(loader.call("get_record", "quest_chains", "a_wall_made_of_ash").get("id", "") == "a_wall_made_of_ash", "expanded character questlines are available by ID")
 	_check(loader.call("get_last_error").is_empty(), "successful default load leaves no validation error")
 
 	var valid_catalog: Dictionary = loader.call("get_catalog")
