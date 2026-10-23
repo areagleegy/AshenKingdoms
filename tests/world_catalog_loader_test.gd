@@ -20,6 +20,8 @@ func _run() -> void:
 	await process_frame
 	_check(not loader.call("get_catalog").is_empty(), "default world catalog loads")
 	_check(loader.call("get_region", "ashen_basin").get("id", "") == "ashen_basin", "region lookup returns the requested region")
+	_check(loader.call("get_equipment", "weapons", "basin_sword").get("damage", 0) == 30, "weapon lookup returns structured combat data")
+	_check(loader.call("get_record", "world_events", "ashfall").get("id", "") == "ashfall", "world event lookup returns the requested event")
 
 	var valid_catalog: Dictionary = loader.call("get_catalog")
 	var temp_path := "user://world_catalog_loader_test.json"
@@ -44,6 +46,16 @@ func _run() -> void:
 	unknown_threat["regions"][0]["threats"] = ["missing_creature"]
 	_check(_write_json(temp_path, unknown_threat), "unknown reference fixture can be written")
 	_check(not loader.call("load_catalog", temp_path), "unknown creature references are rejected")
+
+	var unknown_home: Dictionary = valid_catalog.duplicate(true)
+	unknown_home["characters"][0]["home"] = "missing_settlement"
+	_check(_write_json(temp_path, unknown_home), "unknown home fixture can be written")
+	_check(not loader.call("load_catalog", temp_path), "unknown character home is rejected")
+
+	var negative_damage: Dictionary = valid_catalog.duplicate(true)
+	negative_damage["equipment"]["weapons"][0]["damage"] = -1
+	_check(_write_json(temp_path, negative_damage), "negative damage fixture can be written")
+	_check(not loader.call("load_catalog", temp_path), "negative weapon damage is rejected")
 
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(temp_path))
 	loader.queue_free()
