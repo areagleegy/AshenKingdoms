@@ -22,6 +22,12 @@ jobs:
           set -o pipefail
           python3 -m unittest discover -s tools -p 'test_ai_test_diagnostics.py' -v 2>&1 | tee "$RUNNER_TEMP/diagnostics-unit-tests.log"
 
+      - name: Run offline Android QA report analyzer tests
+        run: |
+          set -o pipefail
+          python3 -m py_compile tools/analyze_android_qa_report.py
+          python3 -m unittest discover -s tools -p 'test_android_qa_analyzer.py' -v 2>&1 | tee "$RUNNER_TEMP/android-qa-analyzer-tests.log"
+
       - name: Benchmark diagnostic corpus
         run: |
           set -o pipefail
@@ -102,7 +108,11 @@ jobs:
           test -f tools/test_ai_test_diagnostics.py
           test -f scripts/qa/qa_reporter.gd
           test -f scripts/qa/qa_test_runner.gd
+          test -f scripts/qa/qa_overlay.gd
           test -f tests/qa_reporter_smoke_test.gd
+          test -f tests/qa_test_runner_smoke_test.gd
+          test -f tools/analyze_android_qa_report.py
+          test -f tools/test_android_qa_analyzer.py
           test -f tools/diagnostic_cases.json
           test -f tools/diagnostic_benchmark.py
           test -f tools/ai_test_diagnostics.py
@@ -123,6 +133,13 @@ jobs:
         run: |
           set -o pipefail
           timeout 120s godot --headless --path . --script res://tests/qa_reporter_smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/qa-reporter-tests.log"
+
+      - name: Run QA behavioral test runner in headless mode
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -o pipefail
+          timeout 120s godot --headless --path . --script res://tests/qa_test_runner_smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/qa-runner-tests.log"
 
       - name: Validate local asset tools and license manifest
         run: |

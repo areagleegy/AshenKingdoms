@@ -46,6 +46,7 @@ func start_quest(requested_id: StringName) -> bool:
 	reward_xp = maxi(0, int(definition.get("reward_xp", 0)))
 	progress = 0
 	active = true
+	_qa_record_event("quest_started")
 	refresh_ui()
 	return true
 
@@ -54,10 +55,12 @@ func on_enemy_defeated(enemy_id: StringName) -> void:
 	if not active or enemy_id != &"ash_wraith":
 		return
 	progress = mini(progress + 1, target)
+	_qa_record_event("quest_progress", {"progress": progress, "target": target})
 	if progress >= target:
 		active = false
 		if is_instance_valid(progression):
 			progression.call("add_experience", reward_xp)
+		_qa_record_event("quest_completed", {"reward_xp": reward_xp})
 		quest_completed.emit(title, reward_xp)
 	refresh_ui()
 
@@ -114,3 +117,12 @@ func load_state(data: Dictionary) -> void:
 	if progress >= target:
 		active = false
 	refresh_ui()
+
+
+# QA hooks are inert in normal Android/Web exports and never record quest text.
+func _qa_record_event(event_name: String, details: Dictionary = {}) -> void:
+	if not OS.has_feature("qa_tools") or has_meta("qa_synthetic_test"):
+		return
+	var reporter := get_node_or_null("/root/QAReporter")
+	if reporter != null:
+		reporter.call("record_event", event_name, details)

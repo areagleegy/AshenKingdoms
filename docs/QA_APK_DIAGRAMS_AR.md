@@ -43,14 +43,20 @@ flowchart TB
     MENU["Main Menu"]
     REPORTER["QAReporter"]
     RUNNER["QATestRunner"]
+    OVERLAY["QA overlay during gameplay"]
     LOCAL["user://qa_reports"]
     CLIP["Clipboard — explicit user action"]
+    ANALYZER["Offline report analyzer on developer machine"]
+    OLLAMA["Optional local Ollama"]
     GAME --> MENU
     MENU -->|"qa_tools enabled"| REPORTER
-    MENU -->|"button pressed"| RUNNER
+    MENU -->|"QA action"| RUNNER
+    OVERLAY -->|"tester action in gameplay"| RUNNER
     RUNNER -->|"test results + event"| REPORTER
     REPORTER -->|"checkpoint / JSON report"| LOCAL
     REPORTER -->|"JSON shown on screen"| CLIP
+    CLIP -.->|"manual copy / file transfer"| ANALYZER
+    ANALYZER -.->|"explicit local model option"| OLLAMA
   end
 
   subgraph CI["GitHub Actions — CURRENT"]

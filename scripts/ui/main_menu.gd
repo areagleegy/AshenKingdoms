@@ -42,6 +42,17 @@ func _initialize_qa_reporter() -> void:
 	get_tree().root.add_child(reporter)
 	reporter.call("record_event", "main_menu_ready")
 
+	var overlay_script := load("res://scripts/qa/qa_overlay.gd") as Script
+	if overlay_script == null:
+		reporter.call("record_event", "qa_overlay_load_failed")
+	elif get_tree().root.get_node_or_null("QAOverlay") == null:
+		var overlay := overlay_script.new() as CanvasLayer
+		if overlay != null:
+			overlay.name = "QAOverlay"
+			get_tree().root.add_child(overlay)
+		else:
+			reporter.call("record_event", "qa_overlay_create_failed")
+
 
 func _build_ui() -> void:
 	var background := ColorRect.new()
@@ -272,9 +283,10 @@ func _show_qa_report_window(summary: Dictionary, export_result: Dictionary, repo
 
 	var summary_label := Label.new()
 	summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	summary_label.text = "نجح: %d | فشل: %d | نتيجة الفحص محلية ولا تُرسل تلقائيًا." % [
+	summary_label.text = "نجح: %d | فشل: %d | يحتاج تحققًا يدويًا: %d | التقرير محلي." % [
 		int(summary.get("passed", 0)),
 		int(summary.get("failed", 0)),
+		int(summary.get("skipped", 0)),
 	]
 	var report_path := str(export_result.get("path", ""))
 	if bool(export_result.get("ok", false)):

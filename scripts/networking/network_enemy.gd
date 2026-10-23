@@ -111,6 +111,7 @@ func _physics_process(delta: float) -> void:
 func apply_damage_from_server(amount: float, attacker_peer_id: int) -> void:
 	if not multiplayer.is_server() or amount <= 0.0 or is_dead or current_health <= 0.0:
 		return
+	_qa_record_event("combat.network_enemy_damage_received", {"amount": amount})
 	current_health = clampf(current_health - amount, 0.0, max_health)
 	if OS.get_environment("ASHEN_TEST_COMBAT") == "1":
 		print("[combat-server] enemy_health slot=%d health=%.2f" % [enemy_slot, current_health])
@@ -119,6 +120,7 @@ func apply_damage_from_server(amount: float, attacker_peer_id: int) -> void:
 		is_dead = true
 		_set_state(AIState.DEAD)
 		velocity = Vector3.ZERO
+		_qa_record_event("combat.network_enemy_died")
 		if not _death_emitted:
 			_death_emitted = true
 			died.emit(self, _last_attacker_peer_id)
@@ -142,6 +144,7 @@ func _server_update_attack_state(target: Node3D, delta: float) -> void:
 	if ai_state == AIState.ATTACK_WINDUP and _state_elapsed >= ATTACK_WINDUP_SECONDS:
 		var fresh_target := _find_player_by_id(_attack_target_peer_id)
 		if is_instance_valid(fresh_target) and global_position.distance_to(fresh_target.global_position) <= ATTACK_RANGE + 0.25:
+			_qa_record_event("combat.network_enemy_attack", {"damage": ATTACK_DAMAGE})
 			fresh_target.call("apply_damage_from_server", ATTACK_DAMAGE, 0)
 		_set_state(AIState.ATTACK_COOLDOWN)
 	elif ai_state == AIState.ATTACK_COOLDOWN and _state_elapsed >= ATTACK_COOLDOWN_SECONDS:
@@ -212,7 +215,9 @@ func _find_player_by_id(peer_id: int) -> Node3D:
 func _set_state(next_state: int) -> void:
 	if ai_state == next_state:
 		return
+	var previous_state := ai_state
 	ai_state = next_state
+	_qa_record_event("combat.network_enemy_state_changed", {"previous_state": previous_state, "next_state": next_state})
 	_state_elapsed = 0.0
 
 
@@ -236,3 +241,12 @@ func _spawn_position(slot: int) -> Vector3:
 		Vector3(0.0, 0.92, -12.0)
 	]
 	return spawn_points[(slot - 1) % spawn_points.size()]
+
+
+# QA hooks are inert in regular builds and record state numbers, never chat text.
+func _qa_record_event(event_name: String, details: Dictionary = {}) -> void:
+	if not OS.has_feature("qa_tools"):
+		return
+	var reporter := get_node_or_null("/root/QAReporter")
+	if reporter != null:
+		reporter.call("record_event", event_name, details)

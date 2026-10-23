@@ -44,6 +44,8 @@ var _input_rate_window_count: int = 0
 var _test_attack_count: int = 0
 var _next_attack_msec: int = 0
 var _death_generation: int = 0
+var _qa_was_moving: bool = false
+var _qa_was_sprinting: bool = false
 var _input_send_accumulator: float = 0.0
 var _base_color: Color = Color.WHITE
 
@@ -150,9 +152,19 @@ func _set_requested_input(direction: Vector3, jump_down: bool, sprint_down: bool
 	_requested_direction = Vector3(direction.x, 0.0, direction.z)
 	if _requested_direction.length_squared() > 1.0:
 		_requested_direction = _requested_direction.normalized()
+	if OS.has_feature("qa_tools"):
+		var moving_now := _requested_direction.length_squared() > 0.001
+		if moving_now != _qa_was_moving:
+			_qa_record_event("physics.network_player_movement_started" if moving_now else "physics.network_player_movement_stopped")
+			_qa_was_moving = moving_now
+		var sprinting_now := moving_now and sprint_down
+		if sprinting_now != _qa_was_sprinting:
+			_qa_record_event("physics.network_player_sprint_started" if sprinting_now else "physics.network_player_sprint_stopped")
+			_qa_was_sprinting = sprinting_now
 	_sprint_requested = sprint_down
 	if jump_down and not _last_jump_down:
 		_jump_buffered = true
+		_qa_record_event("physics.network_player_jump_requested")
 	if attack_down and not _last_attack_down:
 		_attack_requested = true
 	_last_jump_down = jump_down
@@ -200,6 +212,7 @@ func _server_try_attack() -> void:
 	if now < _next_attack_msec:
 		return
 	_next_attack_msec = now + int(attack_cooldown * 1000.0)
+	_qa_record_event("combat.network_player_attack_started", {"damage": attack_damage, "range": attack_range})
 
 	var forward := -global_transform.basis.z
 	forward.y = 0.0
@@ -223,17 +236,22 @@ func _server_try_attack() -> void:
 
 	if is_instance_valid(closest_enemy):
 		closest_enemy.call("apply_damage_from_server", attack_damage, owner_peer_id)
+		_qa_record_event("combat.network_player_attack_hit", {"damage": attack_damage})
+	else:
+		_qa_record_event("combat.network_player_attack_miss")
 
 
 func apply_damage_from_server(amount: float, attacker_peer_id: int = 0) -> void:
 	if not multiplayer.is_server() or amount <= 0.0 or is_dead or current_health <= 0.0:
 		return
+	_qa_record_event("combat.network_player_damage_received", {"amount": amount})
 	current_health = clampf(current_health - amount, 0.0, max_health)
 	if current_health <= 0.0:
 		_server_begin_respawn()
 
 
 func _server_begin_respawn() -> void:
+	_qa_record_event("combat.network_player_died")
 	is_dead = true
 	velocity = Vector3.ZERO
 	_requested_direction = Vector3.ZERO
@@ -247,6 +265,7 @@ func _server_begin_respawn() -> void:
 func _server_respawn(generation: int) -> void:
 	if not multiplayer.is_server() or not is_inside_tree() or generation != _death_generation:
 		return
+	_qa_record_event("combat.network_player_respawned")
 	global_position = _spawn_position(owner_peer_id)
 	velocity = Vector3.ZERO
 	current_health = max_health
@@ -263,8 +282,10 @@ func register_enemy_defeat() -> void:
 	if quest_completed:
 		return
 	quest_progress = mini(quest_progress + 1, QUEST_TARGET)
+	_qa_record_event("quest.network_progress", {"progress": quest_progress, "target": QUEST_TARGET})
 	if quest_progress >= QUEST_TARGET:
 		quest_completed = true
+		_qa_record_event("quest.network_completed", {"reward_xp": QUEST_REWARD_XP})
 		server_grant_experience(QUEST_REWARD_XP)
 
 
@@ -334,3 +355,12 @@ func _spawn_position(peer_id: int) -> Vector3:
 		Vector3(4.0, 0.92, -3.0)
 	]
 	return spawn_points[(peer_id - 1) % spawn_points.size()]
+
+
+# QA hooks are inert in regular builds and record numeric game events only.
+func _qa_record_event(event_name: String, details: Dictionary = {}) -> void:
+	if not OS.has_feature("qa_tools"):
+		return
+	var reporter := get_node_or_null("/root/QAReporter")
+	if reporter != null:
+		reporter.call("record_event", event_name, details)
