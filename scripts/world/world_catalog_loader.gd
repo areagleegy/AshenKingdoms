@@ -9,7 +9,7 @@ const EXPECTED_SCHEMA_VERSION := 1
 const MAX_CATALOG_BYTES := 2 * 1024 * 1024
 const REQUIRED_ARRAYS := [
 	"regions", "settlements", "factions", "characters",
-	"creatures", "quest_chains", "waterways"
+	"creatures", "quest_chains", "waterways", "world_events"
 ]
 
 var _catalog: Dictionary = {}
@@ -56,6 +56,29 @@ func get_catalog() -> Dictionary:
 
 func get_last_error() -> String:
 	return _last_error
+
+
+func get_record(collection_name: String, record_id: String) -> Dictionary:
+	var collection: Variant = _catalog.get(collection_name, [])
+	if not collection is Array:
+		return {}
+	for record in collection:
+		if record is Dictionary and str(record.get("id", "")) == record_id:
+			return record.duplicate(true)
+	return {}
+
+
+func get_equipment(item_type: String, item_id: String) -> Dictionary:
+	var equipment: Variant = _catalog.get("equipment", {})
+	if not equipment is Dictionary:
+		return {}
+	var collection: Variant = equipment.get(item_type, [])
+	if not collection is Array:
+		return {}
+	for item in collection:
+		if item is Dictionary and str(item.get("id", "")) == item_id:
+			return item.duplicate(true)
+	return {}
 
 
 func get_region(region_id: String) -> Dictionary:
@@ -105,6 +128,67 @@ func _validate_catalog(candidate: Dictionary) -> String:
 	for settlement in candidate["settlements"]:
 		if not region_ids.has(str(settlement.get("region", ""))):
 			return "Settlement '%s' references an unknown region." % str(settlement.get("id", ""))
+
+	var faction_ids: Dictionary = ids_by_collection["factions"]
+	var character_ids: Dictionary = ids_by_collection["characters"]
+	for character in candidate["characters"]:
+		if not ids_by_collection["settlements"].has(str(character.get("home", ""))):
+			return "Character '%s' references an unknown home settlement." % str(character.get("id", ""))
+		var questline := str(character.get("questline", ""))
+		var known_quest := false
+		for quest in candidate["quest_chains"]:
+			if str(quest.get("title", {}).get("en", "")) == questline:
+				known_quest = true
+				break
+		if not known_quest:
+			return "Character '%s' references an unknown questline." % str(character.get("id", ""))
+
+	for quest in candidate["quest_chains"]:
+		if not character_ids.has(str(quest.get("start_npc", ""))):
+			return "Quest '%s' references an unknown starting character." % str(quest.get("id", ""))
+		if not region_ids.has(str(quest.get("region", ""))):
+			return "Quest '%s' references an unknown region." % str(quest.get("id", ""))
+
+	for faction in candidate["factions"]:
+		var relations: Variant = faction.get("relations", {})
+		if not relations is Dictionary:
+			return "Faction '%s' relations must be an object." % str(faction.get("id", ""))
+		for related_faction in relations.keys():
+			if not faction_ids.has(str(related_faction)):
+				return "Faction '%s' references unknown faction '%s'." % [str(faction.get("id", "")), str(related_faction)]
+
+	var equipment: Variant = candidate.get("equipment", {})
+	if not equipment is Dictionary:
+		return "World catalog equipment must be an object."
+	for item_type in ["weapons", "armor", "shields"]:
+		var items: Variant = equipment.get(item_type, [])
+		if not items is Array:
+			return "Equipment collection '%s' must be an array." % item_type
+		var item_ids: Dictionary = {}
+		for item in items:
+			if not item is Dictionary:
+				return "Equipment collection '%s' contains a non-object entry." % item_type
+			var item_id := str(item.get("id", ""))
+			if item_id.is_empty() or item_ids.has(item_id):
+				return "Equipment collection '%s' contains a missing or duplicate ID." % item_type
+			item_ids[item_id] = true
+			for stat_name in ["damage", "reach_m", "windup_s", "recovery_s", "stamina_cost", "durability", "physical_resist", "elemental_resist", "guard", "stability"]:
+				if item.has(stat_name) and (not (item[stat_name] is int or item[stat_name] is float) or float(item[stat_name]) < 0.0):
+					return "Equipment '%s' has an invalid stat '%s'." % [item_id, stat_name]
+
+	var transport: Variant = candidate.get("transport", {})
+	if not transport is Dictionary:
+		return "World catalog transport must be an object."
+	for transport_type in ["mounts", "vehicles", "ships"]:
+		var records: Variant = transport.get(transport_type, [])
+		if not records is Array:
+			return "Transport collection '%s' must be an array." % transport_type
+		for record in records:
+			if not record is Dictionary or str(record.get("id", "")).is_empty():
+				return "Transport collection '%s' contains an invalid record." % transport_type
+			for region_id in record.get("terrain_bonus", []):
+				if not region_ids.has(str(region_id)):
+					return "Transport '%s' references unknown region '%s'." % [str(record.get("id", "")), str(region_id)]
 
 	return ""
 	
