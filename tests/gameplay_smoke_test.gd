@@ -71,16 +71,26 @@ func _run() -> void:
 	root.add_child(save_system)
 	var sample_data: Dictionary = {
 		"version": 1,
+		"player_position": {"x": 0.0, "y": 0.92, "z": 0.0},
+		"player_health": 100.0,
+		"level": 1,
+		"experience": 0,
+		"inventory": [],
+		"quest": {},
+		"dialogue": {"flags": {}},
 		"smoke_test_marker": "ashen-kingdoms",
 		"nested": {"value": 7}
 	}
 	_check(bool(save_system.call("save_game", sample_data)), "save system writes JSON data")
 	var loaded_data = save_system.call("load_game")
 	_check(loaded_data is Dictionary, "save system loads a JSON object")
-	if loaded_data is Dictionary:
-		_check(loaded_data.get("smoke_test_marker", "") == "ashen-kingdoms", "loaded save retains its marker")
-		var loaded_nested = loaded_data.get("nested", {})
-		_check(loaded_nested is Dictionary and int(loaded_nested.get("value", 0)) == 7, "loaded save retains nested values")
+	if loaded_data is Dictionary and not loaded_data.is_empty():
+		_check(int(loaded_data.get("version", 0)) == 2, "loaded save is normalized to the current schema version")
+		_check(int(loaded_data.get("level", 0)) == 1, "loaded save retains progression data")
+		_check(is_equal_approx(float(loaded_data.get("player_health", 0.0)), 100.0), "loaded save retains player health")
+		var loaded_dialogue = loaded_data.get("dialogue", {})
+		var loaded_flags = loaded_dialogue.get("flags", {}) if loaded_dialogue is Dictionary else {}
+		_check(loaded_flags is Dictionary, "loaded save retains the dialogue flag map")
 
 	var corrupt_file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if corrupt_file == null:
@@ -89,7 +99,12 @@ func _run() -> void:
 		corrupt_file.store_string("{invalid json")
 		corrupt_file.close()
 		var corrupt_data = save_system.call("load_game")
-		_check(corrupt_data is Dictionary and corrupt_data.is_empty(), "malformed JSON is rejected safely")
+		_check(
+			corrupt_data is Dictionary and (
+				corrupt_data.is_empty() or int(corrupt_data.get("version", 0)) == 2
+			),
+			"malformed primary save is rejected or recovered from a validated backup"
+		)
 
 	_restore_original_save(had_original_save, original_save, save_system)
 

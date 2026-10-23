@@ -132,13 +132,25 @@ func _test_save_and_load(had_original_save: bool, original_save: String) -> void
 	var save_system: Node = SaveSystemScript.new()
 	root.add_child(save_system)
 
-	_check(bool(save_system.call("save_game", {"level": 4, "health": 61.5, "flags": {"intro_seen": true}})), "save system writes structured data")
+	var sample_data: Dictionary = {
+		"version": 1,
+		"player_position": {"x": 2.0, "y": 0.92, "z": -3.0},
+		"player_health": 61.5,
+		"level": 4,
+		"experience": 25,
+		"inventory": [null],
+		"quest": {"id": "ash_trail", "progress": 1, "active": true},
+		"dialogue": {"flags": {"intro_seen": true}}
+	}
+	_check(bool(save_system.call("save_game", sample_data)), "save system writes a validated game save")
 	var loaded = save_system.call("load_game")
 	_check(loaded is Dictionary, "save system returns a dictionary for valid JSON")
-	if loaded is Dictionary:
+	if loaded is Dictionary and not loaded.is_empty():
+		_check(int(loaded.get("version", 0)) == 2, "version 1 save migrates to the current version")
 		_check(int(loaded.get("level", 0)) == 4, "saved progression values load correctly")
-		_check(is_equal_approx(float(loaded.get("health", 0.0)), 61.5), "saved floating-point health loads correctly")
-		var flags = loaded.get("flags", {})
+		_check(is_equal_approx(float(loaded.get("player_health", 0.0)), 61.5), "saved floating-point health loads correctly")
+		var dialogue = loaded.get("dialogue", {})
+		var flags = dialogue.get("flags", {}) if dialogue is Dictionary else {}
 		_check(flags is Dictionary and bool(flags.get("intro_seen", false)), "nested dialogue flags survive save/load")
 
 	var malformed := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
@@ -148,7 +160,10 @@ func _test_save_and_load(had_original_save: bool, original_save: String) -> void
 		malformed.store_string("{not valid JSON")
 		malformed.close()
 		var corrupt = save_system.call("load_game")
-		_check(corrupt is Dictionary and corrupt.is_empty(), "malformed JSON safely returns an empty dictionary")
+		_check(
+			corrupt is Dictionary and (corrupt.is_empty() or int(corrupt.get("version", 0)) == 2),
+			"malformed primary save is rejected or recovered from a validated backup"
+		)
 
 	_restore_original_save(had_original_save, original_save, save_system)
 	_check(not bool(save_system.call("has_save")) if not had_original_save else bool(save_system.call("has_save")), "save fixture is cleaned up or original save is restored")

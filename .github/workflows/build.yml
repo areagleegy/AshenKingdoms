@@ -60,6 +60,8 @@ jobs:
           retention-days: 7
 
   android:
+    # APK export is intentionally skipped for pull requests unless explicitly requested.
+    if: github.event_name != 'pull_request'
     name: Export Android APK
     runs-on: ubuntu-latest
     timeout-minutes: 35
