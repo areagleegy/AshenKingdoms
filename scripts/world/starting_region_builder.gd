@@ -7,6 +7,7 @@ const STONE_MID := Color(0.25, 0.26, 0.27, 1.0)
 const ASH_WOOD := Color(0.17, 0.12, 0.09, 1.0)
 const EMBER_GLOW := Color(0.62, 0.23, 0.075, 1.0)
 const WELL_WATER := Color(0.035, 0.10, 0.13, 1.0)
+const WORLD_INTERACTABLE_SCRIPT: Script = preload("res://scripts/world/world_interactable.gd")
 
 
 func build(parent: Node3D, region: Dictionary) -> Node3D:
@@ -120,11 +121,39 @@ func _build_burnt_tree(parent: Node3D, tree_name: String, position: Vector3) -> 
 
 func _create_poi(parent: Node3D, landmark_id: String, position: Vector3) -> Node3D:
 	var poi := Node3D.new()
+	poi.set_script(WORLD_INTERACTABLE_SCRIPT)
 	poi.name = "POI_%s" % landmark_id
 	poi.position = position
 	poi.set_meta("landmark_id", landmark_id)
+	poi.set("interaction_id", StringName(landmark_id))
+	poi.set("display_name", _landmark_display_name(landmark_id))
+	poi.set("interaction_message", _landmark_interaction_message(landmark_id))
 	parent.add_child(poi)
 	return poi
+
+
+func _landmark_display_name(landmark_id: String) -> String:
+	match landmark_id:
+		"cinder_gate":
+			return "بوابة الجمر"
+		"pilgrims_well":
+			return "بئر الحجاج"
+		"broken_waystone":
+			return "حجر الطريق المكسور"
+		_:
+			return "معلم مجهول"
+
+
+func _landmark_interaction_message(landmark_id: String) -> String:
+	match landmark_id:
+		"cinder_gate":
+			return "بوابة الجمر: الطريق الإقليمي يبدأ من هنا، لكن الطريق إلى الأطلال لن يُفتح قبل إصلاح إشارات الحراسة."
+		"pilgrims_well":
+			return "بئر الحجاج: آثار أقدام حول الحجر؛ يبدو أن قافلة توقفت هنا قبل العاصفة."
+		"broken_waystone":
+			return "حجر الطريق المكسور: نواة زجاج الجمر خامدة. قد تعيدها قطعة أثرية إلى العمل."
+		_:
+			return "لا توجد معلومات مسجلة عن هذا المعلم."
 
 
 func _add_box(

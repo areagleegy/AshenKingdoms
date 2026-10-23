@@ -107,8 +107,10 @@ jobs:
           test -f docs/WORLD_BIBLE_AR.md
           test -f scripts/world/world_catalog_loader.gd
           test -f scripts/world/starting_region_builder.gd
+          test -f scripts/world/world_interactable.gd
           test -f tests/world_catalog_loader_test.gd
           test -f tests/starting_region_builder_test.gd
+          test -f tests/world_interactable_test.gd
           test -f tools/validate_world_catalog.py
           test -f tools/test_world_catalog.py
 
@@ -202,6 +204,13 @@ jobs:
           set -o pipefail
           godot --headless --path . --script res://tests/starting_region_builder_test.gd 2>&1 | tee "$RUNNER_TEMP/starting-region-builder.log"
 
+      - name: Run world interactable smoke tests
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -o pipefail
+          godot --headless --path . --script res://tests/world_interactable_test.gd 2>&1 | tee "$RUNNER_TEMP/world-interactable.log"
+
       - name: Diagnose test logs
         if: always()
         env:
@@ -209,7 +218,7 @@ jobs:
           ASHEN_AI_ENDPOINT: ${{ secrets.ASHEN_AI_ENDPOINT }}
           ASHEN_AI_API_KEY: ${{ secrets.ASHEN_AI_API_KEY }}
           ASHEN_AI_MODEL: ${{ vars.ASHEN_AI_MODEL }}
-        run: python3 tools/ai_test_diagnostics.py --log "$RUNNER_TEMP/diagnostics-unit-tests.log" --log "$RUNNER_TEMP/diagnostic-benchmark.log" --log "$RUNNER_TEMP/godot-setup.log" --log "$RUNNER_TEMP/godot-import.log" --log "$RUNNER_TEMP/gameplay-tests.log" --log "$RUNNER_TEMP/gameplay-regression.log" --log "$RUNNER_TEMP/content-tests.log" --log "$RUNNER_TEMP/python-tests.log" --log "$RUNNER_TEMP/player-character-tests.log" --log "$RUNNER_TEMP/resource-smoke.log" --log "$RUNNER_TEMP/network-combat.log" --log "$RUNNER_TEMP/network-loopback.log" --output "$RUNNER_TEMP/ashen-test-diagnostics.json"
+        run: python3 tools/ai_test_diagnostics.py --log "$RUNNER_TEMP/diagnostics-unit-tests.log" --log "$RUNNER_TEMP/diagnostic-benchmark.log" --log "$RUNNER_TEMP/godot-setup.log" --log "$RUNNER_TEMP/godot-import.log" --log "$RUNNER_TEMP/gameplay-tests.log" --log "$RUNNER_TEMP/gameplay-regression.log" --log "$RUNNER_TEMP/content-tests.log" --log "$RUNNER_TEMP/python-tests.log" --log "$RUNNER_TEMP/player-character-tests.log" --log "$RUNNER_TEMP/resource-smoke.log" --log "$RUNNER_TEMP/network-combat.log" --log "$RUNNER_TEMP/network-loopback.log" --log "$RUNNER_TEMP/world-interactable.log" --log "$RUNNER_TEMP/starting-region-builder.log" --output "$RUNNER_TEMP/ashen-test-diagnostics.json"
 
       - name: Upload diagnostic report
         if: always()

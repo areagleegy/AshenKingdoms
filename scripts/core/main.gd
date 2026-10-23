@@ -463,6 +463,7 @@ func _create_hud() -> void:
 	hud = HUD_SCRIPT.new()
 	hud.name = "HUD"
 	add_child(hud)
+	hud.add_to_group("game_hud")
 	hud.call("bind_game", player, progression, quests, player.get_node("Inventory"))
 	hud.connect("save_requested", _save_game)
 	hud.connect("load_requested", _load_game)

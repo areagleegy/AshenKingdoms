@@ -42,6 +42,10 @@ func _run() -> void:
 	var gate := features.get_node_or_null("POI_cinder_gate")
 	_check(gate.has_meta("landmark_id") and gate.get_meta("landmark_id") == "cinder_gate", "gate POI keeps its catalog landmark ID")
 	_check(gate.get_node_or_null("GateLeftPillar/CollisionShape3D") != null, "gate structure includes physical collision")
+	_check(gate.is_in_group("world_interactable"), "landmark is registered as a world interactable")
+	_check(gate.has_method("interact"), "landmark exposes the common interaction method")
+	_check(gate.get_node_or_null("InteractionZone/CollisionShape3D") != null, "landmark has an interaction trigger")
+	_check(gate.get_node_or_null("InteractionPrompt") is Label3D, "landmark has an in-world interaction prompt")
 	_check(features.get_node_or_null("BurntTree_East_Trunk/CollisionShape3D") != null, "perimeter props include physical collision")
 
 	var other_host := Node3D.new()
