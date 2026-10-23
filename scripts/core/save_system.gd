@@ -275,7 +275,8 @@ func _is_number(value: Variant) -> bool:
 
 
 func has_save() -> bool:
-	return FileAccess.file_exists(SAVE_PATH)
+	# A backup is loadable recovery state even when the primary file is missing.
+	return FileAccess.file_exists(SAVE_PATH) or FileAccess.file_exists(BACKUP_SAVE_PATH)
 
 
 func delete_save() -> bool:
