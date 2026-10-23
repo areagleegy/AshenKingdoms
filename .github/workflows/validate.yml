@@ -106,7 +106,9 @@ jobs:
           test -f content/world/world_catalog.json
           test -f docs/WORLD_BIBLE_AR.md
           test -f scripts/world/world_catalog_loader.gd
+          test -f scripts/world/starting_region_builder.gd
           test -f tests/world_catalog_loader_test.gd
+          test -f tests/starting_region_builder_test.gd
           test -f tools/validate_world_catalog.py
           test -f tools/test_world_catalog.py
 
@@ -192,6 +194,13 @@ jobs:
         run: |
           set -o pipefail
           godot --headless --path . --script res://tests/world_catalog_loader_test.gd 2>&1 | tee "$RUNNER_TEMP/world-catalog-loader.log"
+
+      - name: Run starting region builder smoke tests
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -o pipefail
+          godot --headless --path . --script res://tests/starting_region_builder_test.gd 2>&1 | tee "$RUNNER_TEMP/starting-region-builder.log"
 
       - name: Diagnose test logs
         if: always()

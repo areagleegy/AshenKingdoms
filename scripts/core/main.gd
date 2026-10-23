@@ -13,6 +13,7 @@ const SAVE_SCRIPT: Script = preload("res://scripts/core/save_system.gd")
 const HUD_SCRIPT: Script = preload("res://scripts/ui/hud.gd")
 const NPC_SCENE: PackedScene = preload("res://scenes/npc/NPC.tscn")
 const INTERACTION_SCRIPT: Script = preload("res://scripts/player/interaction_detector.gd")
+const REGION_BUILDER_SCRIPT: Script = preload("res://scripts/world/starting_region_builder.gd")
 
 var world: Node3D
 var player: CharacterBody3D
@@ -150,6 +151,11 @@ func _configure_starting_region_context() -> void:
 		return
 	world.set_meta("region_id", str(region.get("id", "ashen_basin")))
 	world.set_meta("region_data", region.duplicate(true))
+	var region_builder := REGION_BUILDER_SCRIPT.new() as RefCounted
+	if region_builder != null:
+		var features: Node3D = region_builder.call("build", world, region)
+		if is_instance_valid(features):
+			world.set_meta("region_features_path", str(world.get_path_to(features)))
 	var region_name: Variant = region.get("name", {})
 	if region_name is Dictionary:
 		world.set_meta("region_name_ar", str(region_name.get("ar", "حوض الرماد")))
