@@ -13,8 +13,8 @@ const QuestManagerScript: Script = preload("res://scripts/core/quest_manager.gd"
 const ProgressionManagerScript: Script = preload("res://scripts/core/progression_manager.gd")
 
 
-func run_smoke_tests() -> Dictionary:
-	if not OS.has_feature(QA_FEATURE):
+func run_smoke_tests(test_mode: bool = false) -> Dictionary:
+	if not OS.has_feature(QA_FEATURE) and not test_mode:
 		return {"enabled": false, "reason": "qa_feature_disabled", "results": []}
 
 	var results: Array[Dictionary] = [
