@@ -137,7 +137,8 @@ func _validate_catalog(candidate: Dictionary) -> String:
 		var questline := str(character.get("questline", ""))
 		var known_quest := false
 		for quest in candidate["quest_chains"]:
-			if str(quest.get("title", {}).get("en", "")) == questline:
+			var quest_title: Variant = quest.get("title", {})
+			if quest_title is Dictionary and str(quest_title.get("en", "")) == questline:
 				known_quest = true
 				break
 		if not known_quest:
