@@ -17,6 +17,7 @@ func _run() -> void:
 	_test_model_loader_and_placeholder()
 	_test_player_without_animations()
 	_test_sprint_stamina()
+	_test_attack_rejected_without_stamina()
 	_test_player_animation_aliases()
 	print("[player-smoke] failures: %d" % _failures)
 	quit(1 if _failures > 0 else 0)
@@ -95,6 +96,17 @@ func _test_sprint_stamina() -> void:
 	player.set("current_stamina", 150.0)
 	player.call("_drain_sprint_stamina", 0.0)
 	_check(is_equal_approx(float(player.get("current_stamina")), 100.0), "sprint stamina is clamped to max stamina")
+	player.free()
+
+
+func _test_attack_rejected_without_stamina() -> void:
+	var player := _make_player()
+	root.add_child(player)
+	player.set("current_stamina", 6.0)
+	player.call("_attack")
+	_check(is_equal_approx(float(player.get("current_stamina")), 6.0), "insufficient stamina does not consume stamina")
+	_check(bool(player.get("_can_attack")), "insufficient stamina does not lock the next attack")
+	_check(not bool(player.get("_is_attacking")), "insufficient stamina does not enter attack state")
 	player.free()
 
 
