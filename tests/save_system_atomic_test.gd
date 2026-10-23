@@ -84,6 +84,14 @@ func _test_backup_recovery(save_system: Node) -> void:
 	loaded = save_system.call("load_game")
 	_check(int(loaded.get("level", -1)) == 2, "missing primary save recovers backup")
 
+	# A replacement must not discard the only recovery copy when the primary is absent.
+	var replacement := _valid_payload(2, 5)
+	_check(bool(save_system.call("save_game", replacement)), "new primary save can be written while recovery backup exists alone")
+	_check(FileAccess.file_exists(BACKUP_PATH), "existing backup is preserved when no primary save exists")
+	_remove_if_exists(SAVE_PATH)
+	loaded = save_system.call("load_game")
+	_check(int(loaded.get("level", -1)) == 2, "preserved backup remains recoverable after replacement")
+
 
 func _test_v1_migration(save_system: Node) -> void:
 	_write_text(SAVE_PATH, JSON.stringify(_valid_payload(1, 4)))
