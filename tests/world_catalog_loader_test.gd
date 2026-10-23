@@ -17,7 +17,6 @@ func _run() -> void:
 
 	var loader := loader_script.new() as Node
 	root.add_child(loader)
-	await process_frame
 	_check(not loader.call("get_catalog").is_empty(), "default world catalog loads")
 	_check(loader.call("get_region", "ashen_basin").get("id", "") == "ashen_basin", "region lookup returns the requested region")
 	_check(loader.call("get_equipment", "weapons", "basin_sword").get("damage", 0) == 30, "weapon lookup returns structured combat data")
