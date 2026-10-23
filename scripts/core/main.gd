@@ -478,7 +478,7 @@ func _save_game() -> void:
 	var health := player.get_node("Health") as Health
 	var player_pos := player.global_position
 	var data: Dictionary = {
-		"version": 1,
+		"version": 2,
 		"player_position": {"x": player_pos.x, "y": player_pos.y, "z": player_pos.z},
 		"player_health": health.current,
 		"level": int(progression.get("level")),
@@ -507,7 +507,8 @@ func _load_game() -> void:
 	print("[LOAD] dialogue: %s" % str(data.get("dialogue", {})))
 	if data.is_empty():
 		if is_instance_valid(hud):
-			hud.call("show_message", "لا يوجد ملف حفظ بعد.")
+			var message := "تعذر قراءة ملف الحفظ أو أنه تالف." if bool(save_system.call("has_save")) else "لا يوجد ملف حفظ بعد."
+			hud.call("show_message", message)
 		return
 
 	if data.has("player_position") and data["player_position"] is Dictionary:
