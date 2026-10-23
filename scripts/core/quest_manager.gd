@@ -121,7 +121,7 @@ func load_state(data: Dictionary) -> void:
 
 # QA hooks are inert in normal Android/Web exports and never record quest text.
 func _qa_record_event(event_name: String, details: Dictionary = {}) -> void:
-	if not OS.has_feature("qa_tools"):
+	if not OS.has_feature("qa_tools") or has_meta("qa_synthetic_test"):
 		return
 	var reporter := get_node_or_null("/root/QAReporter")
 	if reporter != null:
