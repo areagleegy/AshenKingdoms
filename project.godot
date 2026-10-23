@@ -12,6 +12,7 @@ config/icon="res://assets/ashenkingdoms_icon.svg"
 [autoload]
 DialogueManager="*res://scripts/dialogue/dialogue_manager.gd"
 ContentManager="*res://scripts/content/content_manager.gd"
+CombatCatalog="*res://scripts/combat/combat_catalog.gd"
 NetworkManager="*res://scripts/core/network_manager.gd"
 
 [display]

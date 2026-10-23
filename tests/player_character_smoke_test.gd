@@ -16,6 +16,8 @@ func _initialize() -> void:
 func _run() -> void:
 	_test_model_loader_and_placeholder()
 	_test_player_without_animations()
+	_test_sprint_stamina()
+	_test_attack_rejected_without_stamina()
 	_test_player_animation_aliases()
 	print("[player-smoke] failures: %d" % _failures)
 	quit(1 if _failures > 0 else 0)
@@ -50,6 +52,20 @@ func _test_player_without_animations() -> void:
 	root.add_child(player)
 
 	_check(player.get("_animation_player") == null, "player tolerates missing AnimationPlayer")
+	var weapon_profile: Dictionary = player.call("_get_equipped_weapon_profile")
+	_check(weapon_profile.get("id", "") == "ash_dagger", "player resolves its equipped weapon from the combat catalog")
+	_check(int(weapon_profile.get("damage", 0)) == 15, "player attack profile reads damage from catalog data")
+	_check(bool(player.call("equip_weapon", "cinder_maul")), "player equips a known catalog weapon")
+	_check(String(player.get("equipped_weapon_id")) == "cinder_maul", "equipped weapon selection is stored")
+	_check(not bool(player.call("equip_weapon", "missing_weapon")), "unknown weapon selection is rejected")
+	_check(bool(player.call("equip_armor", "cinder_plate")), "player equips known catalog armor")
+	_check(is_equal_approx(float(player.call("get_equipment_weight")), 42.0), "equipment weight sums weapon and armor")
+	_check(float(player.call("_get_equipment_movement_multiplier")) < 0.7, "heavy equipment reduces movement multiplier")
+	player.call("equip_weapon", "ash_dagger")
+	player.set("equipped_armor_id", &"cinder_plate")
+	player.call("take_damage", 50.0)
+	_check(is_equal_approx(float(player.get_node("Health").get("current")), 70.0), "equipped heavy armor reduces incoming damage by catalog value")
+	player.set("equipped_armor_id", &"")
 	player.call("_play_animation", &"idle")
 	player.call("_update_animation", Vector3.ZERO)
 	_check(true, "missing animation clips do not block idle update")
@@ -60,6 +76,37 @@ func _test_player_without_animations() -> void:
 	player.call("reset_after_death", Vector3.ZERO)
 	_check(not bool(player.get("is_dead")), "player can respawn without animations")
 
+	player.free()
+
+
+func _test_sprint_stamina() -> void:
+	var player := _make_player()
+	player.set("max_stamina", 100.0)
+	player.set("current_stamina", 50.0)
+	player.set("sprint_stamina_cost_per_second", 12.0)
+	player.set("stamina_regen_delay", 0.65)
+	player.call("_drain_sprint_stamina", 0.5)
+	_check(is_equal_approx(float(player.get("current_stamina")), 44.0), "sprinting drains stamina at the configured rate")
+	_check(is_equal_approx(float(player.get("_stamina_regen_wait")), 0.65), "sprinting resets stamina regeneration delay")
+
+	player.set("current_stamina", 1.0)
+	player.call("_drain_sprint_stamina", 2.0)
+	_check(is_equal_approx(float(player.get("current_stamina")), 0.0), "sprint stamina never falls below zero")
+
+	player.set("current_stamina", 150.0)
+	player.call("_drain_sprint_stamina", 0.0)
+	_check(is_equal_approx(float(player.get("current_stamina")), 100.0), "sprint stamina is clamped to max stamina")
+	player.free()
+
+
+func _test_attack_rejected_without_stamina() -> void:
+	var player := _make_player()
+	root.add_child(player)
+	player.set("current_stamina", 6.0)
+	player.call("_attack")
+	_check(is_equal_approx(float(player.get("current_stamina")), 6.0), "insufficient stamina does not consume stamina")
+	_check(bool(player.get("_can_attack")), "insufficient stamina does not lock the next attack")
+	_check(not bool(player.get("_is_attacking")), "insufficient stamina does not enter attack state")
 	player.free()
 
 

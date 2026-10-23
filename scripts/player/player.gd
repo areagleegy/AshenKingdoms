@@ -9,6 +9,12 @@ signal died(player: Node)
 @export var attack_damage: float = 20.0
 @export var attack_range: float = 2.6
 @export var attack_cooldown: float = 0.55
+@export var equipped_weapon_id: StringName = &"ash_dagger"
+@export var equipped_armor_id: StringName = &""
+@export var max_stamina: float = 100.0
+@export var stamina_regen_per_second: float = 18.0
+@export var stamina_regen_delay: float = 0.65
+@export var sprint_stamina_cost_per_second: float = 12.0
 
 @onready var health: Health = $Health
 @onready var inventory: Inventory = $Inventory
@@ -29,11 +35,14 @@ var is_dead: bool = false
 var _animation_player: AnimationPlayer
 var _resolved_animations: Dictionary = {}
 var _is_attacking: bool = false
+var current_stamina: float = 100.0
+var _stamina_regen_wait: float = 0.0
 
 
 func _ready() -> void:
 	add_to_group("player")
 	health.died.connect(_on_health_died)
+	current_stamina = max_stamina
 	_find_animation_player()
 	_play_animation(&"idle")
 
@@ -64,7 +73,18 @@ func _physics_process(delta: float) -> void:
 	else:
 		direction = Vector3(input_vector.x, 0.0, -input_vector.y).normalized()
 
-	var current_speed := sprint_speed if Input.is_action_pressed("sprint") else speed
+	var has_movement := direction.length_squared() > 0.001
+	var sprint_requested := Input.is_action_pressed("sprint") and has_movement and not _is_attacking
+	var is_sprinting := sprint_requested and current_stamina > 0.0
+	if is_sprinting:
+		_drain_sprint_stamina(delta)
+	elif _stamina_regen_wait > 0.0:
+		_stamina_regen_wait = maxf(0.0, _stamina_regen_wait - delta)
+	elif not _is_attacking:
+		current_stamina = minf(max_stamina, current_stamina + maxf(0.0, stamina_regen_per_second) * delta)
+
+	var current_speed := sprint_speed if is_sprinting else speed
+	current_speed *= _get_equipment_movement_multiplier()
 	velocity.x = direction.x * current_speed
 	velocity.z = direction.z * current_speed
 
@@ -75,15 +95,23 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 	if not _is_attacking:
-		_update_animation(direction)
+		_update_animation(direction, is_sprinting)
 
 	if Input.is_action_just_pressed("attack") and _can_attack:
 		_attack()
 
 
 func take_damage(amount: float) -> void:
-	if not is_dead:
-		health.take_damage(amount)
+	if is_dead or amount <= 0.0:
+		return
+	var final_damage := amount
+	if not equipped_armor_id.is_empty():
+		var catalog := get_node_or_null("/root/CombatCatalog")
+		if catalog != null and catalog.has_method("calculate_damage_after_armor"):
+			final_damage = float(catalog.call(
+				"calculate_damage_after_armor", amount, String(equipped_armor_id)
+			))
+	health.take_damage(final_damage)
 
 
 func reset_after_death(spawn_position: Vector3) -> void:
@@ -92,15 +120,33 @@ func reset_after_death(spawn_position: Vector3) -> void:
 	health.set_current_health(health.max_health)
 	is_dead = false
 	_is_attacking = false
+	_can_attack = true
 	_play_animation(&"idle")
 
 
 func _attack() -> void:
+	var weapon_profile := _get_equipped_weapon_profile()
+	var stamina_cost := maxf(0.0, float(weapon_profile.get("stamina_cost", 0.0)))
+	if current_stamina < stamina_cost:
+		return
+
 	_can_attack = false
 	_is_attacking = true
 	_play_animation(&"attack")
+	current_stamina = maxf(0.0, current_stamina - stamina_cost)
+	_stamina_regen_wait = stamina_regen_delay
+	var damage := float(weapon_profile.get("damage", attack_damage))
+	var weapon_range := float(weapon_profile.get("range", attack_range))
+	var windup := maxf(0.0, float(weapon_profile.get("windup_seconds", 0.0)))
+	var active_time := maxf(0.0, float(weapon_profile.get("active_seconds", 0.0)))
+	var recovery := maxf(0.0, float(weapon_profile.get("recovery_seconds", attack_cooldown)))
+	if windup > 0.0:
+		await get_tree().create_timer(windup).timeout
+	if is_dead or not is_inside_tree():
+		_is_attacking = false
+		return
 	var from := global_position + Vector3.UP * 0.65
-	var to := from - global_transform.basis.z * attack_range
+	var to := from - global_transform.basis.z * weapon_range
 	var query := PhysicsRayQueryParameters3D.create(from, to)
 	query.exclude = [get_rid()]
 	query.collide_with_areas = false
@@ -108,11 +154,82 @@ func _attack() -> void:
 	if not hit.is_empty():
 		var collider: Object = hit.get("collider")
 		if collider is Node and collider.has_method("take_damage"):
-			collider.call("take_damage", attack_damage)
+			collider.call("take_damage", damage)
 
-	await get_tree().create_timer(attack_cooldown).timeout
+	var remaining_time := active_time + recovery
+	if remaining_time > 0.0:
+		await get_tree().create_timer(remaining_time).timeout
 	_can_attack = true
 	_is_attacking = false
+
+
+func equip_weapon(item_id: String) -> bool:
+	var catalog := get_node_or_null("/root/CombatCatalog")
+	if catalog == null or not catalog.has_method("get_weapon"):
+		return false
+	var profile: Dictionary = catalog.call("get_weapon", item_id)
+	if profile.is_empty():
+		return false
+	equipped_weapon_id = StringName(item_id)
+	return true
+
+
+func equip_armor(item_id: String) -> bool:
+	if item_id.is_empty():
+		equipped_armor_id = &""
+		return true
+	var catalog := get_node_or_null("/root/CombatCatalog")
+	if catalog == null or not catalog.has_method("get_armor"):
+		return false
+	var profile: Dictionary = catalog.call("get_armor", item_id)
+	if profile.is_empty():
+		return false
+	equipped_armor_id = StringName(item_id)
+	return true
+
+
+func get_equipment_weight() -> float:
+	var weapon_profile := _get_equipped_weapon_profile()
+	var armor_profile := _get_equipped_armor_profile()
+	return maxf(0.0, float(weapon_profile.get("weight", 0.0))) + maxf(0.0, float(armor_profile.get("weight", 0.0)))
+
+
+func _get_equipped_armor_profile() -> Dictionary:
+	var catalog := get_node_or_null("/root/CombatCatalog")
+	if catalog == null or not catalog.has_method("get_armor"):
+		return {}
+	return catalog.call("get_armor", String(equipped_armor_id))
+
+
+func _get_equipment_movement_multiplier() -> float:
+	var multiplier := 1.0
+	var armor_profile := _get_equipped_armor_profile()
+	if not armor_profile.is_empty():
+		multiplier *= clampf(float(armor_profile.get("movement_speed_multiplier", 1.0)), 0.5, 1.25)
+	var catalog := get_node_or_null("/root/CombatCatalog")
+	var max_carry := 30.0
+	if catalog != null and catalog.has_method("get_max_carry_weight"):
+		max_carry = maxf(1.0, float(catalog.call("get_max_carry_weight")))
+	var load_ratio := get_equipment_weight() / max_carry
+	var thresholds: Array = [50.0, 80.0, 100.0]
+	if catalog != null and catalog.has_method("get_encumbrance_thresholds_percent"):
+		var configured: Variant = catalog.call("get_encumbrance_thresholds_percent")
+		if configured is Array and configured.size() >= 3:
+			thresholds = configured
+	if load_ratio > float(thresholds[2]) / 100.0:
+		multiplier *= 0.65
+	elif load_ratio > float(thresholds[1]) / 100.0:
+		multiplier *= 0.82
+	elif load_ratio > float(thresholds[0]) / 100.0:
+		multiplier *= 0.93
+	return multiplier
+
+
+func _get_equipped_weapon_profile() -> Dictionary:
+	var catalog := get_node_or_null("/root/CombatCatalog")
+	if catalog == null or not catalog.has_method("get_weapon"):
+		return {}
+	return catalog.call("get_weapon", String(equipped_weapon_id))
 
 
 func _find_animation_player() -> void:
@@ -163,12 +280,18 @@ func _play_animation(state: StringName) -> void:
 	_animation_player.play(clip_name)
 
 
-func _update_animation(direction: Vector3) -> void:
+func _drain_sprint_stamina(delta: float) -> void:
+	var drain := maxf(0.0, sprint_stamina_cost_per_second) * maxf(0.0, delta)
+	current_stamina = clampf(current_stamina - drain, 0.0, maxf(0.0, max_stamina))
+	_stamina_regen_wait = maxf(0.0, stamina_regen_delay)
+
+
+func _update_animation(direction: Vector3, is_sprinting: bool = false) -> void:
 	if not is_on_floor():
 		_play_animation(&"jump")
 	elif direction.length_squared() <= 0.001:
 		_play_animation(&"idle")
-	elif Input.is_action_pressed("sprint"):
+	elif is_sprinting:
 		_play_animation(&"run")
 	else:
 		_play_animation(&"walk")
