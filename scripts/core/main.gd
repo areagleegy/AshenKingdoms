@@ -13,6 +13,8 @@ const SAVE_SCRIPT: Script = preload("res://scripts/core/save_system.gd")
 const HUD_SCRIPT: Script = preload("res://scripts/ui/hud.gd")
 const NPC_SCENE: PackedScene = preload("res://scenes/npc/NPC.tscn")
 const INTERACTION_SCRIPT: Script = preload("res://scripts/player/interaction_detector.gd")
+const REGION_BUILDER_SCRIPT: Script = preload("res://scripts/world/starting_region_builder.gd")
+const WORLD_JOURNAL_SCRIPT: Script = preload("res://scripts/world/world_journal.gd")
 
 var world: Node3D
 var player: CharacterBody3D
@@ -21,6 +23,7 @@ var enemies_container: Node3D
 var progression: Node
 var quests: Node
 var save_system: Node
+var world_journal: Node
 var hud: CanvasLayer
 
 
@@ -100,6 +103,7 @@ func _create_world() -> void:
 	world = Node3D.new()
 	world.name = "World"
 	add_child(world)
+	_configure_starting_region_context()
 
 	var environment_node := WorldEnvironment.new()
 	var environment := Environment.new()
@@ -137,6 +141,29 @@ func _create_world() -> void:
 	world.add_child(ground_mesh_node)
 
 
+
+func _configure_starting_region_context() -> void:
+	var catalog_loader := get_node_or_null("/root/WorldCatalog")
+	if catalog_loader == null:
+		push_warning("World catalog autoload is unavailable; using the default world scene.")
+		return
+	var region: Dictionary = catalog_loader.call("get_region", "ashen_basin")
+	if region.is_empty():
+		push_warning("Starting region 'ashen_basin' is missing from the world catalog.")
+		return
+	world.set_meta("region_id", str(region.get("id", "ashen_basin")))
+	world.set_meta("region_data", region.duplicate(true))
+	var region_builder := REGION_BUILDER_SCRIPT.new() as RefCounted
+	if region_builder != null:
+		var features: Node3D = region_builder.call("build", world, region)
+		if is_instance_valid(features):
+			world.set_meta("region_features_path", str(world.get_path_to(features)))
+	var region_name: Variant = region.get("name", {})
+	if region_name is Dictionary:
+		world.set_meta("region_name_ar", str(region_name.get("ar", "حوض الرماد")))
+		world.set_meta("region_name_en", str(region_name.get("en", "Ashen Basin")))
+
+
 func _create_managers() -> void:
 	progression = PROGRESSION_SCRIPT.new()
 	progression.name = "ProgressionManager"
@@ -148,6 +175,10 @@ func _create_managers() -> void:
 	quests.set("progression", progression)
 	add_child(quests)
 	quests.call("refresh_ui")
+
+	world_journal = WORLD_JOURNAL_SCRIPT.new()
+	world_journal.name = "WorldJournal"
+	add_child(world_journal)
 
 	save_system = SAVE_SCRIPT.new()
 	save_system.name = "SaveSystem"
@@ -438,6 +469,7 @@ func _create_hud() -> void:
 	hud = HUD_SCRIPT.new()
 	hud.name = "HUD"
 	add_child(hud)
+	hud.add_to_group("game_hud")
 	hud.call("bind_game", player, progression, quests, player.get_node("Inventory"))
 	hud.connect("save_requested", _save_game)
 	hud.connect("load_requested", _load_game)
@@ -477,6 +509,11 @@ func _save_game() -> void:
 		return
 	var health := player.get_node("Health") as Health
 	var player_pos := player.global_position
+	var world_discoveries: Dictionary = {}
+	if is_instance_valid(world_journal):
+		var discovery_data: Variant = world_journal.call("to_save_data")
+		if discovery_data is Dictionary:
+			world_discoveries = discovery_data
 	var data: Dictionary = {
 		"version": 1,
 		"player_position": {"x": player_pos.x, "y": player_pos.y, "z": player_pos.z},
@@ -485,7 +522,8 @@ func _save_game() -> void:
 		"experience": int(progression.get("experience")),
 		"inventory": player.get_node("Inventory").call("to_save_data"),
 		"quest": quests.call("to_save_data"),
-		"dialogue": _serialize_dialogue_state()
+		"dialogue": _serialize_dialogue_state(),
+		"world_discoveries": world_discoveries
 	}
 	print("[SAVE] dialogue: %s" % str(data.get("dialogue", {})))
 	var success := bool(save_system.call("save_game", data))
@@ -529,6 +567,9 @@ func _load_game() -> void:
 	health.set_current_health(float(data.get("player_health", health.max_health)))
 	player.get_node("Inventory").call("restore_save_data", data.get("inventory", []))
 	quests.call("load_state", data.get("quest", {}))
+	var discovery_data: Variant = data.get("world_discoveries", {})
+	if is_instance_valid(world_journal):
+		world_journal.call("restore_save_data", discovery_data)
 	var dialogue_data = data.get("dialogue", {})
 	var dialogue_manager := get_node_or_null("/root/DialogueManager")
 	if dialogue_manager != null:

@@ -104,6 +104,18 @@ jobs:
           test -f tools/diagnostic_cases.json
           test -f tools/diagnostic_benchmark.py
           test -f tools/ai_test_diagnostics.py
+          test -f content/world/world_catalog.json
+          test -f docs/WORLD_BIBLE_AR.md
+          test -f scripts/world/world_catalog_loader.gd
+          test -f scripts/world/starting_region_builder.gd
+          test -f scripts/world/world_interactable.gd
+          test -f scripts/world/world_journal.gd
+          test -f tests/world_catalog_loader_test.gd
+          test -f tests/starting_region_builder_test.gd
+          test -f tests/world_interactable_test.gd
+          test -f tests/world_journal_test.gd
+          test -f tools/validate_world_catalog.py
+          test -f tools/test_world_catalog.py
 
       - name: Validate local Markdown links
         run: python3 tools/validate_docs.py
@@ -175,6 +187,40 @@ jobs:
           set -o pipefail
           python -m unittest tools.test_package_content tools.test_sign_content_catalog tools.test_generate_player_glb -v 2>&1 | tee "$RUNNER_TEMP/python-tests.log"
 
+      - name: Validate world catalog data
+        run: |
+          python3 -m py_compile tools/validate_world_catalog.py tools/test_world_catalog.py
+          python3 tools/validate_world_catalog.py
+          python3 -m unittest tools.test_world_catalog -v
+
+      - name: Run runtime world catalog loader tests
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -o pipefail
+          godot --headless --path . --script res://tests/world_catalog_loader_test.gd 2>&1 | tee "$RUNNER_TEMP/world-catalog-loader.log"
+
+      - name: Run starting region builder smoke tests
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -o pipefail
+          godot --headless --path . --script res://tests/starting_region_builder_test.gd 2>&1 | tee "$RUNNER_TEMP/starting-region-builder.log"
+
+      - name: Run world interactable smoke tests
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -o pipefail
+          godot --headless --path . --script res://tests/world_interactable_test.gd 2>&1 | tee "$RUNNER_TEMP/world-interactable.log"
+
+      - name: Run world journal persistence tests
+        env:
+          GODOT_SILENCE_ROOT_WARNING: "1"
+        run: |
+          set -o pipefail
+          godot --headless --path . --script res://tests/world_journal_test.gd 2>&1 | tee "$RUNNER_TEMP/world-journal.log"
+
       - name: Diagnose test logs
         if: always()
         env:
@@ -182,7 +228,7 @@ jobs:
           ASHEN_AI_ENDPOINT: ${{ secrets.ASHEN_AI_ENDPOINT }}
           ASHEN_AI_API_KEY: ${{ secrets.ASHEN_AI_API_KEY }}
           ASHEN_AI_MODEL: ${{ vars.ASHEN_AI_MODEL }}
-        run: python3 tools/ai_test_diagnostics.py --log "$RUNNER_TEMP/diagnostics-unit-tests.log" --log "$RUNNER_TEMP/diagnostic-benchmark.log" --log "$RUNNER_TEMP/godot-setup.log" --log "$RUNNER_TEMP/godot-import.log" --log "$RUNNER_TEMP/gameplay-tests.log" --log "$RUNNER_TEMP/gameplay-regression.log" --log "$RUNNER_TEMP/content-tests.log" --log "$RUNNER_TEMP/python-tests.log" --log "$RUNNER_TEMP/player-character-tests.log" --log "$RUNNER_TEMP/resource-smoke.log" --log "$RUNNER_TEMP/network-combat.log" --log "$RUNNER_TEMP/network-loopback.log" --output "$RUNNER_TEMP/ashen-test-diagnostics.json"
+        run: python3 tools/ai_test_diagnostics.py --log "$RUNNER_TEMP/diagnostics-unit-tests.log" --log "$RUNNER_TEMP/diagnostic-benchmark.log" --log "$RUNNER_TEMP/godot-setup.log" --log "$RUNNER_TEMP/godot-import.log" --log "$RUNNER_TEMP/gameplay-tests.log" --log "$RUNNER_TEMP/gameplay-regression.log" --log "$RUNNER_TEMP/content-tests.log" --log "$RUNNER_TEMP/python-tests.log" --log "$RUNNER_TEMP/player-character-tests.log" --log "$RUNNER_TEMP/resource-smoke.log" --log "$RUNNER_TEMP/network-combat.log" --log "$RUNNER_TEMP/network-loopback.log" --log "$RUNNER_TEMP/world-interactable.log" --log "$RUNNER_TEMP/world-journal.log" --log "$RUNNER_TEMP/starting-region-builder.log" --output "$RUNNER_TEMP/ashen-test-diagnostics.json"
 
       - name: Upload diagnostic report
         if: always()
