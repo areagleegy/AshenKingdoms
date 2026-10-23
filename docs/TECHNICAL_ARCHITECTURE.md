@@ -21,7 +21,8 @@
 - scripts/player/: حركة اللاعب والكاميرا والهجوم.
 - scripts/enemies/: سلوك عدو مطارد وهجوم قريب.
 - scripts/components/: الصحة والجرد القابل لإعادة الاستخدام.
-- scripts/core/progression_manager.gd: نقاط الخبرة ورفع المستوى.
+- scripts/domain/progression_rules.gd: دالة نقية مشتركة لحساب الخبرة المطلوبة للمستوى.
+- scripts/core/progression_manager.gd: تنسيق نقاط الخبرة ورفع المستوى في اللعب الفردي مع استخدام قاعدة المجال لحساب العتبة.
 - scripts/core/quest_manager.gd: تتبع هدف المهمة ومكافأتها.
 - scripts/ui/hud.gd: HUD والتحكم باللمس وقائمتي الإيقاف والجرد.
 - scripts/core/save_system.gd: حفظ واسترجاع JSON داخل user://savegame.json.
