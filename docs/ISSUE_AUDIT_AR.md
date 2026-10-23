@@ -1,6 +1,6 @@
 # تدقيق Issues وPull Requests — ممالك الرماد
 
-> تاريخ اللقطة: 2026-10-20 (UTC). هذا سجل مراجعة مبني على بيانات GitHub والوثائق المتاحة في هذا التاريخ؛ يجب تحديثه عند تغيّر الحالات أو الالتزامات. الحالة في GitHub منفصلة عن الحالة الفعلية للميزة.
+> تاريخ الجداول التاريخية أدناه: 2026-10-20 (UTC). أُضيفت متابعة مؤرخة في 2026-10-23 دون حذف اللقطة التاريخية. للاطلاع على آخر جرد آلي للعناصر المفتوحة، استخدم [سجل العمل المفتوح](OPEN_WORK_REGISTER_AR.md). الحالة في GitHub منفصلة عن الحالة الفعلية للميزة.
 
 ## الخلاصة التنفيذية
 
@@ -114,6 +114,41 @@
 - [GitHub — مراجعة طلبات الدمج](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/reviewing-changes-in-pull-requests)
 - [GitHub Actions — استخدام الأسرار بأمان](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions)
 - [SPDX — قائمة معرّفات التراخيص](https://spdx.org/licenses/)
+
+
+## تحديث جرد GitHub — 2026-10-23
+
+هذا الملحق أحدث من الجداول التاريخية أعلاه، ولا يحل محل الوصف الحي للقضايا وطلبات الدمج. في جرد GitHub الذي أُجري وقت كتابة الملحق:
+
+- رأس `main`: `683975a2ef03bd283ee821b075d7b9f81f2c05b8`.
+- **54 Pull Requests مفتوحة**.
+- **16 Issue مفتوحة مستقلة**؛ استُبعدت العناصر التي تمثل PRs من العد.
+- [سجل العمل المفتوح](OPEN_WORK_REGISTER_AR.md) يحتوي على جميع العناوين المفتوحة التي رجعتها الواجهة وقت اللقطة، وحالة المسودة، وفرع المصدر، وSHA مختصرًا، وتاريخ آخر تحديث. أعد إنشاء اللقطة عند تغير الحالة.
+- [خريطة تداخل طلبات الدمج](PR_REVIEW_DEPENDENCIES_AR.md) توثق الملفات المشتركة التي تم التحقق منها في مجموعات الحفظ والشبكة والمحتوى والأصول وQA، لتقليل دمج الفروع المتعارضة.
+
+### عناصر تحتاج إلى مراجعة مبنية على المخاطر
+
+| المرجع | مجال العمل | ما يجب التحقق منه |
+|---|---|---|
+| [Issue #20](https://github.com/areagleegy/AshenKingdoms/issues/20) | بوابة الإصدار | قبول Android على جهاز، قبول Web مستضاف، الأصول والتوقيع وقرار go/no-go موثق |
+| [Issue #34](https://github.com/areagleegy/AshenKingdoms/issues/34) | فجوات P0 من المخطط الموحد | تفصيل كل فجوة إلى معيار قبول ودليل، ومنع اعتبار المخطط إنجازًا تنفيذيًا |
+| [Issue #91](https://github.com/areagleegy/AshenKingdoms/issues/91) | موثوقية الحفظ والتحقق من حالة البيانات | مراجعة المخطط وحدود القراءة والاستعادة واختبارات الفشل على أحدث رأس |
+| [Issue #96](https://github.com/areagleegy/AshenKingdoms/issues/96) | سياسات الخبرة وحدود المستوى | إبقاء المسائل الثلاث منفصلة عن نطاق PR #95 حتى تُحسم ويُختبر السلوك |
+| [Issue #47](https://github.com/areagleegy/AshenKingdoms/issues/47) و[PR #86](https://github.com/areagleegy/AshenKingdoms/pull/86) | مصدر حزم المحتوى وسلامتها والتراجع | لا تفعّل التنزيل الإنتاجي قبل إثبات المصدر والتوقيع والتحقق والرجوع الآمن |
+| [Issue #46](https://github.com/areagleegy/AshenKingdoms/issues/46) | أداء Android المرئي والصوتي | اختيار أجهزة مرجعية ومقاييس baseline وتسجيل القياسات القابلة للتكرار |
+| [Issue #48](https://github.com/areagleegy/AshenKingdoms/issues/48) | تدقيق إضافات Godot والمولّد ومحمل المحتوى | مراجعة المصدر والإصدارات والصلاحيات وسلوك الملفات والشبكة وسلسلة التوريد |
+| [Issue #41](https://github.com/areagleegy/AshenKingdoms/issues/41) و[Issue #22](https://github.com/areagleegy/AshenKingdoms/issues/22) | أصول اللاعب والأصول المفتوحة الترخيص | مطابقة كل أصل فعلي بالمصدر الدقيق والرخصة والإسناد وحقوق إعادة التوزيع |
+| [Issue #21](https://github.com/areagleegy/AshenKingdoms/issues/21) | اللعب الجماعي على Web | لا تعلن دعمًا قبل اختبار متصفح حقيقي إلى endpoint منشور عبر WSS ومتطلبات الأمان |
+| [Issue #73](https://github.com/areagleegy/AshenKingdoms/issues/73) | التخطيط لمنصات PlayStation وXbox | تبقى خطة تخطيط؛ لا تُسجل المنصات مدعومة قبل التأكد من المحرك والأدوات والتراخيص والبناء |
+
+هذه قائمة مراجعة بحسب المخاطر وليست بيانًا بأن أي عنصر منها قد أُغلق أو أن الإصلاحات في فروع PR قد وصلت إلى `main`.
+
+### وضع PR توثيق الاستمرارية
+
+- [PR #97](https://github.com/areagleegy/AshenKingdoms/pull/97) هو مسار التوثيق الذي يحتوي على سجل الاستمرارية وفهرس سياق المحادثات ودليل التسليم وخريطة التوثيق وسجل العمل المفتوح.
+- في وقت اللقطة نجح Validate Godot Project وBuild Android and Web على الرأس `0c6dc9dc3237941e5dde949f65e538bcd116e068`: [Validate run 40005100375](https://github.com/areagleegy/AshenKingdoms/actions/runs/40005100375) و[Build run 40005100654](https://github.com/areagleegy/AshenKingdoms/actions/runs/40005100654).
+- بعد أي تحديث لاحق، راجع رأس PR الحالي والتشغيلات التي تشير إلى نفس SHA. لا تنقل نجاح اختبار قديم إلى رأس جديد.
+- لا يعني نجاح الفحوص الآلية أن الوثائق صارت جزءًا من `main`؛ يجب مراجعة PR ودمجه وفق إجراءات المستودع.
 
 ## سجل القرار
 
