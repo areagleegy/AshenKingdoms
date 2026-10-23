@@ -42,6 +42,7 @@ func _run() -> void:
 	_test_dialogue_and_quests()
 	_test_android_configuration()
 	_test_runtime_input_registration()
+	_test_progression_manager_thresholds()
 
 	print("[regression] checks: %d, failures: %d" % [_checks, _failures])
 	quit(1 if _failures > 0 else 0)
@@ -273,6 +274,32 @@ func _test_runtime_input_registration() -> void:
 			"runtime input registration is idempotent for %s" % String(action)
 		)
 	main_node.free()
+
+
+func _test_progression_manager_thresholds() -> void:
+	var progression: Node = ProgressionScript.new()
+	# xp_to_next_level() does not depend on _ready() or the scene tree.
+	progression.set("level", 1)
+	_check(
+		int(progression.call("xp_to_next_level")) == 100,
+		"ProgressionManager returns 100 XP at level 1"
+	)
+	progression.set("level", 2)
+	_check(
+		int(progression.call("xp_to_next_level")) == 150,
+		"ProgressionManager returns 150 XP at level 2"
+	)
+	progression.set("level", 3)
+	_check(
+		int(progression.call("xp_to_next_level")) == 200,
+		"ProgressionManager returns 200 XP at level 3"
+	)
+	progression.set("level", 50)
+	_check(
+		int(progression.call("xp_to_next_level")) == 2550,
+		"ProgressionManager returns 2550 XP at level 50"
+	)
+	progression.free()
 
 
 func _check(condition: bool, description: String) -> void:

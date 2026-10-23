@@ -20,6 +20,20 @@ func _run() -> void:
 		"the XP threshold increases by 50 for each level"
 	)
 
+	# Full curve: every level 1..50 must satisfy the linear step.
+	var expected: int = 100
+	var curve_ok: bool = true
+	for lvl in range(1, 51):
+		var actual: int = ProgressionRules.required_xp_for_level(lvl)
+		if actual != expected:
+			curve_ok = false
+			push_error("[FAIL] curve mismatch at level %d: expected %d, got %d" % [
+				lvl, expected, actual
+			])
+			break
+		expected += 50
+	_check(curve_ok, "required_xp_for_level follows the linear curve for levels 1..50")
+
 	print("[domain-progression] checks: %d, failures: %d" % [_checks, _failures])
 	quit(1 if _failures > 0 else 0)
 
