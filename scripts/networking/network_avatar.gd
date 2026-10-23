@@ -6,6 +6,7 @@ const INPUT_RATE_WINDOW_MSEC: int = 1000
 const INPUT_RATE_LIMIT: int = 40
 const INPUT_MIN_INTERVAL_MSEC: int = 20
 const MAX_LEVEL: int = 50
+const ProgressionRules: Script = preload("res://scripts/domain/progression_rules.gd")
 const QUEST_TARGET: int = 3
 const QUEST_REWARD_XP: int = 75
 
@@ -285,7 +286,7 @@ func server_grant_experience(amount: int) -> void:
 		return
 	experience += amount
 	while level < MAX_LEVEL:
-		var required := 100 + ((level - 1) * 50)
+		var required: int = ProgressionRules.required_xp_for_level(level)
 		if experience < required:
 			break
 		experience -= required
