@@ -6,6 +6,7 @@ const ARMOR_PATH := "res://data/combat/armor.json"
 
 var _weapons: Dictionary = {}
 var _armor: Dictionary = {}
+var _max_carry_weight: float = 30.0
 var _load_error := ""
 
 
@@ -30,8 +31,7 @@ func get_weapon_ids() -> PackedStringArray:
 
 
 func get_max_carry_weight() -> float:
-	var armor_data := _read_json_object(ARMOR_PATH)
-	return maxf(1.0, float(armor_data.get("max_carry_weight", 30.0)))
+	return _max_carry_weight
 
 
 func get_armor_ids() -> PackedStringArray:
@@ -115,6 +115,7 @@ func _load_catalogs() -> bool:
 		return false
 	_weapons = next_weapons
 	_armor = next_armor
+	_max_carry_weight = maxf(1.0, float(armor_data.get("max_carry_weight", 30.0)))
 	return true
 
 
