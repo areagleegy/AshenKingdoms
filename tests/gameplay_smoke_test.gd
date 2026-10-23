@@ -4,6 +4,8 @@ const ProgressionManagerScript: Script = preload("res://scripts/core/progression
 const QuestManagerScript: Script = preload("res://scripts/core/quest_manager.gd")
 const SaveSystemScript: Script = preload("res://scripts/core/save_system.gd")
 const SAVE_PATH: String = "user://savegame.json"
+const TEMP_SAVE_PATH: String = "user://savegame.json.tmp"
+const BACKUP_SAVE_PATH: String = "user://savegame.json.bak"
 
 var _failures: int = 0
 
@@ -13,16 +15,9 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	var had_original_save := FileAccess.file_exists(SAVE_PATH)
-	var original_save := ""
-	if had_original_save:
-		var original_file := FileAccess.open(SAVE_PATH, FileAccess.READ)
-		if original_file == null:
-			push_error("Could not back up existing save before running smoke tests.")
-			quit(1)
-			return
-		original_save = original_file.get_as_text()
-		original_file.close()
+	var original_files := {}
+	for path in [SAVE_PATH, TEMP_SAVE_PATH, BACKUP_SAVE_PATH]:
+		original_files[path] = _read_text_if_present(path)
 
 	var network_manager: Node = root.get_node_or_null("NetworkManager")
 	_check(network_manager != null, "network manager autoload is present for smoke tests")
@@ -82,31 +77,68 @@ func _run() -> void:
 		var loaded_nested = loaded_data.get("nested", {})
 		_check(loaded_nested is Dictionary and int(loaded_nested.get("value", 0)) == 7, "loaded save retains nested values")
 
+	# Simulate an interrupted replacement: the primary is corrupt but the backup is valid.
+	var backup_file := FileAccess.open(BACKUP_SAVE_PATH, FileAccess.WRITE)
+	if backup_file == null:
+		_check(false, "test can create a backup save for recovery")
+	else:
+		backup_file.store_string(JSON.stringify({"recovered_marker": "backup-save"}))
+		backup_file.close()
 	var corrupt_file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if corrupt_file == null:
 		_check(false, "test can open save file to simulate corruption")
 	else:
 		corrupt_file.store_string("{invalid json")
 		corrupt_file.close()
-		var corrupt_data = save_system.call("load_game")
-		_check(corrupt_data is Dictionary and corrupt_data.is_empty(), "malformed JSON is rejected safely")
+		var recovered_data = save_system.call("load_game")
+		_check(recovered_data is Dictionary and recovered_data.get("recovered_marker", "") == "backup-save", "valid backup is loaded when primary JSON is corrupt")
 
-	_restore_original_save(had_original_save, original_save, save_system)
+	# A directory at the temporary-file path forces a write failure; the previous save must survive.
+	var previous_file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	if previous_file == null:
+		_check(false, "test can set up the previous save before failed write")
+	else:
+		previous_file.store_string(JSON.stringify({"preserve_marker": "previous-save"}))
+		previous_file.close()
+	var temp_absolute := ProjectSettings.globalize_path(TEMP_SAVE_PATH)
+	var temp_directory_created := DirAccess.make_dir_absolute(temp_absolute) == OK
+	_check(temp_directory_created, "test can create a temporary-path obstruction")
+	if temp_directory_created:
+		_check(not bool(save_system.call("save_game", {"replacement": true})), "save reports failure when temporary path cannot be opened")
+		var preserved_data = save_system.call("load_game")
+		_check(preserved_data is Dictionary and preserved_data.get("preserve_marker", "") == "previous-save", "failed save preserves the previous save data")
+		DirAccess.remove_absolute(temp_absolute)
+
+	_restore_original_files(original_files)
 
 	print("[smoke] failures: %d" % _failures)
 	quit(1 if _failures > 0 else 0)
 
 
-func _restore_original_save(had_original_save: bool, original_save: String, save_system: Node) -> void:
-	if had_original_save:
-		var restore_file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-		if restore_file == null:
-			_check(false, "existing save file can be restored after the test")
-			return
-		restore_file.store_string(original_save)
-		restore_file.close()
-	else:
-		_check(bool(save_system.call("delete_save")), "temporary smoke-test save is removed")
+func _read_text_if_present(path: String) -> Dictionary:
+	if not FileAccess.file_exists(path):
+		return {"exists": false, "text": ""}
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		_check(false, "existing test save can be read before tests")
+		return {"exists": false, "text": ""}
+	var content := file.get_as_text()
+	file.close()
+	return {"exists": true, "text": content}
+
+
+func _restore_original_files(original_files: Dictionary) -> void:
+	for path in [SAVE_PATH, TEMP_SAVE_PATH, BACKUP_SAVE_PATH]:
+		var original: Dictionary = original_files[path]
+		if bool(original.get("exists", false)):
+			var file := FileAccess.open(path, FileAccess.WRITE)
+			if file == null:
+				_check(false, "original save-related file can be restored")
+				continue
+			file.store_string(str(original.get("text", "")))
+			file.close()
+		elif FileAccess.file_exists(path):
+			_check(DirAccess.remove_absolute(ProjectSettings.globalize_path(path)) == OK, "temporary test file is removed")
 
 
 func _check(condition: bool, description: String) -> void:
