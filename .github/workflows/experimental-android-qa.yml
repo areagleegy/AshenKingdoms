@@ -1,0 +1,148 @@
+name: Experimental Android QA APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      ai_diagnose:
+        description: "Allow optional external AI advice on redacted CI error excerpts"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: experimental-android-qa-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-diagnose:
+    name: Build APK, run smoke tests, and publish QA report
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      GODOT_TEMPLATE_DIR: 4.6.stable
+      GODOT_SILENCE_ROOT_WARNING: "1"
+      ASHEN_AI_DIAGNOSE: ${{ inputs.ai_diagnose && 'true' || 'false' }}
+      ASHEN_AI_ENDPOINT: ${{ secrets.ASHEN_AI_ENDPOINT }}
+      ASHEN_AI_API_KEY: ${{ secrets.ASHEN_AI_API_KEY }}
+      ASHEN_AI_MODEL: ${{ vars.ASHEN_AI_MODEL }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+        with:
+          packages: platform-tools
+
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.1" "cmdline-tools;latest" "cmake;3.10.2.4988404" "ndk;28.1.13356709"
+
+      - name: Install Godot CLI
+        run: bash tools/setup-godot-cli.sh
+
+      - name: Add Godot to PATH
+        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install matching Godot export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          template_root="$HOME/.local/share/godot/export_templates/4.6.stable"
+          mkdir -p "$template_root" "$RUNNER_TEMP/godot-templates"
+          curl --fail --location --silent --show-error "https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_export_templates.tpz" --output "$RUNNER_TEMP/templates.tpz"
+          unzip -oq "$RUNNER_TEMP/templates.tpz" -d "$RUNNER_TEMP/godot-templates"
+          test -d "$RUNNER_TEMP/godot-templates/templates"
+          cp -a "$RUNNER_TEMP/godot-templates/templates/." "$template_root/"
+          test -f "$template_root/android_debug.apk"
+
+      - name: Configure Android paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.config/godot"
+          cat > "$HOME/.config/godot/editor_settings-4.tres" <<EOF
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/java_sdk_path = "$JAVA_HOME"
+          export/android/android_sdk_path = "$ANDROID_HOME"
+          EOF
+          test -d "$JAVA_HOME"
+          test -d "$ANDROID_HOME/platform-tools"
+
+      - name: Import Godot project
+        run: |
+          set -o pipefail
+          godot --headless --path . --editor --quit 2>&1 | tee "$RUNNER_TEMP/godot-import.log"
+
+      - name: Run deterministic gameplay and resource checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tools -p 'test_ai_test_diagnostics.py' -v 2>&1 | tee "$RUNNER_TEMP/diagnostics-unit-tests.log"
+          python3 tools/diagnostic_benchmark.py --corpus tools/diagnostic_cases.json --output "$RUNNER_TEMP/diagnostic-benchmark.json" --summary "$GITHUB_STEP_SUMMARY" 2>&1 | tee "$RUNNER_TEMP/diagnostic-benchmark.log"
+          godot --headless --path . --script res://tests/script_load_smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/resource-smoke.log"
+          godot --headless --path . --script res://tests/gameplay_smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/gameplay-tests.log"
+          godot --headless --path . --script res://tests/gameplay_regression_test.gd 2>&1 | tee "$RUNNER_TEMP/gameplay-regression.log"
+          godot --headless --path . --script res://tests/player_character_smoke_test.gd 2>&1 | tee "$RUNNER_TEMP/player-character-tests.log"
+
+      - name: Export experimental Android APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/android
+          godot --headless --path . --export-debug "Android" build/android/AshenKingdoms-Experimental-QA.apk 2>&1 | tee "$RUNNER_TEMP/android-export.log"
+          test -s build/android/AshenKingdoms-Experimental-QA.apk
+          file build/android/AshenKingdoms-Experimental-QA.apk | tee "$RUNNER_TEMP/apk-file.log"
+          stat -c "APK_BYTES=%s" build/android/AshenKingdoms-Experimental-QA.apk | tee "$RUNNER_TEMP/apk-size.log"
+          sha256sum build/android/AshenKingdoms-Experimental-QA.apk | tee "$RUNNER_TEMP/apk-sha256.log"
+
+      - name: Diagnose CI logs and write report
+        if: always()
+        shell: bash
+        run: |
+          python3 tools/ai_test_diagnostics.py \
+            --log "$RUNNER_TEMP/godot-import.log" \
+            --log "$RUNNER_TEMP/diagnostics-unit-tests.log" \
+            --log "$RUNNER_TEMP/diagnostic-benchmark.log" \
+            --log "$RUNNER_TEMP/resource-smoke.log" \
+            --log "$RUNNER_TEMP/gameplay-tests.log" \
+            --log "$RUNNER_TEMP/gameplay-regression.log" \
+            --log "$RUNNER_TEMP/player-character-tests.log" \
+            --log "$RUNNER_TEMP/android-export.log" \
+            --log "$RUNNER_TEMP/apk-file.log" \
+            --log "$RUNNER_TEMP/apk-size.log" \
+            --log "$RUNNER_TEMP/apk-sha256.log" \
+            --output "$RUNNER_TEMP/ashen-qa-diagnostics.json" \
+            --summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload experimental APK and QA evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ashen-kingdoms-experimental-android-qa
+          path: |
+            build/android/AshenKingdoms-Experimental-QA.apk
+            ${{ runner.temp }}/ashen-qa-diagnostics.json
+            ${{ runner.temp }}/diagnostic-benchmark.json
+            ${{ runner.temp }}/*-tests.log
+            ${{ runner.temp }}/resource-smoke.log
+            ${{ runner.temp }}/android-export.log
+            ${{ runner.temp }}/apk-file.log
+            ${{ runner.temp }}/apk-size.log
+            ${{ runner.temp }}/apk-sha256.log
+          if-no-files-found: warn
+          retention-days: 7
