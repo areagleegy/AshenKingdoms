@@ -52,8 +52,9 @@ func save_game(data: Dictionary) -> bool:
 	var backup_absolute := ProjectSettings.globalize_path(BACKUP_SAVE_PATH)
 	var had_previous_save := FileAccess.file_exists(SAVE_PATH)
 
-	# Preserve the current save as the recovery copy until the replacement is installed.
-	if FileAccess.file_exists(BACKUP_SAVE_PATH) and not _remove_if_exists(BACKUP_SAVE_PATH):
+	# Rotate the backup only when a primary save exists to replace it.
+	# If the primary is missing, keep the backup intact until the new save is installed.
+	if had_previous_save and FileAccess.file_exists(BACKUP_SAVE_PATH) and not _remove_if_exists(BACKUP_SAVE_PATH):
 		push_error("SaveSystem: could not clear stale backup before replacement.")
 		_remove_if_exists(TEMP_SAVE_PATH)
 		return false
