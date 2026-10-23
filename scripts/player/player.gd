@@ -29,6 +29,8 @@ var is_dead: bool = false
 var _animation_player: AnimationPlayer
 var _resolved_animations: Dictionary = {}
 var _is_attacking: bool = false
+var _qa_was_moving: bool = false
+var _qa_was_sprinting: bool = false
 
 
 func _ready() -> void:
@@ -50,6 +52,7 @@ func _physics_process(delta: float) -> void:
 
 	if Input.is_action_just_pressed("jump") and is_on_floor():
 		velocity.y = jump_velocity
+		_qa_record_event("physics.player_jump", {"vertical_speed": jump_velocity})
 
 	var input_vector := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var direction := Vector3.ZERO
@@ -63,6 +66,16 @@ func _physics_process(delta: float) -> void:
 		direction = (right * input_vector.x + forward * -input_vector.y).normalized()
 	else:
 		direction = Vector3(input_vector.x, 0.0, -input_vector.y).normalized()
+
+	if OS.has_feature("qa_tools"):
+		var moving_now := direction.length_squared() > 0.001
+		if moving_now != _qa_was_moving:
+			_qa_record_event("physics.player_movement_started" if moving_now else "physics.player_movement_stopped")
+			_qa_was_moving = moving_now
+		var sprinting_now := moving_now and Input.is_action_pressed("sprint")
+		if sprinting_now != _qa_was_sprinting:
+			_qa_record_event("physics.player_sprint_started" if sprinting_now else "physics.player_sprint_stopped")
+			_qa_was_sprinting = sprinting_now
 
 	var current_speed := sprint_speed if Input.is_action_pressed("sprint") else speed
 	velocity.x = direction.x * current_speed
