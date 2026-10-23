@@ -32,6 +32,8 @@ def valid_report() -> dict:
             {"event": "performance_sample", "details": {"fps": 60, "process_ms": 8, "static_memory_mb": 123}},
             {"event": "combat.player_attack_started", "details": {"damage": 20}},
             {"event": "dialogue_started", "details": {"node_count": 4}},
+            {"event": "physics.player_movement_started", "details": {}},
+            {"event": "physics.player_jump", "details": {"vertical_speed": 5.5}},
         ],
     }
 
@@ -61,6 +63,21 @@ class AndroidQAReportAnalysisTests(unittest.TestCase):
         result = analyze_report(report)
         self.assertEqual(result["readiness"], "blocked")
         self.assertTrue(any(item["id"] == "critical_low_fps" for item in result["findings"]))
+
+    def test_missing_movement_and_jump_is_reported_as_missing_coverage(self):
+        report = valid_report()
+        report["events"] = [
+            event for event in report["events"]
+            if event["event"] not in {
+                "physics.player_movement_started",
+                "physics.player_jump",
+            }
+        ]
+        result = analyze_report(report)
+        finding_ids = {item["id"] for item in result["findings"]}
+        self.assertIn("no_live_movement_observed", finding_ids)
+        self.assertIn("no_live_jump_observed", finding_ids)
+        self.assertEqual(result["readiness"], "evidence_incomplete")
 
     def test_skipped_manual_acceptance_is_not_counted_as_pass(self):
         report = valid_report()
