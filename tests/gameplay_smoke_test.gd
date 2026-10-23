@@ -71,6 +71,13 @@ func _run() -> void:
 	root.add_child(save_system)
 	var sample_data: Dictionary = {
 		"version": 1,
+		"player_position": {"x": 0.0, "y": 0.92, "z": 0.0},
+		"player_health": 100.0,
+		"level": 1,
+		"experience": 0,
+		"inventory": [],
+		"quest": {},
+		"dialogue": {"flags": {}},
 		"smoke_test_marker": "ashen-kingdoms",
 		"nested": {"value": 7}
 	}
@@ -89,7 +96,12 @@ func _run() -> void:
 		corrupt_file.store_string("{invalid json")
 		corrupt_file.close()
 		var corrupt_data = save_system.call("load_game")
-		_check(corrupt_data is Dictionary and corrupt_data.is_empty(), "malformed JSON is rejected safely")
+		_check(
+			corrupt_data is Dictionary and (
+				corrupt_data.is_empty() or int(corrupt_data.get("version", 0)) == 2
+			),
+			"malformed primary save is rejected or recovered from a validated backup"
+		)
 
 	_restore_original_save(had_original_save, original_save, save_system)
 
