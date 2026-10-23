@@ -182,6 +182,28 @@ def analyze_report(report: dict[str, Any], minimum_fps: float = 30.0,
             "تحدث إلى شخصية غير قابلة للعب، اختر إجابة، وتحقق من أثر المهمة/العَلَم ثم أعد التصدير.",
         ))
 
+    movement_events = (
+        event_counts.get("physics.player_movement_started", 0)
+        + event_counts.get("physics.network_player_movement_started", 0)
+    )
+    if movement_events == 0:
+        findings.append(_finding(
+            "no_live_movement_observed", "info", "لم تُسجّل حركة لاعب أثناء جلسة الهاتف",
+            {"movement_start_events": movement_events},
+            "حرّك اللاعب بالعصا الافتراضية، وجرّب الاتجاه القطري والركض، ثم أعد تصدير التقرير.",
+        ))
+
+    jump_events = (
+        event_counts.get("physics.player_jump", 0)
+        + event_counts.get("physics.network_player_jump_requested", 0)
+    )
+    if jump_events == 0:
+        findings.append(_finding(
+            "no_live_jump_observed", "info", "لم تُسجّل محاولة قفز في الجلسة",
+            {"jump_events": jump_events},
+            "جرّب القفز أثناء الوقوف والحركة على الهاتف؛ دوّن يدويًا إذا لم يستجب زر اللمس.",
+        ))
+
     skipped_ids = [item["id"] for item in skipped_tests]
     if skipped_ids:
         findings.append(_finding(
