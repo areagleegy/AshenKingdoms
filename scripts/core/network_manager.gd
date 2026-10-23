@@ -125,7 +125,7 @@ func _rpc_notify_arena_ready() -> void:
 	var sender_id := multiplayer.get_remote_sender_id()
 	if sender_id <= 1 or not multiplayer.get_peers().has(sender_id):
 		return
-	if not _consume_rpc_token(sender_id):
+	if not consume_peer_rpc_token(sender_id):
 		return
 	if _ready_peers.has(sender_id):
 		return
@@ -133,8 +133,8 @@ func _rpc_notify_arena_ready() -> void:
 	peer_arena_ready.emit(sender_id)
 
 
-func _consume_rpc_token(peer_id: int) -> bool:
-	if peer_id <= 1 or not multiplayer.get_peers().has(peer_id):
+func consume_peer_rpc_token(peer_id: int) -> bool:
+	if not multiplayer.is_server() or peer_id <= 1 or not multiplayer.get_peers().has(peer_id):
 		return false
 
 	var now_usec := Time.get_ticks_usec()
