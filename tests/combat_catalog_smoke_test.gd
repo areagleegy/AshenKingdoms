@@ -23,6 +23,7 @@ func _run() -> void:
 	var armor_ids: PackedStringArray = catalog.call("get_armor_ids")
 	_check(weapon_ids.size() == 7, "seven prototype weapons load")
 	_check(armor_ids.size() == 4, "four prototype armor records load")
+	_check(is_equal_approx(float(catalog.call("get_max_carry_weight")), 30.0), "carry capacity is available from the loaded catalog cache")
 	_check(weapon_ids.has("cinder_maul"), "heavy weapon is addressable by stable ID")
 	_check(weapon_ids.has("ash_lance"), "charged weapon is addressable by stable ID")
 	_check(armor_ids.has("cinder_plate"), "heavy armor is addressable by stable ID")
