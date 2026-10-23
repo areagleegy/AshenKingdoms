@@ -43,13 +43,15 @@ func _initialize_qa_reporter() -> void:
 	reporter.call("record_event", "main_menu_ready")
 
 	var overlay_script := load("res://scripts/qa/qa_overlay.gd") as Script
-	if overlay_script != null and get_tree().root.get_node_or_null("QAOverlay") == null:
+	if overlay_script == null:
+		reporter.call("record_event", "qa_overlay_load_failed")
+	elif get_tree().root.get_node_or_null("QAOverlay") == null:
 		var overlay := overlay_script.new() as CanvasLayer
 		if overlay != null:
 			overlay.name = "QAOverlay"
 			get_tree().root.add_child(overlay)
-	else:
-		_qa_record_event("qa_overlay_load_failed")
+		else:
+			reporter.call("record_event", "qa_overlay_create_failed")
 
 
 func _build_ui() -> void:
