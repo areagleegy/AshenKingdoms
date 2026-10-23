@@ -7,6 +7,7 @@ const ARMOR_PATH := "res://data/combat/armor.json"
 var _weapons: Dictionary = {}
 var _armor: Dictionary = {}
 var _max_carry_weight: float = 30.0
+var _encumbrance_thresholds_percent: Array[float] = [50.0, 80.0, 100.0]
 var _load_error := ""
 
 
@@ -32,6 +33,10 @@ func get_weapon_ids() -> PackedStringArray:
 
 func get_max_carry_weight() -> float:
 	return _max_carry_weight
+
+
+func get_encumbrance_thresholds_percent() -> Array[float]:
+	return _encumbrance_thresholds_percent.duplicate()
 
 
 func get_armor_ids() -> PackedStringArray:
@@ -83,6 +88,12 @@ func _load_catalogs() -> bool:
 		_armor.clear()
 		_load_error = "Unsupported combat catalog schema version."
 		return false
+	var thresholds: Variant = armor_data.get("encumbrance_thresholds_percent", null)
+	if not _valid_encumbrance_thresholds(thresholds):
+		_weapons.clear()
+		_armor.clear()
+		_load_error = "Encumbrance thresholds must be finite, strictly increasing percentages in (0, 100]."
+		return false
 	var weapon_records: Variant = weapon_data.get("weapons", [])
 	var armor_records: Variant = armor_data.get("armor", [])
 	if not weapon_records is Array or not armor_records is Array:
@@ -116,6 +127,23 @@ func _load_catalogs() -> bool:
 	_weapons = next_weapons
 	_armor = next_armor
 	_max_carry_weight = maxf(1.0, float(armor_data.get("max_carry_weight", 30.0)))
+	_encumbrance_thresholds_percent.clear()
+	for threshold in thresholds:
+		_encumbrance_thresholds_percent.append(float(threshold))
+	return true
+
+
+func _valid_encumbrance_thresholds(value: Variant) -> bool:
+	if not value is Array or value.is_empty():
+		return false
+	var previous := 0.0
+	for threshold in value:
+		if threshold is bool or not (threshold is int or threshold is float):
+			return false
+		var percent := float(threshold)
+		if not is_finite(percent) or percent <= previous or percent > 100.0:
+			return false
+		previous = percent
 	return true
 
 
