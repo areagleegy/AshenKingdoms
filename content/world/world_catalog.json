@@ -1211,6 +1211,82 @@
         "gain a ship ally",
         "or empower the reavers if the deal fails"
       ]
+    },
+    {
+      "id": "a_wall_made_of_ash",
+      "title": {
+        "en": "A Wall Made of Ash",
+        "ar": "جدار من رماد"
+      },
+      "start_npc": "warden_osk",
+      "region": "ashen_basin",
+      "steps": [
+        "inspect the abandoned watch post",
+        "recover the missing signal braziers",
+        "decide whether Osk reveals his service to the Crown Remnant"
+      ],
+      "outcomes": [
+        "restore patrols around Cinder Gate",
+        "gain or lose the Cinder Compact's trust",
+        "unlock a guarded route through the basin"
+      ]
+    },
+    {
+      "id": "the_ferrymans_due",
+      "title": {
+        "en": "The Ferryman's Due",
+        "ar": "دين الملاح"
+      },
+      "start_npc": "tovin_reed",
+      "region": "bellfen",
+      "steps": [
+        "recover the ferryman's missing chain",
+        "trace the concealed toll ledger",
+        "choose whether to expose Tovin or settle his debt"
+      ],
+      "outcomes": [
+        "open a safer crossing through Bellfen",
+        "change the Court of Reeds' attitude",
+        "reveal a route beneath the drowned belfry"
+      ]
+    },
+    {
+      "id": "the_quiet_hammer",
+      "title": {
+        "en": "The Quiet Hammer",
+        "ar": "المطرقة الصامتة"
+      },
+      "start_npc": "forge_master_dagan",
+      "region": "sootmarch",
+      "steps": [
+        "reopen the Ironvein mine lift",
+        "retrieve a cold-iron sample from the lower shaft",
+        "test Dagan's Emberglass-damping hammer"
+      ],
+      "outcomes": [
+        "unlock advanced equipment repairs",
+        "gain access to cold-iron crafting",
+        "reduce the risk of an Emberglass surge during forging"
+      ]
+    },
+    {
+      "id": "a_throne_of_names",
+      "title": {
+        "en": "A Throne of Names",
+        "ar": "عرش الأسماء"
+      },
+      "start_npc": "the_uncrowned",
+      "region": "ruined_crown",
+      "steps": [
+        "collect the succession tablets beneath the old capital",
+        "compare the names hidden in the Bell Engine records",
+        "choose whether to reveal a claimant's identity"
+      ],
+      "outcomes": [
+        "change the Crown Remnant's legitimacy",
+        "open a sealed chamber of the Underkeep",
+        "set a persistent narrative choice for the later campaign"
+      ]
     }
   ],
   "world_events": [

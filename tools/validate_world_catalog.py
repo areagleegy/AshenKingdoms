@@ -106,6 +106,16 @@ def validate_world(world: Any) -> list[str]:
         home = character.get("home")
         if not isinstance(home, str) or (home not in settlement_ids and home not in landmark_ids):
             errors.append(f"character {character.get('id')} references unknown home {home}")
+        questline = character.get("questline")
+        known_quest_titles = {
+            quest["title"]["en"]
+            for quest in quests
+            if isinstance(quest.get("title"), dict)
+            and isinstance(quest["title"].get("en"), str)
+            and quest["title"]["en"]
+        }
+        if not isinstance(questline, str) or questline not in known_quest_titles:
+            errors.append(f"character {character.get('id')} references unknown questline {questline}")
 
     for quest in quests:
         if quest.get("start_npc") not in character_ids:

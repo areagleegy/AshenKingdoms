@@ -41,6 +41,15 @@ class WorldCatalogTests(unittest.TestCase):
         uncrowned = next(item for item in self.world["characters"] if item["id"] == "the_uncrowned")
         self.assertEqual(uncrowned["home"], "throne_without_a_king")
 
+    def test_every_character_questline_resolves_to_a_quest_chain(self) -> None:
+        quest_titles = {quest["title"]["en"] for quest in self.world["quest_chains"]}
+        self.assertTrue(all(character["questline"] in quest_titles for character in self.world["characters"]))
+
+    def test_unknown_character_questline_is_rejected(self) -> None:
+        world = copy.deepcopy(self.world)
+        world["characters"][0]["questline"] = "Missing Questline"
+        self.assertTrue(any("unknown questline" in error for error in validate_world(world)))
+
     def test_unknown_creature_habitat_is_rejected(self) -> None:
         world = copy.deepcopy(self.world)
         world["creatures"][0]["habitats"] = ["missing_region"]
