@@ -56,6 +56,7 @@ func _physics_process(delta: float) -> void:
 
 
 func take_damage(amount: float) -> void:
+	_qa_record_event("combat.enemy_damage_received", {"amount": amount})
 	health.take_damage(amount)
 
 
@@ -65,9 +66,20 @@ func _try_attack() -> void:
 		return
 	_next_attack_msec = now + int(attack_cooldown * 1000.0)
 	if is_instance_valid(player) and player.has_method("take_damage"):
+		_qa_record_event("combat.enemy_attack", {"damage": attack_damage})
 		player.call("take_damage", attack_damage)
 
 
 func _on_health_died() -> void:
+	_qa_record_event("combat.enemy_died")
 	died.emit(self)
 	queue_free()
+
+
+# QA hooks are inert in normal Android/Web exports and never record player data.
+func _qa_record_event(event_name: String, details: Dictionary = {}) -> void:
+	if not OS.has_feature("qa_tools"):
+		return
+	var reporter := get_node_or_null("/root/QAReporter")
+	if reporter != null:
+		reporter.call("record_event", event_name, details)
