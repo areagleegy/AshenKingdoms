@@ -125,15 +125,14 @@ func reset_after_death(spawn_position: Vector3) -> void:
 
 
 func _attack() -> void:
-	_can_attack = false
-	_is_attacking = true
-	_play_animation(&"attack")
 	var weapon_profile := _get_equipped_weapon_profile()
 	var stamina_cost := maxf(0.0, float(weapon_profile.get("stamina_cost", 0.0)))
 	if current_stamina < stamina_cost:
-		_can_attack = true
-		_is_attacking = false
 		return
+
+	_can_attack = false
+	_is_attacking = true
+	_play_animation(&"attack")
 	current_stamina = maxf(0.0, current_stamina - stamina_cost)
 	_stamina_regen_wait = stamina_regen_delay
 	var damage := float(weapon_profile.get("damage", attack_damage))
