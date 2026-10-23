@@ -211,11 +211,16 @@ func _get_equipment_movement_multiplier() -> float:
 	if catalog != null and catalog.has_method("get_max_carry_weight"):
 		max_carry = maxf(1.0, float(catalog.call("get_max_carry_weight")))
 	var load_ratio := get_equipment_weight() / max_carry
-	if load_ratio > 1.0:
+	var thresholds: Array = [50.0, 80.0, 100.0]
+	if catalog != null and catalog.has_method("get_encumbrance_thresholds_percent"):
+		var configured: Variant = catalog.call("get_encumbrance_thresholds_percent")
+		if configured is Array and configured.size() >= 3:
+			thresholds = configured
+	if load_ratio > float(thresholds[2]) / 100.0:
 		multiplier *= 0.65
-	elif load_ratio > 0.8:
+	elif load_ratio > float(thresholds[1]) / 100.0:
 		multiplier *= 0.82
-	elif load_ratio > 0.5:
+	elif load_ratio > float(thresholds[0]) / 100.0:
 		multiplier *= 0.93
 	return multiplier
 
