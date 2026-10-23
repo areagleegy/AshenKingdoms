@@ -323,3 +323,12 @@ https://github.com/areagleegy/AshenKingdoms/issues/41
 - لا تُغلق طلبًا ولا تدمجه لمجرد وجود طلب آخر مشابه؛ وثّق سبب الدمج أو الإغلاق وتأكد من حفظ التغييرات المطلوبة.
 
 المصدر الحي: [طلبات الدمج المفتوحة](https://github.com/areagleegy/AshenKingdoms/pulls) و[القضايا المفتوحة](https://github.com/areagleegy/AshenKingdoms/issues).
+
+
+## جرد العمل المفتوح والتغطية — 2026-10-23
+
+- [سجل العمل المفتوح في GitHub](OPEN_WORK_REGISTER_AR.md) يحتوي على لقطة مؤرخة لـ 54 PR مفتوحة و16 Issue مستقلة مفتوحة، مع روابط GitHub والفروع ورؤوس SHA المرصودة.
+- [خريطة توثيق المستودع](REPOSITORY_DOCUMENTATION_MAP_AR.md) تربط الأنظمة بملفات التنفيذ واختباراتها ومصادر الحقيقة والمخاطر ومعايير القبول.
+- [تدقيق التوثيق](DOCUMENTATION_AUDIT_AR.md) و[تدقيق Issues وPRs](ISSUE_AUDIT_AR.md) يسجلان فجوات التوثيق والمخاطر؛ جداول الحالة مؤرخة وليست حالة حية.
+- أُضيف سجل العمل إلى فهرس الوثائق وREADME الرئيسي. لا تزال التغييرات بحاجة إلى دمج PR #97 قبل اعتبارها جزءًا من `main`.
+- في آخر لقطة CI مسجلة في سجل العمل، نجح Validate Godot Project وBuild Android and Web على رأس `0c6dc9dc3237941e5dde949f65e538bcd116e068`. بعد أي تعديلات لاحقة يجب أن تُراجع النتائج على رأس PR الحالي نفسه.
