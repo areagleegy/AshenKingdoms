@@ -88,6 +88,20 @@ class AndroidQAReportAnalysisTests(unittest.TestCase):
         self.assertEqual(result["metrics"]["valid_fps_sample_count"], 1)
         self.assertTrue(any(item["id"] == "insufficient_performance_samples" for item in result["findings"]))
 
+    def test_huge_numeric_values_are_ignored_instead_of_crashing(self):
+        report = valid_report()
+        report["events"][0]["details"]["fps"] = 10 ** 400
+        result = analyze_report(report)
+        self.assertEqual(result["metrics"]["valid_fps_sample_count"], 2)
+        self.assertTrue(any(item["id"] == "insufficient_performance_samples"
+                            for item in result["findings"]))
+
+    def test_boolean_schema_version_is_rejected(self):
+        report = valid_report()
+        report["schema_version"] = True
+        with self.assertRaisesRegex(ValueError, "schema_version"):
+            analyze_report(report)
+
     def test_local_ai_is_explicit_and_restricted_to_localhost(self):
         analysis = analyze_report(valid_report())
         fake_response = type("FakeResponse", (), {
