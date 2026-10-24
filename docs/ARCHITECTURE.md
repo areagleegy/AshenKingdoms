@@ -14,6 +14,7 @@
 - Touch controls for movement, camera look, combat, jump, interaction and inventory; physical-device usability still needs manual validation.
 - An ENet host/client prototype on Desktop and Android using `scripts/core/network_manager.gd`, `scripts/ui/main_menu.gd`, and `scripts/networking/`.
 - A separate network arena with network avatars/enemies, authoritative handling for the prototype's movement/combat/health and a sample kill-quest.
+- The XP threshold formula is shared by single-player and network progression through the pure rules module `scripts/domain/progression_rules.gd`; its standalone domain test is part of CI.
 - CI coverage includes resource/script loading, gameplay smoke and regression tests, player-character checks, network combat smoke checks, a local ENet host/client loopback test, content package tests, and Android/Web exports.
 
 ## Network startup and limitations

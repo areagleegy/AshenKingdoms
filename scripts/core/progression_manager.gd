@@ -1,5 +1,7 @@
 extends Node
 
+const ProgressionRules: Script = preload("res://scripts/domain/progression_rules.gd")
+
 signal experience_changed(experience: int, required: int, level: int)
 signal level_up(new_level: int)
 
@@ -9,7 +11,7 @@ var experience: int = 0
 
 
 func xp_to_next_level() -> int:
-	return 100 + ((level - 1) * 50)
+	return ProgressionRules.required_xp_for_level(level)
 
 
 func add_experience(amount: int) -> void:

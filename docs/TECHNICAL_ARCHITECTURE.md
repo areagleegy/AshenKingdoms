@@ -21,10 +21,18 @@
 - scripts/player/: حركة اللاعب والكاميرا والهجوم.
 - scripts/enemies/: سلوك عدو مطارد وهجوم قريب.
 - scripts/components/: الصحة والجرد القابل لإعادة الاستخدام.
-- scripts/core/progression_manager.gd: نقاط الخبرة ورفع المستوى.
+- scripts/domain/progression_rules.gd: دالة نقية مشتركة لحساب الخبرة المطلوبة للمستوى.
+- scripts/core/progression_manager.gd: تنسيق نقاط الخبرة ورفع المستوى في اللعب الفردي مع استخدام قاعدة المجال لحساب العتبة.
 - scripts/core/quest_manager.gd: تتبع هدف المهمة ومكافأتها.
 - scripts/ui/hud.gd: HUD والتحكم باللمس وقائمتي الإيقاف والجرد.
 - scripts/core/save_system.gd: حفظ واسترجاع JSON داخل user://savegame.json.
+
+## قاعدة المجال الأولى: منحنى الخبرة
+
+- حُسب الحد المطلوب للمستوى في الماضي داخل مدير التقدم الفردي وفي منطق التقدم داخل ساحة الشبكة. لتفادي اختلاف المعادلة بمرور الوقت، توجد الصيغة المشتركة في `scripts/domain/progression_rules.gd`.
+- الدالة `required_xp_for_level(level)` دالة حتمية لا تعتمد على مشاهد أو عقد أو شبكة أو ملفات حفظ. يستدعيها مدير التقدم الفردي ومسار منح الخبرة الخادمي في `scripts/networking/network_avatar.gd`.
+- اختبر الحدود بواسطة `godot --headless --path . --script res://tests/domain/progression_rules_test.gd`. ويشغّل CI هذا الاختبار ضمن سير عمل التحقق.
+- هذا الاستخراج لا يغيّر منح الخبرة أو شروط رفع المستوى؛ بل يوحّد حساب العتبة فقط. تبقى اختبارات الانحدار والاختبارات الشبكية قائمة للتحقق من السلوك المحيط.
 
 ## التحكم
 
