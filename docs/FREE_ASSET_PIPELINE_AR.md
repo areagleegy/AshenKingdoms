@@ -72,6 +72,45 @@ python3 tools/validate_free_assets.py --root /path/to/AshenKingdoms
 
 في Godot 4.6 افتح المشروع وابحث عن لوحة Ashen Free Assets. اضغط «تحديث الجرد» لمشاهدة عدد الملفات المعروفة، أو افتح مجلد فئة لاستيراد الأصول التي جهزتها. بعد نسخ الأصول، راجع إعدادات الاستيراد والحجم والذاكرة على Android.
 
+## حزم المحتوى القابلة للتثبيت
+
+أداة `tools/package_content.py` تبني ZIP ومخططًا موقّعًا لحزم المحتوى الاختيارية. يستخدم كتالوج الحزم الآن schema v2 لأن بيانات provenance أصبحت إلزامية؛ أما ملف provenance الخارجي نفسه فيستخدم `schema_version: 1`. يتطلب البناء ملف ترخيص/مصدر خارجيًا مستقلًا عن مجلد الحزمة عبر `--asset-manifest`. يجب أن يتضمن السجل `schema_version: 1` ومصفوفة `assets`؛ ولكل ملف داخل الحزمة سجل مطابق بمسار نسبي دقيق وحقول `author` و`source_url` و`license` و`license_url` و`attribution` و`commercial_use: true` و`redistribution_allowed: true`. لا تُسجّل الإذن إلا بعد التحقق منه فعليًا.
+
+مثال مبسط لملف manifest خارجي، حيث `path` نسبي إلى مجلد المصدر:
+~~~json
+{
+  "schema_version": 1,
+  "assets": [
+    {
+      "path": "characters/hero.glb",
+      "author": "اسم المؤلف أو الجهة",
+      "source_url": "https://example.org/assets/hero",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "attribution": "نص الإسناد أو بيان موثّق بأنه غير مطلوب",
+      "commercial_use": true,
+      "redistribution_allowed": true
+    }
+  ]
+}
+~~~
+
+شغّل البناء بمفتاح RSA خاص محفوظ خارج المستودع؛ لا تستخدم مفتاحًا خاصًا داخل حزمة الأصول أو Git:
+~~~bash
+python3 tools/package_content.py \
+  --source /path/to/package-root \
+  --asset-manifest /path/to/package-provenance.json \
+  --pack-id hero_pack \
+  --version 1.0.0 \
+  --type character \
+  --url https://cdn.example.org/hero_pack.zip \
+  --output-zip /path/to/output/hero_pack.zip \
+  --output-catalog /path/to/output/hero_pack.catalog.json \
+  --private-key /secure/path/content-signing-private.pem
+~~~
+
+يُرفض البناء عند غياب بيانات ملف واحد أو عند عدم تأكيد الاستخدام التجاري أو إعادة التوزيع. يتضمن المخطط الموقّع هذه البيانات مع الحجم وSHA-256 لكل ملف؛ كما يعيد الباني حساب الهاش والحجم أثناء كتابة ZIP لرفض تغيّر المصدر في منتصف البناء. ويتحقق موقّع الكتالوج والمحلّل داخل اللعبة من حقول المصدر والترخيص نفسها قبل السماح بقبول سجل المحتوى. لا تفعّل تنزيلات الإنتاج حتى يُضبط كتالوج موقّع ومفتاح عام موثوقان وتنجح اختبارات النشر/الاسترجاع على جهاز مستهدف.
+
 ## ما لا تنفذه الإضافة
 
 الإضافة تنظّم وتعدّ الملفات فقط. لا تقوم بتوليد الصور أو الصوت، ولا تثبّت Blender أو ComfyUI أو أدوات أخرى، ولا تتصل بمواقع خارجية. هذا مقصود لتجنب الرسوم والاعتماد على خدمات الشبكة.

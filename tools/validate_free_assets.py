@@ -24,10 +24,23 @@ REQUIRED_ENTRY_FIELDS = (
 
 
 def is_http_url(value: object) -> bool:
-    if not isinstance(value, str):
+    if not isinstance(value, str) or not value or len(value) > 2048:
         return False
-    parsed = urlparse(value)
-    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+    if any(character.isspace() for character in value) or "\\" in value:
+        return False
+    try:
+        parsed = urlparse(value)
+        hostname = parsed.hostname
+        # Accessing .port also validates malformed port values.
+        _ = parsed.port
+    except ValueError:
+        return False
+    return (
+        parsed.scheme in {"http", "https"}
+        and bool(hostname)
+        and not parsed.username
+        and not parsed.password
+    )
 
 
 def scan_assets(assets_root: Path, project_root: Path) -> set[str]:
@@ -74,6 +87,10 @@ def validate(project_root: Path) -> list[str]:
         ):
             if policy.get(key) is not True:
                 errors.append(f"policy.{key} must be true for this project.")
+        if policy.get("offline_first") is not True:
+            errors.append("policy.offline_first must be true for this project.")
+        if policy.get("paid_generation_apis_allowed") is not False:
+            errors.append("policy.paid_generation_apis_allowed must be false for this project.")
 
     entries = manifest.get("assets")
     if not isinstance(entries, list):

@@ -19,6 +19,27 @@ class PackageContentTests(unittest.TestCase):
     def tearDown(self):
         self.temp_dir.cleanup()
 
+    def _write_provenance(self, filenames):
+        manifest_path = self.root / "provenance.json"
+        manifest = {
+            "schema_version": 1,
+            "assets": [
+                {
+                    "path": name,
+                    "author": "Test author",
+                    "source_url": f"https://assets.example.invalid/{name}",
+                    "license": "CC0-1.0",
+                    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+                    "attribution": "Fixture asset",
+                    "commercial_use": True,
+                    "redistribution_allowed": True,
+                }
+                for name in filenames
+            ],
+        }
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        return manifest_path
+
     def test_accepts_safe_relative_asset_path(self):
         self.assertTrue(package_content.is_safe_relative_path("characters/hero.glb"))
 
@@ -58,6 +79,7 @@ class PackageContentTests(unittest.TestCase):
         with self.assertRaises(package_content.PackageError):
             package_content.build_package(
                 source_dir=self.source,
+                asset_manifest_path=self.root / "provenance.json",
                 pack_id="test_pack",
                 version="1.0.0",
                 pack_type="character",
@@ -91,8 +113,10 @@ class PackageContentTests(unittest.TestCase):
         (self.source / "hero.glb").write_bytes(b"tiny-glb-fixture")
         zip_one = self.root / "one.zip"
         catalog_one = self.root / "one.json"
+        provenance_path = self._write_provenance(["hero.glb"])
         result = package_content.build_package(
             source_dir=self.source,
+            asset_manifest_path=provenance_path,
             pack_id="test_character",
             version="1.0.0",
             pack_type="character",
@@ -104,6 +128,13 @@ class PackageContentTests(unittest.TestCase):
         self.assertTrue(zip_one.is_file())
         envelope = json.loads(catalog_one.read_text(encoding="utf-8"))
         payload = base64.b64decode(envelope["payload_base64"], validate=True)
+        catalog_payload = json.loads(payload.decode("utf-8"))
+        self.assertEqual(catalog_payload["schema_version"], package_content.CATALOG_SCHEMA_VERSION)
+        file_record = catalog_payload["packs"][0]["files"][0]
+        for provenance_field in ("author", "source_url", "license", "license_url", "attribution"):
+            self.assertTrue(file_record[provenance_field])
+        self.assertIs(file_record["commercial_use"], True)
+        self.assertIs(file_record["redistribution_allowed"], True)
         signature = base64.b64decode(envelope["signature_base64"], validate=True)
         payload_path = self.root / "payload.json"
         signature_path = self.root / "signature.bin"
@@ -120,9 +151,77 @@ class PackageContentTests(unittest.TestCase):
         package_content.create_archive(self.source, zip_two, package_content.collect_files(self.source))
         self.assertEqual(zip_one.read_bytes(), zip_two.read_bytes())
 
+    def test_provenance_manifest_must_cover_every_packaged_file(self):
+        (self.source / "hero.glb").write_bytes(b"glb-fixture")
+        records = package_content.collect_files(self.source)
+        manifest_path = self.root / "provenance.json"
+        manifest_path.write_text(json.dumps({"schema_version": 1, "assets": []}), encoding="utf-8")
+        with self.assertRaises(package_content.PackageError):
+            package_content.validate_provenance_manifest(manifest_path, self.source, records)
+
+    def test_provenance_manifest_rejects_unconfirmed_redistribution(self):
+        (self.source / "hero.glb").write_bytes(b"glb-fixture")
+        records = package_content.collect_files(self.source)
+        manifest_path = self._write_provenance(["hero.glb"])
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["assets"][0]["redistribution_allowed"] = False
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        with self.assertRaises(package_content.PackageError):
+            package_content.validate_provenance_manifest(manifest_path, self.source, records)
+
+    def test_provenance_manifest_must_be_external_to_source_directory(self):
+        (self.source / "hero.glb").write_bytes(b"glb-fixture")
+        manifest_path = self.source / "provenance.json"
+        manifest_path.write_text("{}", encoding="utf-8")
+        records = package_content.collect_files(self.source)
+        with self.assertRaises(package_content.PackageError):
+            package_content.validate_provenance_manifest(manifest_path, self.source, records)
+
+    def test_provenance_manifest_rejects_case_insensitive_duplicate_paths(self):
+        (self.source / "hero.glb").write_bytes(b"glb-fixture")
+        records = package_content.collect_files(self.source)
+        manifest_path = self._write_provenance(["hero.glb", "HERO.glb"])
+        with self.assertRaises(package_content.PackageError):
+            package_content.validate_provenance_manifest(manifest_path, self.source, records)
+
+    def test_provenance_manifest_rejects_path_outside_package(self):
+        (self.source / "hero.glb").write_bytes(b"glb-fixture")
+        records = package_content.collect_files(self.source)
+        manifest_path = self._write_provenance(["other.glb"])
+        with self.assertRaises(package_content.PackageError):
+            package_content.validate_provenance_manifest(manifest_path, self.source, records)
+
+    def test_create_archive_detects_asset_changed_after_hashing(self):
+        asset_path = self.source / "hero.glb"
+        asset_path.write_bytes(b"before")
+        records = package_content.collect_files(self.source)
+        asset_path.write_bytes(b"after-and-longer")
+        archive_path = self.root / "changed.zip"
+        with self.assertRaises(package_content.PackageError):
+            package_content.create_archive(self.source, archive_path, records)
+        self.assertFalse(archive_path.exists())
+
     def test_rejects_non_https_package_url(self):
         with self.assertRaises(package_content.PackageError):
             package_content.validate_package_url("http://content.example.invalid/test.zip")
+
+    def test_rejects_package_url_with_embedded_credentials(self):
+        with self.assertRaises(package_content.PackageError):
+            package_content.validate_package_url("https://user:pass@content.example.invalid/test.zip")
+
+    def test_rejects_package_url_with_whitespace(self):
+        with self.assertRaises(package_content.PackageError):
+            package_content.validate_package_url("https://content.example.invalid/bad url.zip")
+
+    def test_provenance_manifest_rejects_url_with_whitespace(self):
+        (self.source / "hero.glb").write_bytes(b"glb-fixture")
+        records = package_content.collect_files(self.source)
+        manifest_path = self._write_provenance(["hero.glb"])
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["assets"][0]["source_url"] = "https://assets.example.invalid/bad url"
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        with self.assertRaises(package_content.PackageError):
+            package_content.validate_provenance_manifest(manifest_path, self.source, records)
 
     def test_rejects_unsafe_pack_id(self):
         with self.assertRaises(package_content.PackageError):

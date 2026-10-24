@@ -1,7 +1,7 @@
 extends RefCounted
 class_name ContentCatalog
 
-const SCHEMA_VERSION := 1
+const SCHEMA_VERSION := 2
 const MAX_PACKS := 500
 const MAX_FILES_PER_PACK := 10000
 const MAX_DOWNLOAD_BYTES := 2 * 1024 * 1024 * 1024
@@ -97,8 +97,8 @@ func _validate_pack(pack: Dictionary) -> Dictionary:
 	if not ALLOWED_PACK_TYPES.has(str(pack.get("type", ""))):
 		return _error("Pack %s has an unsupported type." % pack_id)
 	var url := str(pack.get("url", ""))
-	if not url.begins_with("https://") or url.length() > 2048:
-		return _error("Pack %s must use an HTTPS URL." % pack_id)
+	if not _is_http_url(url) or not url.to_lower().begins_with("https://"):
+		return _error("Pack %s must use a valid HTTPS URL without embedded credentials." % pack_id)
 	var download_size := int(pack.get("download_size", -1))
 	if download_size < 1 or download_size > MAX_DOWNLOAD_BYTES:
 		return _error("Pack %s has an invalid download size." % pack_id)
@@ -142,6 +142,10 @@ func _validate_pack(pack: Dictionary) -> Dictionary:
 			return _error("Pack %s exceeds the unpacked size limit." % pack_id)
 		if not _is_sha256(str(file_record.get("sha256", ""))):
 			return _error("Pack %s contains an invalid file digest." % pack_id)
+
+		var provenance_result := validate_asset_provenance(file_record)
+		if not bool(provenance_result.get("ok", false)):
+			return _error("Pack %s has invalid asset provenance for %s: %s" % [pack_id, path, str(provenance_result.get("error", "invalid metadata"))])
 	return {"ok": true, "error": ""}
 
 
@@ -158,6 +162,49 @@ func is_safe_relative_path(path: String) -> bool:
 			return false
 		if segment.strip_edges() != segment:
 			return false
+	return true
+
+
+func validate_asset_provenance(file_record: Variant) -> Dictionary:
+	if not file_record is Dictionary:
+		return _error("Asset provenance record must be an object.")
+	for field in ["author", "license", "attribution"]:
+		var text_value: Variant = file_record.get(field, null)
+		if not text_value is String or str(text_value).strip_edges().is_empty():
+			return _error("Missing or empty %s field." % field)
+	for field in ["source_url", "license_url"]:
+		if not _is_http_url(file_record.get(field, null)):
+			return _error("Invalid %s; expected HTTP(S) URL without credentials." % field)
+	for field in ["commercial_use", "redistribution_allowed"]:
+		var permission: Variant = file_record.get(field, null)
+		if typeof(permission) != TYPE_BOOL or not permission:
+			return _error("Explicit permission %s must be true." % field)
+	return {"ok": true, "error": ""}
+
+
+func _is_http_url(value: Variant) -> bool:
+	if not value is String:
+		return false
+	var url := str(value)
+	if url.is_empty() or url.length() > 2048:
+		return false
+	for index in url.length():
+		var code := url.unicode_at(index)
+		if code <= 32 or code == 127:
+			return false
+	var scheme_end := url.find("://")
+	if scheme_end <= 0:
+		return false
+	var scheme := url.substr(0, scheme_end).to_lower()
+	if scheme != "http" and scheme != "https":
+		return false
+	var authority := url.substr(scheme_end + 3)
+	for delimiter in ["/", "?", "#"]:
+		var delimiter_index := authority.find(delimiter)
+		if delimiter_index >= 0:
+			authority = authority.substr(0, delimiter_index)
+	if authority.is_empty() or authority.contains("@") or authority.contains("\\"):
+		return false
 	return true
 
 

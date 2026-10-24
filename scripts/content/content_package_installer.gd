@@ -44,7 +44,20 @@ func verify_archive(archive_path: String, pack_record: Dictionary) -> Dictionary
 			return _error("Package file path or extension is not allowed.")
 		if expected_files.has(path) or size < 0 or size > MAX_FILE_BYTES or not _is_sha256(digest):
 			return _error("Package file record is invalid or duplicated.")
-		expected_files[path] = {"size": size, "sha256": digest}
+		var provenance_result: Dictionary = catalog.validate_asset_provenance(record)
+		if not bool(provenance_result.get("ok", false)):
+			return _error("Package file lacks valid license provenance: %s (%s)" % [path, str(provenance_result.get("error", "invalid metadata"))])
+		expected_files[path] = {
+			"size": size,
+			"sha256": digest,
+			"author": str(record["author"]).strip_edges(),
+			"source_url": str(record["source_url"]),
+			"license": str(record["license"]).strip_edges(),
+			"license_url": str(record["license_url"]),
+			"attribution": str(record["attribution"]).strip_edges(),
+			"commercial_use": true,
+			"redistribution_allowed": true
+		}
 		total_size += size
 		if total_size > MAX_UNPACKED_BYTES:
 			return _error("Package unpacked size exceeds the safety limit.")

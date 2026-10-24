@@ -11,10 +11,12 @@ import re
 import subprocess
 import tempfile
 from typing import Any
+from urllib.parse import urlparse
 
 try:
     from tools.package_content import (
         ALLOWED_EXTENSIONS,
+        CATALOG_SCHEMA_VERSION,
         MAX_ARCHIVE_BYTES,
         MAX_FILE_BYTES,
         MAX_FILES,
@@ -48,8 +50,8 @@ MAX_PACKS = 500
 
 
 def validate_catalog(catalog: Any) -> dict[str, Any]:
-    if not isinstance(catalog, dict) or catalog.get("schema_version") != 1:
-        raise PackageError("Catalog root/schema_version is invalid.")
+    if not isinstance(catalog, dict) or catalog.get("schema_version") != CATALOG_SCHEMA_VERSION:
+        raise PackageError(f"Catalog root/schema_version must equal {CATALOG_SCHEMA_VERSION}.")
     packs = catalog.get("packs")
     if not isinstance(packs, list) or len(packs) > MAX_PACKS:
         raise PackageError("Catalog packs must be a bounded array.")
@@ -91,6 +93,28 @@ def validate_catalog(catalog: Any) -> dict[str, Any]:
                 raise PackageError(f"Invalid asset size in {pack_id}: {path}")
             if not SHA256_RE.fullmatch(str(record.get("sha256", ""))):
                 raise PackageError(f"Invalid asset digest in {pack_id}: {path}")
+
+            for field in ("author", "license", "attribution"):
+                value = record.get(field)
+                if not isinstance(value, str) or not value.strip():
+                    raise PackageError(f"Missing or invalid {field} provenance in {pack_id}: {path}")
+            for field in ("source_url", "license_url"):
+                value = record.get(field)
+                if not isinstance(value, str) or len(value) > 2048:
+                    raise PackageError(f"Missing or invalid {field} in {pack_id}: {path}")
+                parsed_url = urlparse(value)
+                if (
+                    any(character.isspace() for character in value)
+                    or parsed_url.scheme not in {"http", "https"}
+                    or not parsed_url.hostname
+                    or parsed_url.username
+                    or parsed_url.password
+                ):
+                    raise PackageError(f"{field} must be an HTTP(S) URL without embedded credentials: {path}")
+            for field in ("commercial_use", "redistribution_allowed"):
+                if record.get(field) is not True:
+                    raise PackageError(f"{field} permission must be explicitly true in {pack_id}: {path}")
+
             unpacked_size += file_size
             if unpacked_size > MAX_TOTAL_BYTES:
                 raise PackageError(f"Unpacked package size limit exceeded: {pack_id}")

@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "packs": [
     {
       "id": "example_character_pack",
@@ -13,7 +13,14 @@
         {
           "path": "characters/example.glb",
           "size": 10000,
-          "sha256": "REPLACE_WITH_64_HEX_SHA256_CHARACTERS"
+          "sha256": "REPLACE_WITH_64_HEX_SHA256_CHARACTERS",
+          "author": "REPLACE_WITH_VERIFIED_AUTHOR",
+          "source_url": "https://example.org/replace-with-original-asset-page",
+          "license": "REPLACE_WITH_VERIFIED_LICENSE",
+          "license_url": "https://example.org/replace-with-license-text",
+          "attribution": "REPLACE_WITH_REQUIRED_ATTRIBUTION_OR_VERIFIED_NONE",
+          "commercial_use": true,
+          "redistribution_allowed": true
         }
       ],
       "dependencies": []
