@@ -434,7 +434,7 @@ jobs:
           disable-animations: true
           emulator-boot-timeout: 600
           script: |
-            set -euo pipefail
+            bash -euo pipefail <<'ASHEN_SMOKE'
             mkdir -p android-test-results
             package_id="org.ashenkingdoms.game"
             adb wait-for-device
@@ -483,6 +483,7 @@ jobs:
               exit 1
             fi
             echo "Android emulator launch passed: process remained alive for 8 seconds, activity and screenshot captured, app log clean."
+            ASHEN_SMOKE
 
       - name: Upload Android emulator test results
         if: always()
