@@ -13,7 +13,8 @@ const DialogueNodeScript: Script = preload("res://scripts/dialogue/dialogue_node
 const DialogueChoiceScript: Script = preload("res://scripts/dialogue/dialogue_choice.gd")
 const MainScript: Script = preload("res://scripts/core/main.gd")
 
-const SAVE_PATH := "user://savegame.json"
+const SAVE_PATH := "user://ashenkingdoms_regression/savegame.json"
+const SAVE_DIR := "user://ashenkingdoms_regression"
 const POTION_PATH := "res://resources/items/health_potion.tres"
 
 var _failures := 0
@@ -25,6 +26,10 @@ func _initialize() -> void:
 
 
 func _run() -> void:
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(SAVE_DIR))
+	for path in [SAVE_PATH, SAVE_PATH + ".tmp", SAVE_PATH + ".bak"]:
+		if FileAccess.file_exists(path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 	var had_original_save := FileAccess.file_exists(SAVE_PATH)
 	var original_save := ""
 	if had_original_save:
@@ -130,16 +135,21 @@ func _test_inventory_and_potions() -> void:
 
 func _test_save_and_load(had_original_save: bool, original_save: String) -> void:
 	var save_system: Node = SaveSystemScript.new()
+	save_system.set("save_path", SAVE_PATH)
 	root.add_child(save_system)
 
-	_check(bool(save_system.call("save_game", {"level": 4, "health": 61.5, "flags": {"intro_seen": true}})), "save system writes structured data")
-	var loaded = save_system.call("load_game")
-	_check(loaded is Dictionary, "save system returns a dictionary for valid JSON")
-	if loaded is Dictionary:
-		_check(int(loaded.get("level", 0)) == 4, "saved progression values load correctly")
-		_check(is_equal_approx(float(loaded.get("health", 0.0)), 61.5), "saved floating-point health loads correctly")
-		var flags = loaded.get("flags", {})
-		_check(flags is Dictionary and bool(flags.get("intro_seen", false)), "nested dialogue flags survive save/load")
+	var first_save := _valid_save_data(4, 61.5)
+	_check(bool(save_system.call("save_game", first_save)), "save system writes a schema-valid save")
+	var loaded: Dictionary = save_system.call("load_game")
+	_check(loaded is Dictionary and int(loaded.get("version", 0)) == 1, "save system returns the current schema version")
+	_check(int(loaded.get("level", 0)) == 4, "saved progression values load correctly")
+	_check(is_equal_approx(float(loaded.get("player_health", 0.0)), 61.5), "saved floating-point health loads correctly")
+	var dialogue: Dictionary = loaded.get("dialogue", {})
+	var flags: Dictionary = dialogue.get("flags", {})
+	_check(bool(flags.get("intro_seen", false)), "nested dialogue flags survive save/load")
+
+	_check(bool(save_system.call("save_game", _valid_save_data(5, 70.0))), "second save commits successfully")
+	_check(FileAccess.file_exists(SAVE_PATH + ".bak"), "atomic save keeps the previous save as a backup")
 
 	var malformed := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if malformed == null:
@@ -147,13 +157,94 @@ func _test_save_and_load(had_original_save: bool, original_save: String) -> void
 	else:
 		malformed.store_string("{not valid JSON")
 		malformed.close()
-		var corrupt = save_system.call("load_game")
-		_check(corrupt is Dictionary and corrupt.is_empty(), "malformed JSON safely returns an empty dictionary")
+	var recovered: Dictionary = save_system.call("load_game")
+	_check(int(recovered.get("level", 0)) == 4, "corrupt primary save falls back to the previous valid backup")
+
+	_check(bool(save_system.call("delete_save")), "save test can remove primary, temporary, and backup files")
+	var malformed_without_backup := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	if malformed_without_backup == null:
+		_check(false, "test can create malformed JSON without a backup")
+	else:
+		malformed_without_backup.store_string("{not valid JSON")
+		malformed_without_backup.close()
+	var corrupt = save_system.call("load_game")
+	_check(corrupt is Dictionary and corrupt.is_empty(), "malformed JSON without a valid backup is rejected")
+
+	var incomplete := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	if incomplete == null:
+		_check(false, "test can create a missing-fields fixture")
+	else:
+		incomplete.store_string(JSON.stringify({"version": 1, "level": 1}))
+		incomplete.close()
+	var missing_fields = save_system.call("load_game")
+	_check(missing_fields is Dictionary and missing_fields.is_empty(), "save with missing required fields is rejected")
+
+	var invalid_range := _valid_save_data(3, 45.0)
+	var invalid_position: Dictionary = invalid_range["player_position"]
+	invalid_position["x"] = 1000001.0
+	invalid_range["player_position"] = invalid_position
+	var invalid_range_file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	if invalid_range_file == null:
+		_check(false, "test can create an out-of-range save fixture")
+	else:
+		invalid_range_file.store_string(JSON.stringify(invalid_range))
+		invalid_range_file.close()
+	var rejected_range = save_system.call("load_game")
+	_check(rejected_range is Dictionary and rejected_range.is_empty(), "out-of-range world coordinates are rejected")
+
+	var unsupported_version := _valid_save_data(3, 45.0)
+	unsupported_version["version"] = 999
+	var unsupported_file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	if unsupported_file == null:
+		_check(false, "test can create an unsupported-version save fixture")
+	else:
+		unsupported_file.store_string(JSON.stringify(unsupported_version))
+		unsupported_file.close()
+	var rejected_version = save_system.call("load_game")
+	_check(rejected_version is Dictionary and rejected_version.is_empty(), "unsupported save schema versions are rejected")
+
+	var versionless := _valid_save_data(3, 45.0)
+	versionless.erase("version")
+	var legacy_file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	if legacy_file == null:
+		_check(false, "test can create a versionless legacy save")
+	else:
+		legacy_file.store_string(JSON.stringify(versionless))
+		legacy_file.close()
+	var migrated: Dictionary = save_system.call("load_game")
+	_check(int(migrated.get("version", 0)) == 1, "valid versionless legacy save migrates to schema version 1")
+
+	var preserved := JSON.stringify(_valid_save_data(6, 80.0), "\t")
+	_check(bool(save_system.call("save_game", _valid_save_data(6, 80.0))), "save system accepts a valid replacement before failed-write test")
+	var existing_file := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	var existing_contents := existing_file.get_as_text() if existing_file != null else ""
+	if existing_file != null:
+		existing_file.close()
+	save_system.set("save_path", SAVE_DIR + "/missing-parent/savegame.json")
+	_check(not bool(save_system.call("save_game", _valid_save_data(7, 90.0))), "failed temporary-file open is reported as a failed save")
+	save_system.set("save_path", SAVE_PATH)
+	var after_failed_write := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	var after_failed_contents := after_failed_write.get_as_text() if after_failed_write != null else ""
+	if after_failed_write != null:
+		after_failed_write.close()
+	_check(after_failed_contents == existing_contents and after_failed_contents == preserved, "failed write leaves the committed save unchanged")
 
 	_restore_original_save(had_original_save, original_save, save_system)
-	_check(not bool(save_system.call("has_save")) if not had_original_save else bool(save_system.call("has_save")), "save fixture is cleaned up or original save is restored")
+	_check(not bool(save_system.call("has_save")) if not had_original_save else bool(save_system.call("has_save")), "test save artifacts are cleaned up or original save is restored")
 	save_system.queue_free()
 
+
+func _valid_save_data(level: int, health: float) -> Dictionary:
+	return {
+		"version": 1,
+		"player_position": {"x": 1.0, "y": 0.92, "z": -2.0},
+		"player_health": health,
+		"level": level,
+		"experience": 125,
+		"inventory": [{"id": "health_potion", "amount": 2}],
+		"quest": {"id": "ash_trail", "title": "اقتفاء الرماد", "progress": 1, "active": true},
+		"dialogue": {"flags": {"intro_seen": true}}
+	}
 
 func _restore_original_save(had_original_save: bool, original_save: String, save_system: Node) -> void:
 	if had_original_save:
